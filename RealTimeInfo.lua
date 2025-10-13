@@ -1,0 +1,328 @@
+-- Real Time Info Display Script
+-- Hiển thị FPS, PING, thời gian thực với GUI đẹp
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+local MarketplaceService = game:GetService("MarketplaceService")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Tạo ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "RealTimeInfo"
+ScreenGui.Parent = PlayerGui
+ScreenGui.ResetOnSpawn = false
+
+-- Tạo Frame chính
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.Size = UDim2.new(0, 0, 0, 25) -- Tự động co giãn
+MainFrame.Position = UDim2.new(0, 10, 0, 10)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20) -- Màu đen đậm
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+-- Tạo Border
+local Border = Instance.new("UIStroke")
+Border.Parent = MainFrame
+Border.Color = Color3.fromRGB(60, 60, 60) -- Màu xám tối
+Border.Thickness = 1
+
+-- Tạo Corner (vuông góc)
+local Corner = Instance.new("UICorner")
+Corner.Parent = MainFrame
+Corner.CornerRadius = UDim.new(0, 0)
+
+-- Tạo Title (bỏ title để tiết kiệm không gian)
+
+-- Tạo Context Menu
+local ContextMenu = Instance.new("Frame")
+ContextMenu.Name = "ContextMenu"
+ContextMenu.Parent = ScreenGui
+ContextMenu.Size = UDim2.new(0, 0, 0, 0)
+ContextMenu.Position = UDim2.new(0, 0, 0, 0)
+ContextMenu.BackgroundColor3 = Color3.fromRGB(20, 20, 20) -- Giống MainFrame
+ContextMenu.BorderSizePixel = 0
+ContextMenu.Visible = false
+ContextMenu.ZIndex = 15
+ContextMenu.AutomaticSize = Enum.AutomaticSize.XY
+
+local ContextPadding = Instance.new("UIPadding")
+ContextPadding.Parent = ContextMenu
+ContextPadding.PaddingTop = UDim.new(0, 6)
+ContextPadding.PaddingBottom = UDim.new(0, 6)
+ContextPadding.PaddingLeft = UDim.new(0, 6)
+ContextPadding.PaddingRight = UDim.new(0, 6)
+
+local ContextLayout = Instance.new("UIListLayout")
+ContextLayout.Parent = ContextMenu
+ContextLayout.FillDirection = Enum.FillDirection.Vertical
+ContextLayout.SortOrder = Enum.SortOrder.LayoutOrder
+ContextLayout.Padding = UDim.new(0, 4)
+
+-- Tạo Border cho Context Menu
+local ContextBorder = Instance.new("UIStroke")
+ContextBorder.Parent = ContextMenu
+ContextBorder.Color = Color3.fromRGB(60, 60, 60) -- Giống MainFrame
+ContextBorder.Thickness = 1
+
+-- Tạo Corner cho Context Menu
+local ContextCorner = Instance.new("UICorner")
+ContextCorner.Parent = ContextMenu
+ContextCorner.CornerRadius = UDim.new(0, 0)
+
+-- Tạo các button trong menu
+local function createMenuButton(text, callback)
+    local button = Instance.new("TextButton")
+    button.Name = text .. "Button"
+    button.Parent = ContextMenu
+    button.Size = UDim2.new(0, 0, 0, 30)
+    button.BackgroundColor3 = Color3.fromRGB(20, 20, 20) -- Giống MainFrame
+    button.BorderSizePixel = 0
+    button.Text = text
+    button.TextColor3 = Color3.fromRGB(200, 200, 200) -- Giống InfoLabel
+    button.TextSize = 12 -- Giống InfoLabel
+    button.Font = Enum.Font.Gotham -- Giống InfoLabel
+    button.TextXAlignment = Enum.TextXAlignment.Left -- Giống InfoLabel
+    button.ZIndex = 20 -- ZIndex cao để text hiển thị rõ
+    button.AutoButtonColor = false
+    button.AutomaticSize = Enum.AutomaticSize.X
+    
+    -- Tạo Corner cho button
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.Parent = button
+    buttonCorner.CornerRadius = UDim.new(0, 0)
+    
+    -- Tạo Border cho button
+    local buttonBorder = Instance.new("UIStroke")
+    buttonBorder.Parent = button
+    buttonBorder.Color = Color3.fromRGB(60, 60, 60) -- Giống MainFrame
+    buttonBorder.Thickness = 1
+
+    local buttonPadding = Instance.new("UIPadding")
+    buttonPadding.Parent = button
+    buttonPadding.PaddingLeft = UDim.new(0, 10)
+    buttonPadding.PaddingRight = UDim.new(0, 10)
+    
+    -- Hiệu ứng hover
+    button.MouseEnter:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+        }):Play()
+    end)
+    
+    button.MouseLeave:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+        }):Play()
+    end)
+    
+    -- Xử lý click
+    button.MouseButton1Click:Connect(function()
+        callback()
+        ContextMenu.Visible = false
+    end)
+    
+    return button
+end
+
+-- Tạo các button menu
+local rejoinButton = createMenuButton("Rejoin Server", function()
+    game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
+end)
+
+local serverHopMostButton = createMenuButton("Server Hop (Most Players)", function()
+    local HttpService = game:GetService("HttpService")
+    local TeleportService = game:GetService("TeleportService")
+    
+    local success, result = pcall(function()
+        return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=100"))
+    end)
+    
+    if success and result and result.data then
+        for _, server in pairs(result.data) do
+            if server.playing < server.maxPlayers and server.id ~= game.JobId then
+                TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id)
+                break
+            end
+        end
+    end
+end)
+
+local serverHopLeastButton = createMenuButton("Server Hop (Least Players)", function()
+    local HttpService = game:GetService("HttpService")
+    local TeleportService = game:GetService("TeleportService")
+    
+    local success, result = pcall(function()
+        return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+    end)
+    
+    if success and result and result.data then
+        for _, server in pairs(result.data) do
+            if server.playing < server.maxPlayers and server.id ~= game.JobId then
+                TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id)
+                break
+            end
+        end
+    end
+end)
+
+
+-- Biến để tính FPS
+local lastTime = 0
+local frameCount = 0
+local fps = 0
+
+-- Biến để tính PING
+local lastPingTime = 0
+local ping = 0
+
+-- Biến để lưu thông tin game
+local gameName = "Unknown Game"
+local placeName = "Unknown Place"
+local placeId = game.PlaceId
+local gameId = game.GameId
+
+-- ====== LẤY PLACE NAME ======
+local success, info = pcall(function()
+	return MarketplaceService:GetProductInfo(placeId)
+end)
+
+if success and info and info.Name then
+	placeName = info.Name
+else
+	warn("[PLACE ERROR] Không thể lấy thông tin Place:", info)
+end
+
+-- ====== LẤY GAME NAME ======
+-- Ưu tiên: Dùng syn.request (executor) nếu có
+if syn and syn.request then
+	local url = "https://games.roblox.com/v1/games?universeIds=" .. tostring(gameId)
+	local response = syn.request({Url = url, Method = "GET"})
+	
+	if response and response.Success and response.Body then
+		local ok, data = pcall(function()
+			return HttpService:JSONDecode(response.Body)
+		end)
+		
+		if ok and data and data.data and data.data[1] then
+			gameName = data.data[1].name
+		else
+			warn("[GAME ERROR] Không thể phân tích dữ liệu API.")
+		end
+	else
+		warn("[GAME ERROR] API trả về lỗi hoặc bị chặn.")
+	end
+else
+	-- Fallback: nếu không có syn.request
+	gameName = "Không thể lấy (executor không hỗ trợ HTTP)"
+end
+
+-- Tạo Info Label (tất cả thông tin trong 1 label)
+local InfoLabel = Instance.new("TextLabel")
+InfoLabel.Name = "InfoLabel"
+InfoLabel.Parent = MainFrame
+InfoLabel.Size = UDim2.new(0, 0, 1, 0) -- Tự động co giãn theo nội dung
+InfoLabel.Position = UDim2.new(0, 5, 0, 0)
+InfoLabel.BackgroundTransparency = 1
+InfoLabel.Text = gameName .. " | " .. placeName .. " | FPS: 60 | PING: 50ms | TIME: 12:34:56 | PLAYER: 15/20"
+InfoLabel.TextColor3 = Color3.fromRGB(200, 200, 200) -- Màu xám nhạt
+InfoLabel.TextSize = 12
+InfoLabel.Font = Enum.Font.Gotham
+InfoLabel.TextXAlignment = Enum.TextXAlignment.Left
+InfoLabel.TextWrapped = false -- Không wrap text
+
+-- Hàm cập nhật tất cả thông tin
+local function updateAllInfo()
+    -- Cập nhật FPS
+    frameCount = frameCount + 1
+    local currentTime = tick()
+    
+    if currentTime - lastTime >= 1 then
+        fps = math.floor(frameCount / (currentTime - lastTime))
+        frameCount = 0
+        lastTime = currentTime
+    end
+    
+    -- Cập nhật PING
+    if currentTime - lastPingTime >= 1 then
+        local success, result = pcall(function()
+            return game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue()
+        end)
+        
+        if success and result then
+            ping = math.floor(result)
+        end
+        
+        lastPingTime = currentTime
+    end
+    
+    -- Cập nhật thời gian
+    local realTime = os.date("*t")
+    local timeString = string.format("%02d:%02d:%02d", realTime.hour, realTime.min, realTime.sec)
+    
+    -- Cập nhật Server Info
+    local playerCount = #Players:GetPlayers()
+    local maxPlayers = game.PrivateServerId and 20 or game.Players.MaxPlayers
+    
+    -- Cập nhật InfoLabel
+    InfoLabel.Text = gameName .. " | " .. placeName .. " | FPS: " .. fps .. " | PING: " .. ping .. "ms | TIME: " .. timeString .. " | PLAYER: " .. playerCount .. "/" .. maxPlayers
+    
+    -- Tự động điều chỉnh kích thước MainFrame theo nội dung
+    local textBounds = InfoLabel.TextBounds
+    local newWidth = textBounds.X + 10 -- Thêm 10px padding
+    MainFrame.Size = UDim2.new(0, newWidth, 0, 25)
+end
+
+-- Kết nối RenderStepped để cập nhật liên tục
+local connection
+connection = RunService.RenderStepped:Connect(function()
+    updateAllInfo()
+end)
+
+-- Xử lý chuột phải để hiển thị context menu
+MainFrame.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        local mouse = LocalPlayer:GetMouse()
+        ContextMenu.Position = UDim2.new(0, mouse.X, 0, mouse.Y)
+        ContextMenu.Visible = true
+    end
+end)
+
+-- Đóng context menu khi click ra ngoài
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.MouseButton2 then
+        ContextMenu.Visible = false
+    end
+end)
+
+-- Tạo hotkey để ẩn/hiện GUI (F9)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == Enum.KeyCode.F9 then
+        MainFrame.Visible = not MainFrame.Visible
+        if not MainFrame.Visible then
+            ContextMenu.Visible = false
+        end
+    end
+end)
+
+-- Cleanup khi script bị hủy
+game:BindToClose(function()
+    if connection then
+        connection:Disconnect()
+    end
+    if ScreenGui then
+        ScreenGui:Destroy()
+    end
+end)
