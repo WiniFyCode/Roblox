@@ -192,23 +192,27 @@ local playerConnections = {} -- Lưu connections cho từng player
 
 -- ESP Functions (định nghĩa trước khi sử dụng)
 local function removeESP(player)
-    if espObjects[player] then
-        if espObjects[player].highlight then
-            espObjects[player].highlight:Destroy()
+    if not player then return end
+    
+    if espObjects and espObjects[player] then
+        local espData = espObjects[player]
+        if espData.highlight and espData.highlight.Destroy then
+            espData.highlight:Destroy()
         end
-        if espObjects[player].billboardGui then
-            espObjects[player].billboardGui:Destroy()
+        if espData.billboardGui and espData.billboardGui.Destroy then
+            espData.billboardGui:Destroy()
         end
-        if espObjects[player].rainbowConnection then
-            espObjects[player].rainbowConnection:Disconnect()
+        if espData.rainbowConnection and espData.rainbowConnection.Disconnect then
+            espData.rainbowConnection:Disconnect()
         end
         espObjects[player] = nil
     end
     
     -- Xóa connections cho player này
-    if playerConnections[player] then
-        for _, connection in pairs(playerConnections[player]) do
-            if connection then
+    if playerConnections and playerConnections[player] then
+        local connections = playerConnections[player]
+        for _, connection in pairs(connections) do
+            if connection and connection.Disconnect then
                 connection:Disconnect()
             end
         end
@@ -233,7 +237,7 @@ local function createESP(player)
     highlight.Parent = character
     highlight.FillColor = Color3.fromRGB(0, 255, 255) -- Cyan
     highlight.OutlineColor = Color3.fromRGB(255, 0, 0) -- Bắt đầu với đỏ
-    highlight.FillTransparency = 0.3
+    highlight.FillTransparency = 0.9
     highlight.OutlineTransparency = 0
     
     -- Tạo BillboardGui cho tên
@@ -287,16 +291,21 @@ local function createESP(player)
 end
 
 local function setupPlayerESP(player)
-    if not player or player == LocalPlayer then return end
+    if not player or player == LocalPlayer or not player.Parent then return end
     
     -- Xóa connections cũ nếu có
-    if playerConnections[player] then
+    if playerConnections and playerConnections[player] then
         for _, connection in pairs(playerConnections[player]) do
             if connection then
                 connection:Disconnect()
             end
         end
         playerConnections[player] = nil
+    end
+    
+    -- Đảm bảo playerConnections tồn tại
+    if not playerConnections then
+        playerConnections = {}
     end
     
     playerConnections[player] = {}
@@ -332,9 +341,11 @@ local function setupPlayerESP(player)
         end
     end)
     
-    -- Lưu connections
-    playerConnections[player].characterAdded = characterAddedConnection
-    playerConnections[player].characterRemoving = characterRemovingConnection
+    -- Lưu connections (kiểm tra an toàn)
+    if playerConnections and playerConnections[player] then
+        playerConnections[player].characterAdded = characterAddedConnection
+        playerConnections[player].characterRemoving = characterRemovingConnection
+    end
 end
 
 local function enableESP()
@@ -382,14 +393,18 @@ local function disableESP()
     end
     
     -- Xóa tất cả player connections
-    for player, connections in pairs(playerConnections) do
-        for _, connection in pairs(connections) do
-            if connection then
-                connection:Disconnect()
+    if playerConnections then
+        for player, connections in pairs(playerConnections) do
+            if connections then
+                for _, connection in pairs(connections) do
+                    if connection and connection.Disconnect then
+                        connection:Disconnect()
+                    end
+                end
             end
         end
+        playerConnections = {}
     end
-    playerConnections = {}
     
     -- Disconnect events
     if espConnections.playerAdded then
@@ -589,18 +604,20 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- Cleanup khi script bị hủy
-game:BindToClose(function()
-    if connection then
-        connection:Disconnect()
-    end
-    
-    -- Cleanup ESP
-    if espEnabled then
-        disableESP()
-    end
-    
-    if ScreenGui then
-        ScreenGui:Destroy()
+-- Cleanup khi player rời khỏi game
+Players.PlayerRemoving:Connect(function(leavingPlayer)
+    if leavingPlayer == LocalPlayer then
+        if connection then
+            connection:Disconnect()
+        end
+        
+        -- Cleanup ESP
+        if espEnabled then
+            disableESP()
+        end
+        
+        if ScreenGui then
+            ScreenGui:Destroy()
+        end
     end
 end)
