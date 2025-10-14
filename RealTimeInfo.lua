@@ -190,6 +190,23 @@ local espConnections = {}
 local espObjects = {}
 local playerConnections = {} -- Lưu connections cho từng player
 
+-- Lưu trạng thái ESP để tự động khôi phục khi qua ván mới
+local function saveESPState()
+    if ScreenGui then
+        ScreenGui:SetAttribute("ESPEnabled", espEnabled)
+    end
+end
+
+local function loadESPState()
+    if ScreenGui then
+        local savedState = ScreenGui:GetAttribute("ESPEnabled")
+        if savedState ~= nil then
+            return savedState
+        end
+    end
+    return false
+end
+
 -- ESP Functions (định nghĩa trước khi sử dụng)
 local function removeESP(player)
     if not player then return end
@@ -432,6 +449,9 @@ toggleEspButton = createMenuButton("ESP: OFF", function()
         disableESP()
     end
     
+    -- Lưu trạng thái ESP
+    saveESPState()
+    
     -- Cập nhật text button
     toggleEspButton.Text = "ESP: " .. (espEnabled and "ON" or "OFF")
 end)
@@ -600,12 +620,22 @@ connection = RunService.RenderStepped:Connect(function()
     updateAllInfo()
 end)
 
+-- Function để cập nhật text button dựa trên trạng thái hiện tại
+local function updateHiddenButtonText()
+    if MainFrame.Visible then
+        hiddenScriptButton.Text = "Hidden Script"
+    else
+        hiddenScriptButton.Text = "Show Script"
+    end
+end
+
 -- Xử lý chuột phải để hiển thị context menu
 MainFrame.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     
     if input.UserInputType == Enum.UserInputType.MouseButton2 then
         local mouse = LocalPlayer:GetMouse()
+        updateHiddenButtonText() -- Cập nhật text trước khi hiển thị menu
         ContextMenu.Position = UDim2.new(0, mouse.X, 0, mouse.Y)
         ContextMenu.Visible = true
     end
@@ -617,6 +647,7 @@ InvisibleFrame.InputBegan:Connect(function(input, gameProcessed)
     
     if input.UserInputType == Enum.UserInputType.MouseButton2 then
         local mouse = LocalPlayer:GetMouse()
+        updateHiddenButtonText() -- Cập nhật text trước khi hiển thị menu
         ContextMenu.Position = UDim2.new(0, mouse.X, 0, mouse.Y)
         ContextMenu.Visible = true
     end
@@ -629,6 +660,23 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.MouseButton2 then
         ContextMenu.Visible = false
     end
+end)
+
+-- Tự động khôi phục trạng thái ESP khi script khởi động
+local function autoRestoreESP()
+    local savedState = loadESPState()
+    if savedState then
+        espEnabled = true
+        enableESP()
+        toggleEspButton.Text = "ESP: ON"
+        print("[RealTimeInfo] ESP automatically restored from previous session")
+    end
+end
+
+-- Khôi phục ESP sau khi script load xong
+task.spawn(function()
+    task.wait(2) -- Đợi script load hoàn toàn
+    autoRestoreESP()
 end)
 
 -- Cleanup khi player rời khỏi game
