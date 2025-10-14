@@ -338,6 +338,28 @@ toggleEspButton = createMenuButton("ESP: OFF", function()
     toggleEspButton.Text = "ESP: " .. (espEnabled and "ON" or "OFF")
 end)
 
+local reloadScriptButton = createMenuButton("Reload Script", function()
+    -- Reload script bằng cách destroy và tạo lại
+    if ScreenGui then
+        ScreenGui:Destroy()
+    end
+    
+    -- Chờ một chút rồi load lại script từ clipboard hoặc local
+    wait(0.1)
+    print("[RealTimeInfo] Script reloaded! Please re-execute the script manually.")
+end)
+
+local hiddenScriptButton = createMenuButton("Hidden Script", function()
+    -- Toggle ẩn/hiện script
+    if MainFrame.Visible then
+        MainFrame.Visible = false
+        hiddenScriptButton.Text = "Show Script"
+    else
+        MainFrame.Visible = true
+        hiddenScriptButton.Text = "Hidden Script"
+    end
+end)
+
 -- Biến để tính FPS
 local lastTime = 0
 local frameCount = 0
@@ -503,6 +525,10 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         MainFrame.Visible = not MainFrame.Visible
         if not MainFrame.Visible then
             ContextMenu.Visible = false
+        end
+        -- Cập nhật text button
+        if hiddenScriptButton then
+            hiddenScriptButton.Text = MainFrame.Visible and "Hidden Script" or "Show Script"
         end
     end
 end)
