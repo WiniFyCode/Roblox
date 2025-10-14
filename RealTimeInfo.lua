@@ -198,12 +198,12 @@ local function createESP(player)
     local character = player.Character
     local humanoidRootPart = character.HumanoidRootPart
     
-    -- Tạo Highlight
+    -- Tạo Highlight với viền rainbow
     local highlight = Instance.new("Highlight")
     highlight.Name = "ESP_Highlight"
     highlight.Parent = character
     highlight.FillColor = Color3.fromRGB(0, 255, 255) -- Cyan
-    highlight.OutlineColor = Color3.fromRGB(0, 200, 200)
+    highlight.OutlineColor = Color3.fromRGB(255, 0, 0) -- Bắt đầu với đỏ
     highlight.FillTransparency = 0.3
     highlight.OutlineTransparency = 0
     
@@ -231,11 +231,26 @@ local function createESP(player)
     nameLabel.TextXAlignment = Enum.TextXAlignment.Center
     nameLabel.TextYAlignment = Enum.TextYAlignment.Center
     
+    -- Tạo rainbow animation cho viền
+    local rainbowConnection
+    rainbowConnection = RunService.Heartbeat:Connect(function()
+        if highlight and highlight.Parent then
+            local time = tick()
+            local r = math.sin(time * 2) * 0.5 + 0.5
+            local g = math.sin(time * 2 + 2) * 0.5 + 0.5
+            local b = math.sin(time * 2 + 4) * 0.5 + 0.5
+            highlight.OutlineColor = Color3.new(r, g, b)
+        else
+            rainbowConnection:Disconnect()
+        end
+    end)
+    
     -- Lưu ESP objects
     espObjects[player] = {
         highlight = highlight,
         billboardGui = billboardGui,
-        nameLabel = nameLabel
+        nameLabel = nameLabel,
+        rainbowConnection = rainbowConnection
     }
 end
 
@@ -246,6 +261,9 @@ local function removeESP(player)
         end
         if espObjects[player].billboardGui then
             espObjects[player].billboardGui:Destroy()
+        end
+        if espObjects[player].rainbowConnection then
+            espObjects[player].rainbowConnection:Disconnect()
         end
         espObjects[player] = nil
     end
