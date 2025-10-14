@@ -188,12 +188,16 @@ end)
 local espEnabled = false
 local espConnections = {}
 local espObjects = {}
+local playerConnections = {} -- Lưu connections cho từng player
 
 -- ESP Functions (định nghĩa trước khi sử dụng)
 local function createESP(player)
-    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
-        return
+    if not player or not player.Parent or not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+        return false
     end
+    
+    -- Xóa ESP cũ nếu có
+    removeESP(player)
     
     local character = player.Character
     local humanoidRootPart = character.HumanoidRootPart
@@ -234,7 +238,7 @@ local function createESP(player)
     -- Tạo rainbow animation cho viền
     local rainbowConnection
     rainbowConnection = RunService.Heartbeat:Connect(function()
-        if highlight and highlight.Parent then
+        if highlight and highlight.Parent and character and character.Parent then
             local time = tick()
             local r = math.sin(time * 2) * 0.5 + 0.5
             local g = math.sin(time * 2 + 2) * 0.5 + 0.5
@@ -250,8 +254,11 @@ local function createESP(player)
         highlight = highlight,
         billboardGui = billboardGui,
         nameLabel = nameLabel,
-        rainbowConnection = rainbowConnection
+        rainbowConnection = rainbowConnection,
+        character = character
     }
+    
+    return true
 end
 
 local function removeESP(player)
@@ -267,41 +274,81 @@ local function removeESP(player)
         end
         espObjects[player] = nil
     end
+    
+    -- Xóa connections cho player này
+    if playerConnections[player] then
+        for _, connection in pairs(playerConnections[player]) do
+            if connection then
+                connection:Disconnect()
+            end
+        end
+        playerConnections[player] = nil
+    end
+end
+
+local function setupPlayerESP(player)
+    if not player or player == LocalPlayer then return end
+    
+    -- Xóa connections cũ nếu có
+    if playerConnections[player] then
+        for _, connection in pairs(playerConnections[player]) do
+            if connection then
+                connection:Disconnect()
+            end
+        end
+        playerConnections[player] = nil
+    end
+    
+    playerConnections[player] = {}
+    
+    -- Tạo ESP cho character hiện tại nếu có
+    local function tryCreateESP()
+        if espEnabled and player.Parent and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            createESP(player)
+        end
+    end
+    
+    -- Thử tạo ESP ngay lập tức
+    tryCreateESP()
+    
+    -- Lắng nghe khi character spawn/respawn
+    local characterAddedConnection = player.CharacterAdded:Connect(function(character)
+        if espEnabled and player.Parent then
+            -- Đợi character load hoàn toàn
+            local humanoidRootPart = character:WaitForChild("HumanoidRootPart", 10)
+            if humanoidRootPart then
+                wait(1) -- Đợi thêm 1 giây để đảm bảo character đã load xong
+                if espEnabled and player.Parent then
+                    createESP(player)
+                end
+            end
+        end
+    end)
+    
+    -- Lắng nghe khi character bị destroy (die)
+    local characterRemovingConnection = player.CharacterRemoving:Connect(function()
+        if espObjects[player] then
+            removeESP(player)
+        end
+    end)
+    
+    -- Lưu connections
+    playerConnections[player].characterAdded = characterAddedConnection
+    playerConnections[player].characterRemoving = characterRemovingConnection
 end
 
 local function enableESP()
     -- Tạo ESP cho tất cả người chơi hiện tại
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer then
-            -- Đợi character load nếu cần
-            if player.Character then
-                createESP(player)
-            else
-                player.CharacterAdded:Connect(function()
-                    createESP(player)
-                end)
-            end
+            setupPlayerESP(player)
         end
     end
     
     -- Connect events cho người chơi mới
     local playerAddedConnection = Players.PlayerAdded:Connect(function(player)
         if espEnabled then
-            -- Xử lý character spawn cho người chơi mới
-            local function onCharacterAdded(character)
-                spawn(function()
-                    wait(2) -- Đợi character load hoàn toàn
-                    if espEnabled and player.Parent then -- Kiểm tra player vẫn còn trong game
-                        createESP(player)
-                    end
-                end)
-            end
-            
-            if player.Character then
-                onCharacterAdded(player.Character)
-            else
-                player.CharacterAdded:Connect(onCharacterAdded)
-            end
+            setupPlayerESP(player)
         end
     end)
     
@@ -313,11 +360,11 @@ local function enableESP()
     espConnections.playerAdded = playerAddedConnection
     espConnections.playerRemoving = playerRemovingConnection
     
-    -- Tạo connection để kiểm tra liên tục các người chơi
+    -- Tạo connection để kiểm tra liên tục các người chơi (backup)
     local checkPlayersConnection = RunService.Heartbeat:Connect(function()
         if espEnabled then
             for _, player in pairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer and player.Character and not espObjects[player] then
+                if player ~= LocalPlayer and player.Parent and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and not espObjects[player] then
                     -- Nếu player có character nhưng chưa có ESP, tạo ESP
                     createESP(player)
                 end
@@ -333,6 +380,16 @@ local function disableESP()
     for player, _ in pairs(espObjects) do
         removeESP(player)
     end
+    
+    -- Xóa tất cả player connections
+    for player, connections in pairs(playerConnections) do
+        for _, connection in pairs(connections) do
+            if connection then
+                connection:Disconnect()
+            end
+        end
+    end
+    playerConnections = {}
     
     -- Disconnect events
     if espConnections.playerAdded then
@@ -362,17 +419,6 @@ toggleEspButton = createMenuButton("ESP: OFF", function()
     
     -- Cập nhật text button
     toggleEspButton.Text = "ESP: " .. (espEnabled and "ON" or "OFF")
-end)
-
-local reloadScriptButton = createMenuButton("Reload Script", function()
-    -- Reload script bằng cách destroy và tạo lại
-    if ScreenGui then
-        ScreenGui:Destroy()
-    end
-    
-    -- Chờ một chút rồi load lại script từ clipboard hoặc local
-    wait(0.1)
-    print("[RealTimeInfo] Script reloaded! Please re-execute the script manually.")
 end)
 
 local hiddenScriptButton = createMenuButton("Hidden Script", function()
@@ -540,22 +586,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.MouseButton2 then
         ContextMenu.Visible = false
-    end
-end)
-
--- Tạo hotkey để ẩn/hiện GUI (F9)
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    
-    if input.KeyCode == Enum.KeyCode.F9 then
-        MainFrame.Visible = not MainFrame.Visible
-        if not MainFrame.Visible then
-            ContextMenu.Visible = false
-        end
-        -- Cập nhật text button
-        if hiddenScriptButton then
-            hiddenScriptButton.Text = MainFrame.Visible and "Hidden Script" or "Show Script"
-        end
     end
 end)
 
