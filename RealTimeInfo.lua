@@ -204,7 +204,7 @@ local function createESP(player)
     highlight.Parent = character
     highlight.FillColor = Color3.fromRGB(0, 255, 255) -- Cyan
     highlight.OutlineColor = Color3.fromRGB(255, 0, 0) -- Bắt đầu với đỏ
-    highlight.FillTransparency = 0.9
+    highlight.FillTransparency = 0.3
     highlight.OutlineTransparency = 0
     
     -- Tạo BillboardGui cho tên
