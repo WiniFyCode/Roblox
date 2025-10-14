@@ -204,7 +204,7 @@ local function createESP(player)
     highlight.Parent = character
     highlight.FillColor = Color3.fromRGB(0, 255, 255) -- Cyan
     highlight.OutlineColor = Color3.fromRGB(255, 0, 0) -- Bắt đầu với đỏ
-    highlight.FillTransparency = 0.3
+    highlight.FillTransparency = 0.9
     highlight.OutlineTransparency = 0
     
     -- Tạo BillboardGui cho tên
@@ -287,13 +287,21 @@ local function enableESP()
     -- Connect events cho người chơi mới
     local playerAddedConnection = Players.PlayerAdded:Connect(function(player)
         if espEnabled then
-            player.CharacterAdded:Connect(function(character)
-                -- Đợi character load xong bằng spawn
+            -- Xử lý character spawn cho người chơi mới
+            local function onCharacterAdded(character)
                 spawn(function()
-                    wait(1)
-                    createESP(player)
+                    wait(2) -- Đợi character load hoàn toàn
+                    if espEnabled and player.Parent then -- Kiểm tra player vẫn còn trong game
+                        createESP(player)
+                    end
                 end)
-            end)
+            end
+            
+            if player.Character then
+                onCharacterAdded(player.Character)
+            else
+                player.CharacterAdded:Connect(onCharacterAdded)
+            end
         end
     end)
     
@@ -304,6 +312,20 @@ local function enableESP()
     -- Lưu connections để cleanup sau
     espConnections.playerAdded = playerAddedConnection
     espConnections.playerRemoving = playerRemovingConnection
+    
+    -- Tạo connection để kiểm tra liên tục các người chơi
+    local checkPlayersConnection = RunService.Heartbeat:Connect(function()
+        if espEnabled then
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character and not espObjects[player] then
+                    -- Nếu player có character nhưng chưa có ESP, tạo ESP
+                    createESP(player)
+                end
+            end
+        end
+    end)
+    
+    espConnections.checkPlayers = checkPlayersConnection
 end
 
 local function disableESP()
@@ -320,6 +342,10 @@ local function disableESP()
     if espConnections.playerRemoving then
         espConnections.playerRemoving:Disconnect()
         espConnections.playerRemoving = nil
+    end
+    if espConnections.checkPlayers then
+        espConnections.checkPlayers:Disconnect()
+        espConnections.checkPlayers = nil
     end
 end
 
