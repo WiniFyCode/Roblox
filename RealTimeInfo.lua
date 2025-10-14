@@ -172,6 +172,18 @@ local serverHopLeastButton = createMenuButton("Server Hop (Least Players)", func
     end
 end)
 
+local loadInfiniteYieldButton = createMenuButton("Load Infinite Yield", function()
+    local success, error = pcall(function()
+        loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
+    end)
+    
+    if success then
+        print("[RealTimeInfo] Infinite Yield loaded successfully!")
+    else
+        warn("[RealTimeInfo] Failed to load Infinite Yield:", error)
+    end
+end)
+
 
 -- Biến để tính FPS
 local lastTime = 0
@@ -187,7 +199,6 @@ local gameName = "Unknown Game"
 local placeName = "Unknown Place"
 local placeId = game.PlaceId
 local gameId = game.GameId
-
 -- ====== LẤY PLACE NAME ======
 local success, info = pcall(function()
 	return MarketplaceService:GetProductInfo(placeId)
@@ -200,27 +211,53 @@ else
 end
 
 -- ====== LẤY GAME NAME ======
--- Ưu tiên: Dùng syn.request (executor) nếu có
-if syn and syn.request then
-	local url = "https://games.roblox.com/v1/games?universeIds=" .. tostring(gameId)
-	local response = syn.request({Url = url, Method = "GET"})
-	
-	if response and response.Success and response.Body then
-		local ok, data = pcall(function()
-			return HttpService:JSONDecode(response.Body)
-		end)
+local HttpService = game:GetService("HttpService")
+
+-- Hàm lấy game name từ API
+local function getGameName()
+	local success, result = pcall(function()
+		-- Sử dụng API chính thức của Roblox
+		local url = "https://games.roblox.com/v1/games?universeIds=" .. tostring(gameId)
 		
-		if ok and data and data.data and data.data[1] then
-			gameName = data.data[1].name
-		else
-			warn("[GAME ERROR] Không thể phân tích dữ liệu API.")
+		-- Thử với game:HttpGet trước (executor)
+		if game.HttpGet then
+			local response = game:HttpGet(url, true)
+			return HttpService:JSONDecode(response)
 		end
-	else
-		warn("[GAME ERROR] API trả về lỗi hoặc bị chặn.")
+		
+		-- Fallback: sử dụng HttpService:GetAsync
+		return HttpService:GetAsync(url)
+	end)
+	
+	if success and result then
+		local data
+		if type(result) == "string" then
+			data = HttpService:JSONDecode(result)
+		else
+			data = result
+		end
+		
+		if data and data.data and data.data[1] and data.data[1].name then
+			return data.data[1].name
+		end
 	end
+	
+	return nil
+end
+
+-- Thử lấy game name
+local retrievedGameName = getGameName()
+if retrievedGameName then
+	gameName = retrievedGameName
 else
-	-- Fallback: nếu không có syn.request
-	gameName = "Không thể lấy (executor không hỗ trợ HTTP)"
+	gameName = "Unknown Game"
+	warn("[GAME ERROR] Không thể lấy tên game từ API")
+end
+
+-- Kiểm tra nếu placeName giống gameName thì chỉ hiển thị gameName
+local displayName = gameName
+if placeName ~= gameName then
+	displayName = gameName .. " | " .. placeName
 end
 
 -- Tạo Info Label (tất cả thông tin trong 1 label)
@@ -230,7 +267,7 @@ InfoLabel.Parent = MainFrame
 InfoLabel.Size = UDim2.new(0, 0, 1, 0) -- Tự động co giãn theo nội dung
 InfoLabel.Position = UDim2.new(0, 5, 0, 0)
 InfoLabel.BackgroundTransparency = 1
-InfoLabel.Text = gameName .. " | " .. placeName .. " | FPS: 60 | PING: 50ms | TIME: 12:34:56 | PLAYER: 15/20"
+InfoLabel.Text = displayName .. " | FPS: 60 | PING: 50ms | TIME: 12:34:56 | PLAYER: 15/20"
 InfoLabel.TextColor3 = Color3.fromRGB(200, 200, 200) -- Màu xám nhạt
 InfoLabel.TextSize = 12
 InfoLabel.Font = Enum.Font.Gotham
@@ -271,7 +308,7 @@ local function updateAllInfo()
     local maxPlayers = game.PrivateServerId and 20 or game.Players.MaxPlayers
     
     -- Cập nhật InfoLabel
-    InfoLabel.Text = gameName .. " | " .. placeName .. " | FPS: " .. fps .. " | PING: " .. ping .. "ms | TIME: " .. timeString .. " | PLAYER: " .. playerCount .. "/" .. maxPlayers
+    InfoLabel.Text = displayName .. " | FPS: " .. fps .. " | PING: " .. ping .. "ms | TIME: " .. timeString .. " | PLAYER: " .. playerCount .. "/" .. maxPlayers
     
     -- Tự động điều chỉnh kích thước MainFrame theo nội dung
     local textBounds = InfoLabel.TextBounds
