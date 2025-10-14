@@ -436,13 +436,26 @@ toggleEspButton = createMenuButton("ESP: OFF", function()
     toggleEspButton.Text = "ESP: " .. (espEnabled and "ON" or "OFF")
 end)
 
+-- Tạo Invisible Frame để click khi ẩn script
+local InvisibleFrame = Instance.new("Frame")
+InvisibleFrame.Name = "InvisibleFrame"
+InvisibleFrame.Parent = ScreenGui
+InvisibleFrame.Size = UDim2.new(0, 200, 0, 25) -- Kích thước tương tự MainFrame
+InvisibleFrame.Position = UDim2.new(0, 10, 0, 10)
+InvisibleFrame.BackgroundTransparency = 1 -- Hoàn toàn trong suốt
+InvisibleFrame.BorderSizePixel = 0
+InvisibleFrame.Active = true
+InvisibleFrame.Visible = false -- Mặc định ẩn
+
 local hiddenScriptButton = createMenuButton("Hidden Script", function()
     -- Toggle ẩn/hiện script
     if MainFrame.Visible then
         MainFrame.Visible = false
+        InvisibleFrame.Visible = true -- Hiện invisible frame
         hiddenScriptButton.Text = "Show Script"
     else
         MainFrame.Visible = true
+        InvisibleFrame.Visible = false -- Ẩn invisible frame
         hiddenScriptButton.Text = "Hidden Script"
     end
 end)
@@ -576,6 +589,9 @@ local function updateAllInfo()
     local textBounds = InfoLabel.TextBounds
     local newWidth = textBounds.X + 10 -- Thêm 10px padding
     MainFrame.Size = UDim2.new(0, newWidth, 0, 25)
+    
+    -- Đồng bộ kích thước với InvisibleFrame
+    InvisibleFrame.Size = UDim2.new(0, newWidth, 0, 25)
 end
 
 -- Kết nối RenderStepped để cập nhật liên tục
@@ -586,6 +602,17 @@ end)
 
 -- Xử lý chuột phải để hiển thị context menu
 MainFrame.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        local mouse = LocalPlayer:GetMouse()
+        ContextMenu.Position = UDim2.new(0, mouse.X, 0, mouse.Y)
+        ContextMenu.Visible = true
+    end
+end)
+
+-- Xử lý chuột phải cho InvisibleFrame (khi script bị ẩn)
+InvisibleFrame.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     
     if input.UserInputType == Enum.UserInputType.MouseButton2 then
