@@ -184,6 +184,141 @@ local loadInfiniteYieldButton = createMenuButton("Load Infinite Yield", function
     end
 end)
 
+-- ESP System Variables
+local espEnabled = false
+local espConnections = {}
+local espObjects = {}
+
+-- ESP Functions (định nghĩa trước khi sử dụng)
+local function createESP(player)
+    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+        return
+    end
+    
+    local character = player.Character
+    local humanoidRootPart = character.HumanoidRootPart
+    
+    -- Tạo Highlight
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "ESP_Highlight"
+    highlight.Parent = character
+    highlight.FillColor = Color3.fromRGB(0, 255, 255) -- Cyan
+    highlight.OutlineColor = Color3.fromRGB(0, 200, 200)
+    highlight.FillTransparency = 0.3
+    highlight.OutlineTransparency = 0
+    
+    -- Tạo BillboardGui cho tên
+    local billboardGui = Instance.new("BillboardGui")
+    billboardGui.Name = "ESP_NameTag"
+    billboardGui.Parent = humanoidRootPart
+    billboardGui.Size = UDim2.new(0, 200, 0, 50)
+    billboardGui.StudsOffset = Vector3.new(0, 5, 0) -- Tăng từ 3 lên 5 để cao hơn
+    billboardGui.AlwaysOnTop = true
+    -- billboardGui.MaxDistance = 1000 // Giới hạn khoảng cách hiển thị (mặc định 1000)
+    
+    -- Tạo TextLabel cho tên
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Name = "NameLabel"
+    nameLabel.Parent = billboardGui
+    nameLabel.Size = UDim2.new(1, 0, 1, 0)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = player.DisplayName
+    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255) -- Trắng
+    nameLabel.TextSize = 14
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.TextStrokeTransparency = 0
+    nameLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0) -- Đen
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Center
+    nameLabel.TextYAlignment = Enum.TextYAlignment.Center
+    
+    -- Lưu ESP objects
+    espObjects[player] = {
+        highlight = highlight,
+        billboardGui = billboardGui,
+        nameLabel = nameLabel
+    }
+end
+
+local function removeESP(player)
+    if espObjects[player] then
+        if espObjects[player].highlight then
+            espObjects[player].highlight:Destroy()
+        end
+        if espObjects[player].billboardGui then
+            espObjects[player].billboardGui:Destroy()
+        end
+        espObjects[player] = nil
+    end
+end
+
+local function enableESP()
+    -- Tạo ESP cho tất cả người chơi hiện tại
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            -- Đợi character load nếu cần
+            if player.Character then
+                createESP(player)
+            else
+                player.CharacterAdded:Connect(function()
+                    createESP(player)
+                end)
+            end
+        end
+    end
+    
+    -- Connect events cho người chơi mới
+    local playerAddedConnection = Players.PlayerAdded:Connect(function(player)
+        if espEnabled then
+            player.CharacterAdded:Connect(function(character)
+                -- Đợi character load xong bằng spawn
+                spawn(function()
+                    wait(1)
+                    createESP(player)
+                end)
+            end)
+        end
+    end)
+    
+    local playerRemovingConnection = Players.PlayerRemoving:Connect(function(player)
+        removeESP(player)
+    end)
+    
+    -- Lưu connections để cleanup sau
+    espConnections.playerAdded = playerAddedConnection
+    espConnections.playerRemoving = playerRemovingConnection
+end
+
+local function disableESP()
+    -- Xóa tất cả ESP objects
+    for player, _ in pairs(espObjects) do
+        removeESP(player)
+    end
+    
+    -- Disconnect events
+    if espConnections.playerAdded then
+        espConnections.playerAdded:Disconnect()
+        espConnections.playerAdded = nil
+    end
+    if espConnections.playerRemoving then
+        espConnections.playerRemoving:Disconnect()
+        espConnections.playerRemoving = nil
+    end
+end
+
+-- Tạo ESP Button sau khi đã định nghĩa các hàm
+local toggleEspButton
+toggleEspButton = createMenuButton("ESP: OFF", function()
+    espEnabled = not espEnabled
+    
+    if espEnabled then
+        enableESP()
+    else
+        disableESP()
+    end
+    
+    -- Cập nhật text button
+    toggleEspButton.Text = "ESP: " .. (espEnabled and "ON" or "OFF")
+end)
 
 -- Biến để tính FPS
 local lastTime = 0
@@ -359,6 +494,12 @@ game:BindToClose(function()
     if connection then
         connection:Disconnect()
     end
+    
+    -- Cleanup ESP
+    if espEnabled then
+        disableESP()
+    end
+    
     if ScreenGui then
         ScreenGui:Destroy()
     end
