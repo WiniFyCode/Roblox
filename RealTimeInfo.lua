@@ -191,6 +191,31 @@ local espObjects = {}
 local playerConnections = {} -- Lưu connections cho từng player
 
 -- ESP Functions (định nghĩa trước khi sử dụng)
+local function removeESP(player)
+    if espObjects[player] then
+        if espObjects[player].highlight then
+            espObjects[player].highlight:Destroy()
+        end
+        if espObjects[player].billboardGui then
+            espObjects[player].billboardGui:Destroy()
+        end
+        if espObjects[player].rainbowConnection then
+            espObjects[player].rainbowConnection:Disconnect()
+        end
+        espObjects[player] = nil
+    end
+    
+    -- Xóa connections cho player này
+    if playerConnections[player] then
+        for _, connection in pairs(playerConnections[player]) do
+            if connection then
+                connection:Disconnect()
+            end
+        end
+        playerConnections[player] = nil
+    end
+end
+
 local function createESP(player)
     if not player or not player.Parent or not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
         return false
@@ -259,31 +284,6 @@ local function createESP(player)
     }
     
     return true
-end
-
-local function removeESP(player)
-    if espObjects[player] then
-        if espObjects[player].highlight then
-            espObjects[player].highlight:Destroy()
-        end
-        if espObjects[player].billboardGui then
-            espObjects[player].billboardGui:Destroy()
-        end
-        if espObjects[player].rainbowConnection then
-            espObjects[player].rainbowConnection:Disconnect()
-        end
-        espObjects[player] = nil
-    end
-    
-    -- Xóa connections cho player này
-    if playerConnections[player] then
-        for _, connection in pairs(playerConnections[player]) do
-            if connection then
-                connection:Disconnect()
-            end
-        end
-        playerConnections[player] = nil
-    end
 end
 
 local function setupPlayerESP(player)
