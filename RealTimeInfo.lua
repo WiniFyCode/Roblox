@@ -1,6 +1,12 @@
 -- Real Time Info Display Script
 -- Hiển thị FPS, PING, thời gian thực với GUI đẹp
 
+-- Check nếu script đã tồn tại thì destroy script cũ
+if game.Players.LocalPlayer.PlayerGui:FindFirstChild("RealTimeInfo") then
+    game.Players.LocalPlayer.PlayerGui.RealTimeInfo:Destroy()
+    print("[RealTimeInfo] Destroyed old script instance")
+end
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
@@ -379,9 +385,33 @@ local hiddenScriptButton = createMenuButton("Hidden Script", function()
     -- Toggle ẩn/hiện script
     if MainFrame.Visible then
         MainFrame.Visible = false
+        InvisibleFrame.Visible = true
         hiddenScriptButton.Text = "Show Script"
     else
         MainFrame.Visible = true
+        InvisibleFrame.Visible = false
+        hiddenScriptButton.Text = "Hidden Script"
+    end
+end)
+
+-- Tạo invisible clickable area khi hidden
+local InvisibleFrame = Instance.new("Frame")
+InvisibleFrame.Name = "InvisibleFrame"
+InvisibleFrame.Parent = ScreenGui
+InvisibleFrame.Size = UDim2.new(0, 200, 0, 25) -- Kích thước giống MainFrame
+InvisibleFrame.Position = UDim2.new(0, 10, 0, 10)
+InvisibleFrame.BackgroundTransparency = 1
+InvisibleFrame.Visible = false
+InvisibleFrame.Active = true
+InvisibleFrame.Draggable = true
+
+-- Click vào invisible area để hiện script
+InvisibleFrame.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        MainFrame.Visible = true
+        InvisibleFrame.Visible = false
         hiddenScriptButton.Text = "Hidden Script"
     end
 end)
@@ -543,21 +573,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- Tạo hotkey để ẩn/hiện GUI (F9)
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    
-    if input.KeyCode == Enum.KeyCode.F9 then
-        MainFrame.Visible = not MainFrame.Visible
-        if not MainFrame.Visible then
-            ContextMenu.Visible = false
-        end
-        -- Cập nhật text button
-        if hiddenScriptButton then
-            hiddenScriptButton.Text = MainFrame.Visible and "Hidden Script" or "Show Script"
-        end
-    end
-end)
+-- Bỏ hotkey F9 vì không hoạt động tốt
 
 -- Cleanup khi script bị hủy
 game:BindToClose(function()
@@ -572,5 +588,8 @@ game:BindToClose(function()
     
     if ScreenGui then
         ScreenGui:Destroy()
+    end
+    if InvisibleFrame then
+        InvisibleFrame:Destroy()
     end
 end)
