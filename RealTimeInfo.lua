@@ -5,7 +5,6 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-local Lighting = game:GetService("Lighting")
 local MarketplaceService = game:GetService("MarketplaceService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
@@ -136,12 +135,13 @@ local rejoinButton = createMenuButton("Rejoin Server", function()
     game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
 end)
 
-local serverHopMostButton = createMenuButton("Server Hop (Most Players)", function()
+-- Hàm chung cho server hop
+local function serverHop(sortOrder)
     local HttpService = game:GetService("HttpService")
     local TeleportService = game:GetService("TeleportService")
     
     local success, result = pcall(function()
-        return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=100"))
+        return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=" .. sortOrder .. "&limit=100"))
     end)
     
     if success and result and result.data then
@@ -152,24 +152,14 @@ local serverHopMostButton = createMenuButton("Server Hop (Most Players)", functi
             end
         end
     end
+end
+
+local serverHopMostButton = createMenuButton("Server Hop (Most Players)", function()
+    serverHop("Desc")
 end)
 
 local serverHopLeastButton = createMenuButton("Server Hop (Least Players)", function()
-    local HttpService = game:GetService("HttpService")
-    local TeleportService = game:GetService("TeleportService")
-    
-    local success, result = pcall(function()
-        return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
-    end)
-    
-    if success and result and result.data then
-        for _, server in pairs(result.data) do
-            if server.playing < server.maxPlayers and server.id ~= game.JobId then
-                TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id)
-                break
-            end
-        end
-    end
+    serverHop("Asc")
 end)
 
 local loadInfiniteYieldButton = createMenuButton("Load Infinite Yield", function()
@@ -281,17 +271,21 @@ local function createESP(player)
     nameLabel.TextXAlignment = Enum.TextXAlignment.Center
     nameLabel.TextYAlignment = Enum.TextYAlignment.Center
     
-    -- Tạo rainbow animation cho viền
+    -- Tạo rainbow animation cho viền (tối ưu: cập nhật mỗi 0.1s thay vì mỗi frame)
     local rainbowConnection
+    local lastRainbowUpdate = 0
     rainbowConnection = RunService.Heartbeat:Connect(function()
-        if highlight and highlight.Parent and character and character.Parent then
-            local time = tick()
-            local r = math.sin(time * 2) * 0.5 + 0.5
-            local g = math.sin(time * 2 + 2) * 0.5 + 0.5
-            local b = math.sin(time * 2 + 4) * 0.5 + 0.5
-            highlight.OutlineColor = Color3.new(r, g, b)
-        else
-            rainbowConnection:Disconnect()
+        local currentTime = tick()
+        if currentTime - lastRainbowUpdate >= 0.1 then -- Cập nhật mỗi 0.1 giây
+            if highlight and highlight.Parent and character and character.Parent then
+                local r = math.sin(currentTime * 2) * 0.5 + 0.5
+                local g = math.sin(currentTime * 2 + 2) * 0.5 + 0.5
+                local b = math.sin(currentTime * 2 + 4) * 0.5 + 0.5
+                highlight.OutlineColor = Color3.new(r, g, b)
+                lastRainbowUpdate = currentTime
+            else
+                rainbowConnection:Disconnect()
+            end
         end
     end)
     
@@ -343,7 +337,7 @@ local function setupPlayerESP(player)
             -- Đợi character load hoàn toàn
             local humanoidRootPart = character:WaitForChild("HumanoidRootPart", 10)
             if humanoidRootPart then
-                wait(1) -- Đợi thêm 1 giây để đảm bảo character đã load xong
+                task.wait(1) -- Đợi thêm 1 giây để đảm bảo character đã load xong
                 if espEnabled and player.Parent then
                     createESP(player)
                 end
@@ -481,7 +475,7 @@ local hiddenScriptButton = createMenuButton("Hidden Script", function()
 end)
 
 -- Biến để tính FPS
-local lastTime = 0
+local lastTime = tick()
 local frameCount = 0
 local fps = 0
 
@@ -489,18 +483,22 @@ local fps = 0
 local lastPingTime = 0
 local ping = 0
 
+-- Biến để tính TIME (cập nhật mỗi giây)
+local lastTimeUpdate = 0
+local timeString = "00:00:00"
+
 -- Biến để lưu thông tin game
-local gameName = "Unknown Game"
-local placeName = "Unknown Place"
-local placeId = game.PlaceId
-local gameId = game.GameId
+local GAME_NAME = "Unknown Game"
+local PLACE_NAME = "Unknown Place"
+local PLACE_ID = game.PlaceId
+local GAME_ID = game.GameId
 -- ====== LẤY PLACE NAME ======
 local success, info = pcall(function()
-	return MarketplaceService:GetProductInfo(placeId)
+	return MarketplaceService:GetProductInfo(PLACE_ID)
 end)
 
 if success and info and info.Name then
-	placeName = info.Name
+	PLACE_NAME = info.Name
 else
 	warn("[PLACE ERROR] Không thể lấy thông tin Place:", info)
 end
@@ -512,7 +510,7 @@ local HttpService = game:GetService("HttpService")
 local function getGameName()
 	local success, result = pcall(function()
 		-- Sử dụng API chính thức của Roblox
-		local url = "https://games.roblox.com/v1/games?universeIds=" .. tostring(gameId)
+		local url = "https://games.roblox.com/v1/games?universeIds=" .. tostring(GAME_ID)
 		
 		-- Thử với game:HttpGet trước (executor)
 		if game.HttpGet then
@@ -543,16 +541,16 @@ end
 -- Thử lấy game name
 local retrievedGameName = getGameName()
 if retrievedGameName then
-	gameName = retrievedGameName
+	GAME_NAME = retrievedGameName
 else
-	gameName = "Unknown Game"
+	GAME_NAME = "Unknown Game"
 	warn("[GAME ERROR] Không thể lấy tên game từ API")
 end
 
--- Kiểm tra nếu placeName giống gameName thì chỉ hiển thị gameName
-local displayName = gameName
-if placeName ~= gameName then
-	displayName = gameName .. " | " .. placeName
+-- Kiểm tra nếu PLACE_NAME giống GAME_NAME thì chỉ hiển thị GAME_NAME
+local DISPLAY_NAME = GAME_NAME
+if PLACE_NAME ~= GAME_NAME then
+	DISPLAY_NAME = GAME_NAME .. " | " .. PLACE_NAME
 end
 
 -- Tạo Info Label (tất cả thông tin trong 1 label)
@@ -562,15 +560,27 @@ InfoLabel.Parent = MainFrame
 InfoLabel.Size = UDim2.new(0, 0, 1, 0) -- Tự động co giãn theo nội dung
 InfoLabel.Position = UDim2.new(0, 5, 0, 0)
 InfoLabel.BackgroundTransparency = 1
-InfoLabel.Text = displayName .. " | FPS: 60 | PING: 50ms | TIME: 12:34:56 | PLAYER: 15/20"
+InfoLabel.Text = DISPLAY_NAME .. " | FPS: 60 | PING: 50ms | TIME: 12:34:56 | PLAYER: 15/20"
 InfoLabel.TextColor3 = Color3.fromRGB(200, 200, 200) -- Màu xám nhạt
 InfoLabel.TextSize = 12
 InfoLabel.Font = Enum.Font.Gotham
 InfoLabel.TextXAlignment = Enum.TextXAlignment.Left
 InfoLabel.TextWrapped = false -- Không wrap text
 
--- Hàm cập nhật tất cả thông tin
-local function updateAllInfo()
+-- Biến để lưu thông tin tĩnh (chỉ cập nhật 1 lần)
+local staticInfo = {
+    displayName = DISPLAY_NAME,
+    maxPlayers = game.PrivateServerId and 20 or game.Players.MaxPlayers
+}
+
+-- Hàm cập nhật thông tin tĩnh (chỉ gọi khi cần thiết)
+local function updateStaticInfo()
+    staticInfo.maxPlayers = game.PrivateServerId and 20 or game.Players.MaxPlayers
+    -- Có thể thêm các thông tin tĩnh khác ở đây nếu cần
+end
+
+-- Hàm cập nhật thông tin động (FPS, PING, TIME, PLAYER COUNT)
+local function updateDynamicInfo()
     -- Cập nhật FPS
     frameCount = frameCount + 1
     local currentTime = tick()
@@ -594,16 +604,18 @@ local function updateAllInfo()
         lastPingTime = currentTime
     end
     
-    -- Cập nhật thời gian
-    local realTime = os.date("*t")
-    local timeString = string.format("%02d:%02d:%02d", realTime.hour, realTime.min, realTime.sec)
+    -- Cập nhật thời gian (chỉ mỗi giây)
+    if currentTime - lastTimeUpdate >= 1 then
+        local realTime = os.date("*t")
+        timeString = string.format("%02d:%02d:%02d", realTime.hour, realTime.min, realTime.sec)
+        lastTimeUpdate = currentTime
+    end
     
-    -- Cập nhật Server Info
+    -- Cập nhật Player Count
     local playerCount = #Players:GetPlayers()
-    local maxPlayers = game.PrivateServerId and 20 or game.Players.MaxPlayers
     
-    -- Cập nhật InfoLabel
-    InfoLabel.Text = displayName .. " | FPS: " .. fps .. " | PING: " .. ping .. "ms | TIME: " .. timeString .. " | PLAYER: " .. playerCount .. "/" .. maxPlayers
+    -- Cập nhật InfoLabel với thông tin tĩnh + động
+    InfoLabel.Text = staticInfo.displayName .. " | FPS: " .. fps .. " | PING: " .. ping .. "ms | TIME: " .. timeString .. " | PLAYER: " .. playerCount .. "/" .. staticInfo.maxPlayers
     
     -- Tự động điều chỉnh kích thước MainFrame theo nội dung
     local textBounds = InfoLabel.TextBounds
@@ -617,7 +629,7 @@ end
 -- Kết nối RenderStepped để cập nhật liên tục
 local connection
 connection = RunService.RenderStepped:Connect(function()
-    updateAllInfo()
+    updateDynamicInfo()
 end)
 
 -- Function để cập nhật text button dựa trên trạng thái hiện tại
@@ -679,8 +691,17 @@ task.spawn(function()
     autoRestoreESP()
 end)
 
+-- Cập nhật thông tin tĩnh khi có thay đổi về server
+Players.PlayerAdded:Connect(function()
+    updateStaticInfo()
+end)
+
 -- Cleanup khi player rời khỏi game
 Players.PlayerRemoving:Connect(function(leavingPlayer)
+    -- Cập nhật thông tin tĩnh cho tất cả players
+    updateStaticInfo()
+    
+    -- Cleanup khi LocalPlayer rời game
     if leavingPlayer == LocalPlayer then
         if connection then
             connection:Disconnect()
