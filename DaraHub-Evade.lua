@@ -1,19 +1,5 @@
--- Load WindUI with error handling
-local WindUI
-local success, err = pcall(function()
-    WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
-end)
-
-if not success or not WindUI then
-    warn("Failed to load WindUI: " .. tostring(err))
-    -- Create a simple fallback notification
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "DaraHub Evade",
-        Text = "Failed to load WindUI. Please check your internet connection.",
-        Duration = 5
-    })
-    return
-end
+-- Load WindUI
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
 
 -- Localization setup
 local Localization = WindUI:Localization({
@@ -76,10 +62,8 @@ local Localization = WindUI:Localization({
 WindUI.TransparencyValue = 0.2
 WindUI:SetTheme("Dark")
 
--- Create WindUI window with error handling
-local Window
-local windowSuccess, windowErr = pcall(function()
-    Window = WindUI:CreateWindow({
+-- Create WindUI window
+local Window = WindUI:CreateWindow({
     Title = "loc:SCRIPT_TITLE",
     Icon = "swords",
     Author = "loc:WELCOME",
@@ -127,13 +111,7 @@ local windowSuccess, windowErr = pcall(function()
     --         },                                                                  
     --     },        
     -- },
-    })
-end)
-
-if not windowSuccess or not Window then
-    warn("Failed to create WindUI window: " .. tostring(windowErr))
-    return
-end
+})
 -- Track window open state robustly
 local isWindowOpen = false
 local function updateWindowOpenState()
@@ -594,8 +572,7 @@ local featureStates = {
     DownedHighlight = false,
     TicketESP = {
         highlight = false,
-        tracers = false,
-        rainbowTracers = false,
+        tracer = false,
     },
     FlySpeed = 5,
     TpwalkValue = 1,
@@ -655,6 +632,12 @@ local downedTracerConnection
 local downedNameESPConnection
 local downedTracerLines = {}
 local downedNameESPLabels = {}
+
+-- Ticket ESP Variables
+local ticketEspElements = {}
+local ticketEspConnection = nil
+local ticketTracerLines = {}
+local ticketHighlights = {}
 
 -- Highlight Variables
 local playerHighlights = {}
@@ -731,6 +714,23 @@ local function createDownedHighlight(character)
     highlight.FillTransparency = 0.3
     highlight.OutlineTransparency = 0
     highlight.Parent = character
+    
+    return highlight
+end
+
+-- Function to create highlight for ticket
+local function createTicketHighlight(ticket)
+    if not ticket then return nil end
+    
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "TicketESP_Highlight"
+    highlight.Adornee = ticket
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.FillColor = Color3.fromRGB(255, 215, 0) -- Gold for tickets
+    highlight.OutlineColor = Color3.fromRGB(255, 255, 0) -- Yellow outline
+    highlight.FillTransparency = 0.2
+    highlight.OutlineTransparency = 0
+    highlight.Parent = ticket
     
     return highlight
 end
@@ -1929,158 +1929,6 @@ local function cleanupNameESPLabels(labelTable)
     labelTable = {}
 end
 
--- Ticket ESP Variables
-local ticketEspElements = {}
-local ticketEspConnection = nil
-local ticketHighlights = {}
-
--- Function to create highlight for ticket
-local function createTicketHighlight(ticket)
-    if not ticket then return nil end
-    
-    local highlight = Instance.new("Highlight")
-    highlight.Name = "TicketESP_Highlight"
-    highlight.Adornee = ticket
-    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    highlight.FillColor = Color3.fromRGB(255, 215, 0) -- Gold color for tickets
-    highlight.OutlineColor = Color3.fromRGB(255, 255, 0) -- Yellow outline
-    highlight.FillTransparency = 0.3
-    highlight.OutlineTransparency = 0
-    highlight.Parent = ticket
-    
-    return highlight
-end
-
--- Function to cleanup ticket highlight
-local function cleanupTicketHighlight(highlight)
-    if highlight and highlight.Parent then
-        highlight:Destroy()
-    end
-end
-
--- Ticket ESP Functions
-local function updateTicketESP()
-    local camera = workspace.CurrentCamera
-    if not camera then return end
-    local currentTargets = {}
-
-    -- Check for tickets in workspace.Game.Effects.Tickets
-    local ticketsFolder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Effects") and workspace.Game.Effects:FindFirstChild("Tickets")
-    if ticketsFolder then
-        for _, ticket in pairs(ticketsFolder:GetChildren()) do
-            if ticket:IsA("BasePart") or (ticket:IsA("Model") and ticket:FindFirstChild("HumanoidRootPart")) then
-                currentTargets[ticket] = true
-
-                if not ticketEspElements[ticket] then
-                    ticketEspElements[ticket] = {
-                        tracer = Drawing.new("Line")
-                    }
-                    ticketEspElements[ticket].tracer.Thickness = 2
-                end
-
-                local esp = ticketEspElements[ticket]
-                local position
-                
-                -- Get position based on object type
-                if ticket:IsA("BasePart") then
-                    position = ticket.Position
-                elseif ticket:IsA("Model") and ticket:FindFirstChild("HumanoidRootPart") then
-                    position = ticket.HumanoidRootPart.Position
-                else
-                    goto continue
-                end
-                
-                local vector, onScreen = camera:WorldToViewportPoint(position)
-                local toggles = featureStates.TicketESP
-
-                if onScreen then
-                    -- Tracer ESP
-                    if toggles.tracers then
-                        esp.tracer.Visible = true
-                        esp.tracer.From = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y)
-                        esp.tracer.To = Vector2.new(vector.X, vector.Y)
-                        if toggles.rainbowTracers then
-                            local hue = (tick() % 5) / 5
-                            esp.tracer.Color = Color3.fromHSV(hue, 1, 1)
-                        else
-                            esp.tracer.Color = Color3.fromRGB(255, 215, 0) -- Gold color
-                        end
-                    else
-                        esp.tracer.Visible = false
-                    end
-                else
-                    esp.tracer.Visible = false
-                end
-
-                -- Handle Ticket Highlight
-                if toggles.highlight then
-                    if not ticketHighlights[ticket] then
-                        ticketHighlights[ticket] = createTicketHighlight(ticket)
-                    end
-                    if ticketHighlights[ticket] then
-                        ticketHighlights[ticket].Enabled = true
-                    end
-                else
-                    if ticketHighlights[ticket] then
-                        ticketHighlights[ticket].Enabled = false
-                    end
-                end
-            end
-            ::continue::
-        end
-    end
-
-    -- Clean up removed tickets
-    for target, esp in pairs(ticketEspElements) do
-        if not currentTargets[target] then
-            for _, drawing in pairs(esp) do
-                safeCleanupObject(drawing)
-            end
-            ticketEspElements[target] = nil
-        end
-    end
-
-    -- Clean up removed highlights
-    for target, highlight in pairs(ticketHighlights) do
-        if not currentTargets[target] then
-            cleanupTicketHighlight(highlight)
-            ticketHighlights[target] = nil
-        end
-    end
-end
-
--- Start Ticket ESP
-local function startTicketESP()
-    if ticketEspConnection then 
-        ticketEspConnection:Disconnect()
-    end
-    ticketEspConnection = RunService.RenderStepped:Connect(updateTicketESP)
-    
-    -- Initial scan
-    updateTicketESP()
-end
-
--- Stop Ticket ESP
-local function stopTicketESP()
-    if ticketEspConnection then
-        ticketEspConnection:Disconnect()
-        ticketEspConnection = nil
-    end
-    
-    for _, esp in pairs(ticketEspElements) do
-        for _, drawing in pairs(esp) do
-            safeCleanupObject(drawing)
-        end
-    end
-    ticketEspElements = {}
-    
-    -- Cleanup highlights
-    for _, highlight in pairs(ticketHighlights) do
-        cleanupTicketHighlight(highlight)
-    end
-    ticketHighlights = {}
-end
-
 local function startDownedNameESP()
     downedNameESPConnection = RunService.Heartbeat:Connect(function()
         cleanupNameESPLabels(downedNameESPLabels)
@@ -2127,6 +1975,75 @@ local function stopDownedNameESP()
     end
     cleanupNameESPLabels(downedNameESPLabels)
     downedNameESPLabels = {}
+end
+
+-- Ticket ESP Functions
+local function cleanupTicketTracers(tracerTable)
+    for _, drawing in ipairs(tracerTable) do
+        safeCleanupObject(drawing)
+    end
+    tracerTable = {}
+end
+
+local function startTicketESP()
+    if ticketEspConnection then return end
+    ticketEspConnection = RunService.Heartbeat:Connect(function()
+        cleanupTicketTracers(ticketTracerLines)
+        ticketTracerLines = {}
+        
+        -- Cleanup old highlights
+        for _, highlight in pairs(ticketHighlights) do
+            cleanupHighlight(highlight)
+        end
+        ticketHighlights = {}
+        
+        local effectsFolder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Effects")
+        if effectsFolder then
+            local ticketsFolder = effectsFolder:FindFirstChild("Tickets")
+            if ticketsFolder then
+                for _, ticket in ipairs(ticketsFolder:GetChildren()) do
+                    if ticket:IsA("BasePart") then
+                        local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(ticket.Position)
+                        
+                        -- Handle Ticket Highlight
+                        if featureStates.TicketESP.highlight then
+                            local highlight = createTicketHighlight(ticket)
+                            if highlight then
+                                table.insert(ticketHighlights, highlight)
+                            end
+                        end
+                        
+                        -- Process tracer only if on screen
+                        if onScreen and featureStates.TicketESP.tracer then
+                            local tracer = Drawing.new("Line")
+                            tracer.Color = Color3.fromRGB(255, 215, 0) -- Gold color for tickets
+                            tracer.Thickness = 2
+                            tracer.From = Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y)
+                            tracer.To = Vector2.new(pos.X, pos.Y)
+                            tracer.ZIndex = 1
+                            tracer.Visible = true
+                            table.insert(ticketTracerLines, tracer)
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+
+local function stopTicketESP()
+    if ticketEspConnection then
+        ticketEspConnection:Disconnect()
+        ticketEspConnection = nil
+    end
+    cleanupTicketTracers(ticketTracerLines)
+    ticketTracerLines = {}
+    
+    -- Cleanup highlights
+    for _, highlight in pairs(ticketHighlights) do
+        cleanupHighlight(highlight)
+    end
+    ticketHighlights = {}
 end
 
 -- Function to handle character loading
@@ -2226,8 +2143,8 @@ end
         if downedNameESPConnection then stopDownedNameESP() end
         startDownedNameESP()
     end
-    if featureStates.TicketESP.highlight or featureStates.TicketESP.tracers then
-        stopTicketESP()
+    if featureStates.TicketESP.highlight or featureStates.TicketESP.tracer then
+        if ticketEspConnection then stopTicketESP() end
         startTicketESP()
     end
     if featureStates.DesiredFOV and workspace.CurrentCamera then
@@ -3168,7 +3085,8 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
         Value = featureStates.TicketESP.highlight,
         Callback = function(state)
             featureStates.TicketESP.highlight = state
-            if state or featureStates.TicketESP.tracers then
+            if state or featureStates.TicketESP.tracer then
+                if ticketEspConnection then stopTicketESP() end
                 startTicketESP()
             else
                 stopTicketESP()
@@ -3178,25 +3096,15 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
 
     local TicketTracerToggle = Tabs.ESP:Toggle({
         Title = "Ticket Tracer",
-        Value = featureStates.TicketESP.tracers,
+        Desc = "Show tracers to tickets",
+        Value = featureStates.TicketESP.tracer,
         Callback = function(state)
-            featureStates.TicketESP.tracers = state
+            featureStates.TicketESP.tracer = state
             if state or featureStates.TicketESP.highlight then
+                if ticketEspConnection then stopTicketESP() end
                 startTicketESP()
             else
                 stopTicketESP()
-            end
-        end
-    })
-
-    local TicketRainbowTracersToggle = Tabs.ESP:Toggle({
-        Title = "Ticket Rainbow Tracers",
-        Value = featureStates.TicketESP.rainbowTracers,
-        Callback = function(state)
-            featureStates.TicketESP.rainbowTracers = state
-            if featureStates.TicketESP.tracers then
-                stopTicketESP()
-                startTicketESP()
             end
         end
     })
@@ -3520,7 +3428,6 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 configFile:Register("DownedDistanceESPToggle", DownedDistanceESPToggle)
                 configFile:Register("TicketHighlightToggle", TicketHighlightToggle)
                 configFile:Register("TicketTracerToggle", TicketTracerToggle)
-                configFile:Register("TicketRainbowTracersToggle", TicketRainbowTracersToggle)
                 configFile:Register("AutoCarryToggle", AutoCarryToggle)
                 configFile:Register("CarryRangeInput", CarryRangeInput)
                 configFile:Register("CarryDelayInput", CarryDelayInput)
@@ -3583,6 +3490,12 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                     if loadedData.ManualReviveKeyBindButton then
                         manualReviveKeyBindButton:Set(loadedData.ManualReviveKeyBindButton)
                     end
+                    if loadedData.TicketHighlightToggle then
+                        TicketHighlightToggle:Set(loadedData.TicketHighlightToggle)
+                    end
+                    if loadedData.TicketTracerToggle then
+                        TicketTracerToggle:Set(loadedData.TicketTracerToggle)
+                    end
                 end
             end
         })
@@ -3639,8 +3552,7 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                     DownedHighlight = false,
                     TicketESP = {
                         highlight = false,
-                        tracers = false,
-                        rainbowTracers = false,
+                        tracer = false,
                     },
                     FlySpeed = 5,
                     TpwalkValue = 1,
@@ -3699,7 +3611,6 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 -- Reset Ticket ESP
                 if TicketHighlightToggle then TicketHighlightToggle:Set(false) end
                 if TicketTracerToggle then TicketTracerToggle:Set(false) end
-                if TicketRainbowTracersToggle then TicketRainbowTracersToggle:Set(false) end
                 
                 -- Reset Auto features
                 if AutoCarryToggle then AutoCarryToggle:Set(false) end
@@ -3848,23 +3759,9 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
     end)
 end
 
--- Initialize UI and mobile controls with error handling
-local guiSuccess, guiErr = pcall(function()
-    setupGui()
-end)
-
-if not guiSuccess then
-    warn("Failed to setup GUI: " .. tostring(guiErr))
-end
-
--- Setup mobile controls separately
-local mobileSuccess, mobileErr = pcall(function()
-    setupMobileJumpButton()
-end)
-
-if not mobileSuccess then
-    warn("Failed to setup mobile controls: " .. tostring(mobileErr))
-end
+-- Initialize UI and mobile controls
+setupGui()
+setupMobileJumpButton()
 
 -- Window event handlers (synchronize isWindowOpen)
 Window:OnClose(function()
@@ -3904,14 +3801,8 @@ end)
 
 Window:UnlockAll()
 
--- Load external TimerGUI script with error handling
-local timerSuccess, timerErr = pcall(function()
-    local script = loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/TimerGUI-NoRepeat'))()
-end)
-
-if not timerSuccess then
-    warn("Failed to load TimerGUI script: " .. tostring(timerErr))
-end
+-- Load external TimerGUI script
+local script = loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/TimerGUI-NoRepeat'))()
 
 -- Auto-save when script closes
 game:GetService("UserInputService").WindowFocused:Connect(function()
