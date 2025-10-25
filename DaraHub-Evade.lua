@@ -204,9 +204,31 @@ local function loadManualReviveKeybind()
     return false
 end
 
+-- Function to save auto ticket farm keybind to file
+local function saveAutoTicketFarmKeybind()
+    local keyString = tostring(autoTicketFarmKey)
+    writefile(autoTicketFarmKeybindFile, keyString)
+end
+
+-- Function to load auto ticket farm keybind from file
+local function loadAutoTicketFarmKeybind()
+    if isfile(autoTicketFarmKeybindFile) then
+        local savedKey = readfile(autoTicketFarmKeybindFile)
+        -- Convert string back to KeyCode
+        for _, key in pairs(Enum.KeyCode:GetEnumItems()) do
+            if tostring(key) == savedKey then
+                autoTicketFarmKey = key
+                return true
+            end
+        end
+    end
+    return false
+end
+
 -- Load keybinds when script starts
 loadKeybind()
 loadManualReviveKeybind()
+loadAutoTicketFarmKeybind()
 
 -- Helper: robustly update the keybind button description (tries several APIs)
 local function updateKeybindButtonDesc()
@@ -541,14 +563,19 @@ local function bindAutoTicketFarmKey(keyBindButtonParam)
     })
     
     -- Listen for key input
-    autoTicketFarmKeyConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    autoTicketFarmKeyConnection = game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
         if gameProcessed then return end
         
         if input.UserInputType == Enum.UserInputType.Keyboard then
             autoTicketFarmKey = input.KeyCode
             isListeningForAutoTicketFarm = false
-            autoTicketFarmKeyConnection:Disconnect()
-            autoTicketFarmKeyConnection = nil
+            if autoTicketFarmKeyConnection then
+                autoTicketFarmKeyConnection:Disconnect()
+                autoTicketFarmKeyConnection = nil
+            end
+            
+            -- Save the new keybind
+            saveAutoTicketFarmKeybind()
             
             WindUI:Notify({
                 Title = "Auto Ticket Farm Keybind",
@@ -607,37 +634,6 @@ end
 
 -- Connect the key functionality
 keyInputConnection = game:GetService("UserInputService").InputBegan:Connect(handleKeyPress)
-
--- Connect Auto Ticket Farm key functionality
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    
-    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == autoTicketFarmKey then
-        -- Toggle Auto Ticket Farm
-        featureStates.AutoTicketFarm = not featureStates.AutoTicketFarm
-        
-        if featureStates.AutoTicketFarm then
-            startAutoTicketFarm()
-            WindUI:Notify({
-                Title = "Auto Ticket Farm",
-                Content = "Auto Ticket Farm enabled",
-                Duration = 2
-            })
-        else
-            stopAutoTicketFarm()
-            WindUI:Notify({
-                Title = "Auto Ticket Farm",
-                Content = "Auto Ticket Farm disabled",
-                Duration = 2
-            })
-        end
-        
-        -- Update toggle state in UI
-        if AutoTicketFarmToggle then
-            AutoTicketFarmToggle:Set(featureStates.AutoTicketFarm)
-        end
-    end
-end)
 
 -- Add tags and time tag
 Window:SetIconSize(48)
@@ -771,10 +767,11 @@ local carryDelay = 0.1
 -- Auto Ticket Farm Variables
 local ticketFarmDelay = 0.5
 local autoTicketFarmConnection = nil
-local autoTicketFarmKey = Enum.KeyCode.T
-local autoTicketFarmKeyBindButton
-local isListeningForAutoTicketFarm = false
+local autoTicketFarmKey = Enum.KeyCode.T -- Default key for auto ticket farm
 local autoTicketFarmKeyConnection = nil
+local isListeningForAutoTicketFarm = false
+local autoTicketFarmKeyBindButton = nil
+local autoTicketFarmKeybindFile = "auto_ticket_farm_keybind_config.txt"
 
 -- Click TP Variables
 local clickTPConnection
@@ -4080,11 +4077,10 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 
                 -- Reset variables
                 carryRange = 10
-                carryDelay = 0.1
+                carryDelay = 0.05
                 reviveRange = 5
                 reviveDelay = 0.5
                 ticketFarmDelay = 0.5
-                autoTicketFarmKey = Enum.KeyCode.T
                 
                 -- Stop all active features
                 stopPlayerESP()
@@ -4205,6 +4201,35 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                     Content = "You are not downed!",
                     Duration = 2
                 })
+            end
+        end
+    end)
+
+    -- Add T key for auto ticket farm toggle
+    UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+        if not gameProcessedEvent and input.KeyCode == autoTicketFarmKey then
+            -- Toggle Auto Ticket Farm
+            featureStates.AutoTicketFarm = not featureStates.AutoTicketFarm
+            
+            if featureStates.AutoTicketFarm then
+                startAutoTicketFarm()
+                WindUI:Notify({
+                    Title = "Auto Ticket Farm",
+                    Content = "Auto Ticket Farm enabled",
+                    Duration = 2
+                })
+            else
+                stopAutoTicketFarm()
+                WindUI:Notify({
+                    Title = "Auto Ticket Farm",
+                    Content = "Auto Ticket Farm disabled",
+                    Duration = 2
+                })
+            end
+            
+            -- Update toggle state in UI
+            if AutoTicketFarmToggle then
+                AutoTicketFarmToggle:Set(featureStates.AutoTicketFarm)
             end
         end
     end)
