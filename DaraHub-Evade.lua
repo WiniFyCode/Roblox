@@ -544,6 +544,7 @@ local featureStates = {
     AutoWin = false,
     AutoMoneyFarm = false,
     AutoRevive = false,
+    AutoTicketFarm = false,
     PlayerESP = {
         boxes = false,
         tracers = false,
@@ -584,7 +585,6 @@ local featureStates = {
     JumpPower = 5,
     JumpMethod = "Hold",
     SelectedMap = 1,
-    DesiredFOV = 85,
     ClickTP = false
 }
 
@@ -622,6 +622,11 @@ local interactEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Cha
 -- Auto Carry Variables
 local carryRange = 10
 local carryDelay = 0.1
+
+-- Auto Ticket Farm Variables
+local ticketFarmRange = 10
+local ticketFarmDelay = 0.5
+local autoTicketFarmConnection = nil
 
 -- Click TP Variables
 local clickTPConnection
@@ -785,7 +790,7 @@ local function createTicketESP(object)
         nameLabel.Name = "NameLabel"
         nameLabel.Size = UDim2.new(1, 0, 1, 0)
         nameLabel.BackgroundTransparency = 1
-        nameLabel.Text = "ticket [" .. math.floor(distance) .. "]"
+        nameLabel.Text = "Ticket [" .. math.floor(distance) .. " m]"
         nameLabel.TextColor3 = Color3.fromRGB(255, 100, 100) -- Màu đỏ nhạt
         nameLabel.TextStrokeTransparency = 0
         nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
@@ -2001,6 +2006,62 @@ local function stopAutoMoneyFarm()
     end
 end
 
+-- Auto Ticket Farm Functions
+local function startAutoTicketFarm()
+    if autoTicketFarmConnection then return end
+    autoTicketFarmConnection = task.spawn(function()
+        while featureStates.AutoTicketFarm do
+            local char = player.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            
+            if hrp then
+                -- Find tickets in workspace.Game.Effects.Tickets
+                local ticketsFolder = workspace:FindFirstChild("Game")
+                if ticketsFolder then
+                    ticketsFolder = ticketsFolder:FindFirstChild("Effects")
+                    if ticketsFolder then
+                        ticketsFolder = ticketsFolder:FindFirstChild("Tickets")
+                        if ticketsFolder then
+                            for _, ticket in pairs(ticketsFolder:GetChildren()) do
+                                if ticket:IsA("BasePart") or ticket:IsA("Model") then
+                                    local ticketPosition = getTicketPosition(ticket)
+                                    if ticketPosition then
+                                        local distance = (hrp.Position - ticketPosition).Magnitude
+                                        if distance <= ticketFarmRange then
+                                            -- Try to collect the ticket
+                                            pcall(function()
+                                                -- Fire interact event to collect ticket
+                                                interactEvent:FireServer("Collect", ticket.Name)
+                                                WindUI:Notify({
+                                                    Title = "Auto Ticket Farm",
+                                                    Content = "Collected ticket: " .. ticket.Name,
+                                                    Duration = 2
+                                                })
+                                            end)
+                                            -- Only collect one ticket per cycle
+                                            break
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+            task.wait(ticketFarmDelay)
+        end
+        autoTicketFarmConnection = nil
+    end)
+end
+
+local function stopAutoTicketFarm()
+    featureStates.AutoTicketFarm = false
+    if autoTicketFarmConnection then
+        task.cancel(autoTicketFarmConnection)
+        autoTicketFarmConnection = nil
+    end
+end
+
 -- Manual Revive Function
 local function manualRevive()
     pcall(function()
@@ -2276,6 +2337,10 @@ end
     if featureStates.AutoMoneyFarm then
         if AutoMoneyFarmConnection then stopAutoMoneyFarm() end
         startAutoMoneyFarm()
+    end
+    if featureStates.AutoTicketFarm then
+        if autoTicketFarmConnection then stopAutoTicketFarm() end
+        startAutoTicketFarm()
     end
     if featureStates.PlayerESP.boxes or featureStates.PlayerESP.tracers or featureStates.PlayerESP.names or featureStates.PlayerESP.distance or featureStates.PlayerESP.highlight then
         stopPlayerESP()
@@ -3477,6 +3542,52 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
         end
     })
 
+    local AutoTicketFarmToggle = Tabs.Auto:Toggle({
+        Title = "Auto Ticket Farm",
+        Desc = "Automatically collect tickets when near them",
+        Value = featureStates.AutoTicketFarm,
+        Callback = function(state)
+            featureStates.AutoTicketFarm = state
+            if state then
+                startAutoTicketFarm()
+            else
+                stopAutoTicketFarm()
+            end
+        end
+    })
+
+    local TicketFarmRangeInput = Tabs.Auto:Input({
+        Title = "Ticket Farm Range (Max: 20)",
+        Placeholder = "10",
+        Value = tostring(ticketFarmRange),
+        Callback = function(value)
+            local num = tonumber(value)
+            if num and num > 0 and num <= 20 then
+                ticketFarmRange = num
+            elseif num and num > 20 then
+                ticketFarmRange = 20
+                TicketFarmRangeInput:Set("20")
+                WindUI:Notify({
+                    Title = "Ticket Farm Range",
+                    Content = "Maximum range is 20 studs",
+                    Duration = 2
+                })
+            end
+        end
+    })
+
+    local TicketFarmDelayInput = Tabs.Auto:Input({
+        Title = "Ticket Farm Delay (seconds)",
+        Placeholder = "0.5",
+        Value = tostring(ticketFarmDelay),
+        Callback = function(value)
+            local num = tonumber(value)
+            if num and num >= 0 then
+                ticketFarmDelay = num
+            end
+        end
+    })
+
     -- Settings Tab
     Tabs.Settings:Section({ Title = "Settings", TextSize = 40 })
     Tabs.Settings:Section({ Title = "Personalize", TextSize = 20 })
@@ -3616,6 +3727,9 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 configFile:Register("AutoSelfReviveToggle", AutoSelfReviveToggle)
                 configFile:Register("AutoWinToggle", AutoWinToggle)
                 configFile:Register("AutoMoneyFarmToggle", AutoMoneyFarmToggle)
+                configFile:Register("AutoTicketFarmToggle", AutoTicketFarmToggle)
+                configFile:Register("TicketFarmRangeInput", TicketFarmRangeInput)
+                configFile:Register("TicketFarmDelayInput", TicketFarmDelayInput)
                 configFile:Register("TimerDisplayToggle", TimerDisplayToggle)
                 configFile:Register("ThemeDropdown", ThemeDropdown)
                 configFile:Register("TransparencySlider", TransparencySlider)
@@ -3694,6 +3808,7 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                     AutoWin = false,
                     AutoMoneyFarm = false,
                     AutoRevive = false,
+                    AutoTicketFarm = false,
                     PlayerESP = {
                         boxes = false,
                         tracers = false,
@@ -3800,6 +3915,9 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 if AutoSelfReviveToggle then AutoSelfReviveToggle:Set(false) end
                 if AutoWinToggle then AutoWinToggle:Set(false) end
                 if AutoMoneyFarmToggle then AutoMoneyFarmToggle:Set(false) end
+                if AutoTicketFarmToggle then AutoTicketFarmToggle:Set(false) end
+                if TicketFarmRangeInput then TicketFarmRangeInput:Set("10") end
+                if TicketFarmDelayInput then TicketFarmDelayInput:Set("0.5") end
                 
                 -- Reset Settings
                 if ThemeDropdown then ThemeDropdown:Select("Dark") end
@@ -3811,6 +3929,8 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 carryDelay = 0.05
                 reviveRange = 5
                 reviveDelay = 0.5
+                ticketFarmRange = 10
+                ticketFarmDelay = 0.5
                 
                 -- Stop all active features
                 stopPlayerESP()
@@ -3829,6 +3949,7 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 stopAutoSelfRevive()
                 stopAutoWin()
                 stopAutoMoneyFarm()
+                stopAutoTicketFarm()
                 stopClickTP()
                 stopFullBright()
                 stopNoFog()
