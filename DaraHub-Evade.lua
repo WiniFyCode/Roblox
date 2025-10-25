@@ -1798,11 +1798,24 @@ local function startAutoTicketFarm()
                     -- Find nearest ticket
                     for _, ticket in pairs(ticketsFolder:GetChildren()) do
                         if ticket:IsA("BasePart") or ticket:IsA("Model") then
-                            local ticketPosition = ticket.Position
-                            if ticket:IsA("Model") and ticket:FindFirstChild("HumanoidRootPart") then
-                                ticketPosition = ticket.HumanoidRootPart.Position
-                            elseif ticket:IsA("Model") and ticket:FindFirstChild("PrimaryPart") then
-                                ticketPosition = ticket.PrimaryPart.Position
+                            local ticketPosition
+                            
+                            -- Get position based on object type
+                            if ticket:IsA("BasePart") then
+                                ticketPosition = ticket.Position
+                            elseif ticket:IsA("Model") then
+                                if ticket:FindFirstChild("HumanoidRootPart") then
+                                    ticketPosition = ticket.HumanoidRootPart.Position
+                                elseif ticket:FindFirstChild("PrimaryPart") then
+                                    ticketPosition = ticket.PrimaryPart.Position
+                                elseif ticket:FindFirstChild("Head") then
+                                    ticketPosition = ticket.Head.Position
+                                else
+                                    -- Skip this ticket if we can't find a valid position
+                                    goto continue_farm
+                                end
+                            else
+                                goto continue_farm
                             end
                             
                             local distance = (rootPart.Position - ticketPosition).Magnitude
@@ -1811,15 +1824,28 @@ local function startAutoTicketFarm()
                                 nearestTicket = ticket
                             end
                         end
+                        ::continue_farm::
                     end
                     
                     -- Teleport to nearest ticket
                     if nearestTicket then
-                        local ticketPosition = nearestTicket.Position
-                        if nearestTicket:IsA("Model") and nearestTicket:FindFirstChild("HumanoidRootPart") then
-                            ticketPosition = nearestTicket.HumanoidRootPart.Position
-                        elseif nearestTicket:IsA("Model") and nearestTicket:FindFirstChild("PrimaryPart") then
-                            ticketPosition = nearestTicket.PrimaryPart.Position
+                        local ticketPosition
+                        
+                        -- Get position based on object type
+                        if nearestTicket:IsA("BasePart") then
+                            ticketPosition = nearestTicket.Position
+                        elseif nearestTicket:IsA("Model") then
+                            if nearestTicket:FindFirstChild("HumanoidRootPart") then
+                                ticketPosition = nearestTicket.HumanoidRootPart.Position
+                            elseif nearestTicket:FindFirstChild("PrimaryPart") then
+                                ticketPosition = nearestTicket.PrimaryPart.Position
+                            elseif nearestTicket:FindFirstChild("Head") then
+                                ticketPosition = nearestTicket.Head.Position
+                            else
+                                goto skip_teleport
+                            end
+                        else
+                            goto skip_teleport
                         end
                         
                         -- Teleport to ticket
@@ -1836,6 +1862,7 @@ local function startAutoTicketFarm()
                             Duration = 2
                         })
                     end
+                    ::skip_teleport::
                 end
             end
             task.wait(ticketFarmDelay)
@@ -2074,11 +2101,25 @@ local function updateTicketESP()
                 end
                 
                 local esp = ticketEspElements[ticket]
-                local position = ticket.Position
-                if ticket:IsA("Model") and ticket:FindFirstChild("HumanoidRootPart") then
-                    position = ticket.HumanoidRootPart.Position
-                elseif ticket:IsA("Model") and ticket:FindFirstChild("PrimaryPart") then
-                    position = ticket.PrimaryPart.Position
+                local position
+                
+                -- Get position based on object type
+                if ticket:IsA("BasePart") then
+                    position = ticket.Position
+                elseif ticket:IsA("Model") then
+                    if ticket:FindFirstChild("HumanoidRootPart") then
+                        position = ticket.HumanoidRootPart.Position
+                    elseif ticket:FindFirstChild("PrimaryPart") then
+                        position = ticket.PrimaryPart.Position
+                    elseif ticket:FindFirstChild("Head") then
+                        position = ticket.Head.Position
+                    else
+                        -- Skip this ticket if we can't find a valid position
+                        goto continue
+                    end
+                else
+                    -- Skip non-BasePart and non-Model objects
+                    goto continue
                 end
                 
                 local vector, onScreen = camera:WorldToViewportPoint(position)
@@ -2125,6 +2166,7 @@ local function updateTicketESP()
                         esp.highlight.Enabled = false
                     end
                 end
+                ::continue::
             end
         end
     end
