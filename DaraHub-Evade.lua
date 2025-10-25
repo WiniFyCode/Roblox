@@ -1,5 +1,19 @@
--- Load WindUI
-local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
+-- Load WindUI with error handling
+local WindUI
+local success, err = pcall(function()
+    WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
+end)
+
+if not success or not WindUI then
+    warn("Failed to load WindUI: " .. tostring(err))
+    -- Create a simple fallback notification
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "DaraHub Evade",
+        Text = "Failed to load WindUI. Please check your internet connection.",
+        Duration = 5
+    })
+    return
+end
 
 -- Localization setup
 local Localization = WindUI:Localization({
@@ -62,8 +76,10 @@ local Localization = WindUI:Localization({
 WindUI.TransparencyValue = 0.2
 WindUI:SetTheme("Dark")
 
--- Create WindUI window
-local Window = WindUI:CreateWindow({
+-- Create WindUI window with error handling
+local Window
+local windowSuccess, windowErr = pcall(function()
+    Window = WindUI:CreateWindow({
     Title = "loc:SCRIPT_TITLE",
     Icon = "swords",
     Author = "loc:WELCOME",
@@ -111,7 +127,13 @@ local Window = WindUI:CreateWindow({
     --         },                                                                  
     --     },        
     -- },
-})
+    })
+end)
+
+if not windowSuccess or not Window then
+    warn("Failed to create WindUI window: " .. tostring(windowErr))
+    return
+end
 -- Track window open state robustly
 local isWindowOpen = false
 local function updateWindowOpenState()
@@ -3826,9 +3848,23 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
     end)
 end
 
--- Initialize UI and mobile controls
-setupGui()
-setupMobileJumpButton()
+-- Initialize UI and mobile controls with error handling
+local guiSuccess, guiErr = pcall(function()
+    setupGui()
+end)
+
+if not guiSuccess then
+    warn("Failed to setup GUI: " .. tostring(guiErr))
+end
+
+-- Setup mobile controls separately
+local mobileSuccess, mobileErr = pcall(function()
+    setupMobileJumpButton()
+end)
+
+if not mobileSuccess then
+    warn("Failed to setup mobile controls: " .. tostring(mobileErr))
+end
 
 -- Window event handlers (synchronize isWindowOpen)
 Window:OnClose(function()
@@ -3868,8 +3904,14 @@ end)
 
 Window:UnlockAll()
 
--- Load external TimerGUI script
-local script = loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/TimerGUI-NoRepeat'))()
+-- Load external TimerGUI script with error handling
+local timerSuccess, timerErr = pcall(function()
+    local script = loadstring(game:HttpGet('https://raw.githubusercontent.com/Pnsdgsa/Script-kids/refs/heads/main/Scripthub/Darahub/evade/TimerGUI-NoRepeat'))()
+end)
+
+if not timerSuccess then
+    warn("Failed to load TimerGUI script: " .. tostring(timerErr))
+end
 
 -- Auto-save when script closes
 game:GetService("UserInputService").WindowFocused:Connect(function()
