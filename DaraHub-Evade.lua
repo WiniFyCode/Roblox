@@ -624,7 +624,6 @@ local carryRange = 10
 local carryDelay = 0.1
 
 -- Auto Ticket Farm Variables
-local ticketFarmRange = 10
 local ticketFarmDelay = 0.5
 local autoTicketFarmConnection = nil
 
@@ -883,7 +882,7 @@ local function updateTicketESP()
                 local distance = (humanoidRootPart.Position - objectPosition).Magnitude
                 local nameLabel = espData.nameGui:FindFirstChild("NameLabel")
                 if nameLabel then
-                    nameLabel.Text = "ticket [" .. math.floor(distance) .. "]"
+                    nameLabel.Text = "Ticket [" .. math.floor(distance) .. "m ]"
                 end
             end
             end
@@ -2022,26 +2021,35 @@ local function startAutoTicketFarm()
                     if ticketsFolder then
                         ticketsFolder = ticketsFolder:FindFirstChild("Tickets")
                         if ticketsFolder then
+                            local nearestTicket = nil
+                            local nearestDistance = math.huge
+                            
+                            -- Find nearest ticket
                             for _, ticket in pairs(ticketsFolder:GetChildren()) do
                                 if ticket:IsA("BasePart") or ticket:IsA("Model") then
                                     local ticketPosition = getTicketPosition(ticket)
                                     if ticketPosition then
                                         local distance = (hrp.Position - ticketPosition).Magnitude
-                                        if distance <= ticketFarmRange then
-                                            -- Try to collect the ticket
-                                            pcall(function()
-                                                -- Fire interact event to collect ticket
-                                                interactEvent:FireServer("Collect", ticket.Name)
-                                                WindUI:Notify({
-                                                    Title = "Auto Ticket Farm",
-                                                    Content = "Collected ticket: " .. ticket.Name,
-                                                    Duration = 2
-                                                })
-                                            end)
-                                            -- Only collect one ticket per cycle
-                                            break
+                                        if distance < nearestDistance then
+                                            nearestTicket = ticket
+                                            nearestDistance = distance
                                         end
                                     end
+                                end
+                            end
+                            
+                            -- Teleport to nearest ticket if found
+                            if nearestTicket then
+                                local ticketPosition = getTicketPosition(nearestTicket)
+                                if ticketPosition then
+                                    -- Teleport to ticket
+                                    hrp.CFrame = CFrame.new(ticketPosition)
+                                    
+                                    WindUI:Notify({
+                                        Title = "Auto Ticket Farm",
+                                        Content = "Teleported to ticket: " .. nearestTicket.Name,
+                                        Duration = 2
+                                    })
                                 end
                             end
                         end
@@ -3544,7 +3552,7 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
 
     local AutoTicketFarmToggle = Tabs.Auto:Toggle({
         Title = "Auto Ticket Farm",
-        Desc = "Automatically collect tickets when near them",
+        Desc = "Automatically teleport to nearest tickets",
         Value = featureStates.AutoTicketFarm,
         Callback = function(state)
             featureStates.AutoTicketFarm = state
@@ -3557,26 +3565,6 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
     })
 
     local TicketFarmRangeInput = Tabs.Auto:Input({
-        Title = "Ticket Farm Range (Max: 20)",
-        Placeholder = "10",
-        Value = tostring(ticketFarmRange),
-        Callback = function(value)
-            local num = tonumber(value)
-            if num and num > 0 and num <= 20 then
-                ticketFarmRange = num
-            elseif num and num > 20 then
-                ticketFarmRange = 20
-                TicketFarmRangeInput:Set("20")
-                WindUI:Notify({
-                    Title = "Ticket Farm Range",
-                    Content = "Maximum range is 20 studs",
-                    Duration = 2
-                })
-            end
-        end
-    })
-
-    local TicketFarmDelayInput = Tabs.Auto:Input({
         Title = "Ticket Farm Delay (seconds)",
         Placeholder = "0.5",
         Value = tostring(ticketFarmDelay),
@@ -3587,6 +3575,7 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
             end
         end
     })
+
 
     -- Settings Tab
     Tabs.Settings:Section({ Title = "Settings", TextSize = 40 })
@@ -3728,7 +3717,6 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 configFile:Register("AutoWinToggle", AutoWinToggle)
                 configFile:Register("AutoMoneyFarmToggle", AutoMoneyFarmToggle)
                 configFile:Register("AutoTicketFarmToggle", AutoTicketFarmToggle)
-                configFile:Register("TicketFarmRangeInput", TicketFarmRangeInput)
                 configFile:Register("TicketFarmDelayInput", TicketFarmDelayInput)
                 configFile:Register("TimerDisplayToggle", TimerDisplayToggle)
                 configFile:Register("ThemeDropdown", ThemeDropdown)
@@ -3916,7 +3904,6 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 if AutoWinToggle then AutoWinToggle:Set(false) end
                 if AutoMoneyFarmToggle then AutoMoneyFarmToggle:Set(false) end
                 if AutoTicketFarmToggle then AutoTicketFarmToggle:Set(false) end
-                if TicketFarmRangeInput then TicketFarmRangeInput:Set("10") end
                 if TicketFarmDelayInput then TicketFarmDelayInput:Set("0.5") end
                 
                 -- Reset Settings
@@ -3929,7 +3916,6 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 carryDelay = 0.05
                 reviveRange = 5
                 reviveDelay = 0.5
-                ticketFarmRange = 10
                 ticketFarmDelay = 0.5
                 
                 -- Stop all active features
