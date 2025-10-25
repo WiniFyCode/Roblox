@@ -575,9 +575,8 @@ local featureStates = {
         showTracers = true,
         showNames = true,
         showHighlight = true,
-        maxDistance = 10000,
         tracerColor = Color3.fromRGB(255, 0, 0),
-        nameColor = Color3.fromRGB(255, 255, 255),
+        nameColor = Color3.fromRGB(255, 100, 100), -- Màu đỏ nhạt
         highlightColor = Color3.fromRGB(255, 255, 0)
     },
     FlySpeed = 5,
@@ -616,13 +615,13 @@ local AutoCarryConnection
 
 -- Auto Revive Variables
 local reviveRange = 5
-local reviveDelay = 0.05
+local reviveDelay = 0.5
 local reviveLoopHandle = nil
 local interactEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Character"):WaitForChild("Interact")
 
 -- Auto Carry Variables
 local carryRange = 10
-local carryDelay = 0.5
+local carryDelay = 0.1
 
 -- Click TP Variables
 local clickTPConnection
@@ -771,8 +770,6 @@ local function createTicketESP(object)
     
     -- Calculate distance
     local distance = (humanoidRootPart.Position - objectPosition).Magnitude
-    local maxDistance = tonumber(featureStates.TicketESP.maxDistance) or 10000
-    if distance > maxDistance then return end
     
     -- Create GUI for name
     local nameGui = nil
@@ -788,11 +785,12 @@ local function createTicketESP(object)
         nameLabel.Name = "NameLabel"
         nameLabel.Size = UDim2.new(1, 0, 1, 0)
         nameLabel.BackgroundTransparency = 1
-        nameLabel.Text = object.Name .. " [" .. math.floor(distance) .. "m]"
-        nameLabel.TextColor3 = featureStates.TicketESP.nameColor
+        nameLabel.Text = "ticket [" .. math.floor(distance) .. "]"
+        nameLabel.TextColor3 = Color3.fromRGB(255, 100, 100) -- Màu đỏ nhạt
         nameLabel.TextStrokeTransparency = 0
         nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-        nameLabel.TextScaled = true
+        nameLabel.TextScaled = false
+        nameLabel.TextSize = 14 -- Cỡ chữ nhỏ như ESP player
         nameLabel.Font = Enum.Font.SourceSansBold
         nameLabel.Parent = nameGui
     end
@@ -875,12 +873,12 @@ local function updateTicketESP()
                 end
             end
             
-            -- Update name distance
+            -- Update name (no distance)
             if espData.nameGui and espData.nameGui.Parent then
                 local distance = (humanoidRootPart.Position - objectPosition).Magnitude
                 local nameLabel = espData.nameGui:FindFirstChild("NameLabel")
                 if nameLabel then
-                    nameLabel.Text = object.Name .. " [" .. math.floor(distance) .. "m]"
+                    nameLabel.Text = "ticket [" .. math.floor(distance) .. "]"
                 end
             end
             end
@@ -3284,14 +3282,6 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
         end
     })
 
-    local TicketMaxDistanceSlider = Tabs.ESP:Slider({
-        Title = "Ticket Max Distance",
-        Desc = "Maximum distance to show ticket ESP",
-        Value = { Min = 100, Max = 50000, Default = 10000, Step = 100 },
-        Callback = function(value)
-            featureStates.TicketESP.maxDistance = value
-        end
-    })
 
     -- Auto Tab
     Tabs.Auto:Section({ Title = "Auto", TextSize = 40 })
@@ -3614,7 +3604,6 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 configFile:Register("TicketTracerToggle", TicketTracerToggle)
                 configFile:Register("TicketNameToggle", TicketNameToggle)
                 configFile:Register("TicketHighlightToggle", TicketHighlightToggle)
-                configFile:Register("TicketMaxDistanceSlider", TicketMaxDistanceSlider)
                 configFile:Register("AutoCarryToggle", AutoCarryToggle)
                 configFile:Register("CarryRangeInput", CarryRangeInput)
                 configFile:Register("CarryDelayInput", CarryDelayInput)
@@ -3736,9 +3725,8 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                         showTracers = true,
                         showNames = true,
                         showHighlight = true,
-                        maxDistance = 10000,
                         tracerColor = Color3.fromRGB(255, 0, 0),
-                        nameColor = Color3.fromRGB(255, 255, 255),
+                        nameColor = Color3.fromRGB(255, 100, 100), -- Màu đỏ nhạt
                         highlightColor = Color3.fromRGB(255, 255, 0)
                     },
                     FlySpeed = 5,
@@ -3746,7 +3734,6 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                     JumpPower = 5,
                     JumpMethod = "Hold",
                     SelectedMap = 1,
-                    DesiredFOV = 85,
                     ClickTP = false
                 }
                 
@@ -3800,7 +3787,6 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 if TicketTracerToggle then TicketTracerToggle:Set(true) end
                 if TicketNameToggle then TicketNameToggle:Set(true) end
                 if TicketHighlightToggle then TicketHighlightToggle:Set(true) end
-                if TicketMaxDistanceSlider then TicketMaxDistanceSlider:Set(10000) end
                 
                 -- Reset Auto features
                 if AutoCarryToggle then AutoCarryToggle:Set(false) end
