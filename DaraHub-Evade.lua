@@ -339,6 +339,71 @@ local function updateManualReviveKeybindButtonDesc()
     return success
 end
 
+-- Helper: robustly update the auto ticket farm keybind button description
+local function updateAutoTicketFarmKeybindButtonDesc()
+    if not autoTicketFarmKeyBindButton then return false end
+    local desc = "Current Key: " .. getCleanKeyName(autoTicketFarmKey)
+    local success = false
+
+    local methods = {
+        function() -- common SetDesc
+            if type(autoTicketFarmKeyBindButton.SetDesc) == "function" then
+                autoTicketFarmKeyBindButton:SetDesc(desc)
+            else
+                error("no SetDesc")
+            end
+        end,
+        function() -- some widgets use :Set("Desc", value)
+            if type(autoTicketFarmKeyBindButton.Set) == "function" then
+                autoTicketFarmKeyBindButton:Set("Desc", desc)
+            else
+                error("no Set")
+            end
+        end,
+        function() -- direct property set
+            if autoTicketFarmKeyBindButton.Desc ~= nil then
+                autoTicketFarmKeyBindButton.Desc = desc
+            else
+                error("no Desc property")
+            end
+        end,
+        function() -- alternate name
+            if type(autoTicketFarmKeyBindButton.SetDescription) == "function" then
+                autoTicketFarmKeyBindButton:SetDescription(desc)
+            else
+                error("no SetDescription")
+            end
+        end,
+        function() -- fallback: attempt to call SetValue (some libs)
+            if type(autoTicketFarmKeyBindButton.SetValue) == "function" then
+                autoTicketFarmKeyBindButton:SetValue(desc)
+            else
+                error("no SetValue")
+            end
+        end
+    }
+
+    for _, fn in ipairs(methods) do
+        local ok = pcall(fn)
+        if ok then
+            success = true
+            break
+        end
+    end
+
+    if not success then
+        pcall(function()
+            WindUI:Notify({
+                Title = "Auto Ticket Farm Keybind",
+                Content = desc,
+                Duration = 2
+            })
+        end)
+    end
+
+    return success
+end
+
 -- Function to handle key binding
 local function bindKey(keyBindButtonParam)
     -- Prefer parameter if provided
@@ -449,6 +514,55 @@ local function bindManualReviveKey(keyBindButtonParam)
     end)
 end
 
+-- Function to handle auto ticket farm key binding
+local function bindAutoTicketFarmKey(keyBindButtonParam)
+    local targetButton = keyBindButtonParam or autoTicketFarmKeyBindButton
+
+    if isListeningForAutoTicketFarm then 
+        -- If already listening, cancel it
+        isListeningForAutoTicketFarm = false
+        if autoTicketFarmKeyConnection then
+            autoTicketFarmKeyConnection:Disconnect()
+            autoTicketFarmKeyConnection = nil
+        end
+        WindUI:Notify({
+            Title = "Auto Ticket Farm Keybind",
+            Content = "Key binding cancelled",
+            Duration = 2
+        })
+        return
+    end
+    
+    isListeningForAutoTicketFarm = true
+    WindUI:Notify({
+        Title = "Auto Ticket Farm Keybind",
+        Content = "Press any key to bind...",
+        Duration = 3
+    })
+    
+    -- Listen for key input
+    autoTicketFarmKeyConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        
+        if input.UserInputType == Enum.UserInputType.Keyboard then
+            autoTicketFarmKey = input.KeyCode
+            isListeningForAutoTicketFarm = false
+            autoTicketFarmKeyConnection:Disconnect()
+            autoTicketFarmKeyConnection = nil
+            
+            WindUI:Notify({
+                Title = "Auto Ticket Farm Keybind",
+                Content = "Key bound to: " .. getCleanKeyName(autoTicketFarmKey),
+                Duration = 3
+            })
+            -- Try to update the displayed description on the button
+            pcall(function()
+                updateAutoTicketFarmKeybindButtonDesc()
+            end)
+        end
+    end)
+end
+
 -- Function to handle key press functionality (robust against missing IsOpen)
 local function handleKeyPress(input, gameProcessed)
     if gameProcessed then return end
@@ -493,6 +607,37 @@ end
 
 -- Connect the key functionality
 keyInputConnection = game:GetService("UserInputService").InputBegan:Connect(handleKeyPress)
+
+-- Connect Auto Ticket Farm key functionality
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == autoTicketFarmKey then
+        -- Toggle Auto Ticket Farm
+        featureStates.AutoTicketFarm = not featureStates.AutoTicketFarm
+        
+        if featureStates.AutoTicketFarm then
+            startAutoTicketFarm()
+            WindUI:Notify({
+                Title = "Auto Ticket Farm",
+                Content = "Auto Ticket Farm enabled",
+                Duration = 2
+            })
+        else
+            stopAutoTicketFarm()
+            WindUI:Notify({
+                Title = "Auto Ticket Farm",
+                Content = "Auto Ticket Farm disabled",
+                Duration = 2
+            })
+        end
+        
+        -- Update toggle state in UI
+        if AutoTicketFarmToggle then
+            AutoTicketFarmToggle:Set(featureStates.AutoTicketFarm)
+        end
+    end
+end)
 
 -- Add tags and time tag
 Window:SetIconSize(48)
@@ -626,6 +771,10 @@ local carryDelay = 0.1
 -- Auto Ticket Farm Variables
 local ticketFarmDelay = 0.5
 local autoTicketFarmConnection = nil
+local autoTicketFarmKey = Enum.KeyCode.T
+local autoTicketFarmKeyBindButton
+local isListeningForAutoTicketFarm = false
+local autoTicketFarmKeyConnection = nil
 
 -- Click TP Variables
 local clickTPConnection
@@ -3521,6 +3670,20 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
     -- Ensure the description reflects current loaded key
     pcall(updateManualReviveKeybindButtonDesc)
 
+    -- Auto Ticket Farm Key Bind Button
+    autoTicketFarmKeyBindButton = Tabs.Auto:Button({
+        Title = "Auto Ticket Farm Key",
+        Desc = "Current Key: " .. getCleanKeyName(autoTicketFarmKey),
+        Icon = "key",
+        Variant = "Primary",
+        Callback = function()
+            bindAutoTicketFarmKey(autoTicketFarmKeyBindButton)
+        end
+    })
+
+    -- Ensure the description reflects current loaded key
+    pcall(updateAutoTicketFarmKeybindButtonDesc)
+
     local AutoWinToggle = Tabs.Auto:Toggle({
         Title = "loc:AUTO_WIN",
         Value = featureStates.PlayerESP.distance,
@@ -3711,6 +3874,7 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 configFile:Register("ReviveRangeInput", ReviveRangeInput)
                 configFile:Register("ReviveDelayInput", ReviveDelayInput)
                 configFile:Register("ManualReviveKeyBindButton", manualReviveKeyBindButton)
+                configFile:Register("AutoTicketFarmKeyBindButton", autoTicketFarmKeyBindButton)
                 configFile:Register("AutoVoteDropdown", AutoVoteDropdown)
                 configFile:Register("AutoVoteToggle", AutoVoteToggle)
                 configFile:Register("AutoSelfReviveToggle", AutoSelfReviveToggle)
@@ -3767,6 +3931,9 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                     end
                     if loadedData.ManualReviveKeyBindButton then
                         manualReviveKeyBindButton:Set(loadedData.ManualReviveKeyBindButton)
+                    end
+                    if loadedData.AutoTicketFarmKeyBindButton then
+                        autoTicketFarmKeyBindButton:Set(loadedData.AutoTicketFarmKeyBindButton)
                     end
                 end
             end
@@ -3913,10 +4080,11 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 
                 -- Reset variables
                 carryRange = 10
-                carryDelay = 0.05
+                carryDelay = 0.1
                 reviveRange = 5
                 reviveDelay = 0.5
                 ticketFarmDelay = 0.5
+                autoTicketFarmKey = Enum.KeyCode.T
                 
                 -- Stop all active features
                 stopPlayerESP()
