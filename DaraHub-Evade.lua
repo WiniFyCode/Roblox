@@ -1993,23 +1993,24 @@ local function createTicketESP(ticket)
     local esp = ticketEspElements[ticket]
     local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(ticket.Position)
     
+    -- Always update tracer position if on screen
     if onScreen then
-        -- Update tracer
+        esp.tracer.Visible = featureStates.TicketESP.tracer
         if featureStates.TicketESP.tracer then
-            esp.tracer.Visible = true
             esp.tracer.From = Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y)
             esp.tracer.To = Vector2.new(pos.X, pos.Y)
-        else
-            esp.tracer.Visible = false
+            print("Tracer visible for ticket:", ticket.Name, "at position:", pos.X, pos.Y)
         end
         
         -- Update highlight
         if featureStates.TicketESP.highlight then
             if not esp.highlight then
                 esp.highlight = createTicketHighlight(ticket)
+                print("Created highlight for ticket:", ticket.Name)
             end
             if esp.highlight then
                 esp.highlight.Enabled = true
+                print("Highlight enabled for ticket:", ticket.Name)
             end
         else
             if esp.highlight then
@@ -2077,24 +2078,11 @@ local function startTicketESP()
     end
     
     ticketEspConnection = RunService.Heartbeat:Connect(function()
-        local currentTickets = {}
-        
-        local effectsFolder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Effects")
-        if effectsFolder then
-            local ticketsFolder = effectsFolder:FindFirstChild("Tickets")
-            if ticketsFolder then
-                for _, ticket in ipairs(ticketsFolder:GetChildren()) do
-                    if ticket:IsA("BasePart") then
-                        currentTickets[ticket] = true
-                        createTicketESP(ticket)
-                    end
-                end
-            end
-        end
-        
-        -- Clean up removed tickets
+        -- Only update existing ESP elements, don't recreate them
         for ticket, esp in pairs(ticketEspElements) do
-            if not currentTickets[ticket] then
+            if ticket and ticket.Parent then
+                createTicketESP(ticket)
+            else
                 removeTicketESP(ticket)
             end
         end
@@ -3154,10 +3142,13 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
             print("Ticket Highlight toggled:", state)
             featureStates.TicketESP.highlight = state
             if state or featureStates.TicketESP.tracer then
-                if ticketEspConnection then stopTicketESP() end
-                startTicketESP()
+                if not ticketEspConnection then
+                    startTicketESP()
+                end
             else
-                stopTicketESP()
+                if not (featureStates.TicketESP.tracer or featureStates.TicketESP.highlight) then
+                    stopTicketESP()
+                end
             end
         end
     })
@@ -3170,10 +3161,13 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
             print("Ticket Tracer toggled:", state)
             featureStates.TicketESP.tracer = state
             if state or featureStates.TicketESP.highlight then
-                if ticketEspConnection then stopTicketESP() end
-                startTicketESP()
+                if not ticketEspConnection then
+                    startTicketESP()
+                end
             else
-                stopTicketESP()
+                if not (featureStates.TicketESP.tracer or featureStates.TicketESP.highlight) then
+                    stopTicketESP()
+                end
             end
         end
     })
