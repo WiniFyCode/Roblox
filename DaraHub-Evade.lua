@@ -571,14 +571,13 @@ local featureStates = {
     DownedBoxType = "3D",
     DownedHighlight = false,
     TicketESP = {
-        enabled = false,
-        showTracers = false,
-        showNames = false,
-        showHighlight = false,
-        maxDistance = 10000,
-        tracerColor = Color3.fromRGB(255, 0, 0),
-        nameColor = Color3.fromRGB(255, 255, 255),
-        highlightColor = Color3.fromRGB(255, 255, 0)
+        boxes = false,
+        tracers = false,
+        names = false,
+        distance = false,
+        rainbowBoxes = false,
+        rainbowTracers = false,
+        boxType = "2D",
     },
     FlySpeed = 5,
     TpwalkValue = 1,
@@ -1912,6 +1911,240 @@ local function cleanupNameESPLabels(labelTable)
     labelTable = {}
 end
 
+-- Ticket ESP Variables
+local ticketEspElements = {}
+local ticketEspConnection = nil
+
+-- Ticket ESP Functions
+local function updateTicketESP()
+    local camera = workspace.CurrentCamera
+    if not camera then return end
+    local currentTargets = {}
+
+    -- Check for tickets in workspace.Game.Effects.Tickets
+    local ticketsFolder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Effects") and workspace.Game.Effects:FindFirstChild("Tickets")
+    if ticketsFolder then
+        for _, ticket in pairs(ticketsFolder:GetChildren()) do
+            if ticket:IsA("BasePart") or (ticket:IsA("Model") and ticket:FindFirstChild("HumanoidRootPart")) then
+                currentTargets[ticket] = true
+
+                if not ticketEspElements[ticket] then
+                    ticketEspElements[ticket] = {
+                        name = Drawing.new("Text"),
+                        distance = Drawing.new("Text"),
+                        box = Drawing.new("Square"),
+                        boxLines = nil,
+                        tracer = Drawing.new("Line")
+                    }
+                    ticketEspElements[ticket].name.Size = 14
+                    ticketEspElements[ticket].name.Center = true
+                    ticketEspElements[ticket].name.Outline = true
+                    ticketEspElements[ticket].name.Color = Color3.fromRGB(255, 215, 0) -- Gold color for tickets
+                    ticketEspElements[ticket].distance.Size = 14
+                    ticketEspElements[ticket].distance.Center = true
+                    ticketEspElements[ticket].distance.Outline = true
+                    ticketEspElements[ticket].distance.Color = Color3.fromRGB(255, 255, 255)
+                    ticketEspElements[ticket].box.Thickness = 2
+                    ticketEspElements[ticket].box.Filled = false
+                    ticketEspElements[ticket].tracer.Thickness = 1
+                end
+
+                local esp = ticketEspElements[ticket]
+                local position
+                
+                -- Get position based on object type
+                if ticket:IsA("BasePart") then
+                    position = ticket.Position
+                elseif ticket:IsA("Model") and ticket:FindFirstChild("HumanoidRootPart") then
+                    position = ticket.HumanoidRootPart.Position
+                else
+                    goto continue
+                end
+                
+                local vector, onScreen = camera:WorldToViewportPoint(position)
+
+                if onScreen then
+                    local toggles = featureStates.TicketESP
+                    
+                    -- Name ESP
+                    if toggles.names then
+                        esp.name.Visible = true
+                        esp.name.Text = "Ticket"
+                        esp.name.Position = Vector2.new(vector.X, vector.Y - 30)
+                    else
+                        esp.name.Visible = false
+                    end
+
+                    -- Distance ESP
+                    if toggles.distance then
+                        local distance = (player.Character and player.Character:FindFirstChild("HumanoidRootPart") and 
+                            (player.Character.HumanoidRootPart.Position - position).Magnitude) or 0
+                        esp.distance.Visible = true
+                        esp.distance.Text = string.format("%.1f", distance)
+                        esp.distance.Position = Vector2.new(vector.X, vector.Y + 20)
+                    else
+                        esp.distance.Visible = false
+                    end
+
+                    -- Box ESP
+                    if toggles.boxes then
+                        local boxColor
+                        if toggles.rainbowBoxes then
+                            local hue = (tick() % 5) / 5
+                            boxColor = Color3.fromHSV(hue, 1, 1)
+                        else
+                            boxColor = Color3.fromRGB(255, 215, 0) -- Gold color
+                        end
+                        
+                        if toggles.boxType == "2D" then
+                            esp.box.Visible = true
+                            local size = 20
+                            esp.box.Size = Vector2.new(size, size)
+                            esp.box.Position = Vector2.new(vector.X - size/2, vector.Y - size/2)
+                            esp.box.Color = boxColor
+                            if esp.boxLines then
+                                for _, line in ipairs(esp.boxLines) do
+                                    line.Visible = false
+                                end
+                            end
+                        else
+                            esp.box.Visible = false
+                            -- 3D Box for tickets (simplified)
+                            if not esp.boxLines then
+                                esp.boxLines = {}
+                                for i = 1, 12 do
+                                    local line = Drawing.new("Line")
+                                    line.Thickness = 2
+                                    table.insert(esp.boxLines, line)
+                                end
+                            end
+                            
+                            local size = Vector3.new(2, 2, 2)
+                            local offsets = {
+                                Vector3.new( size.X/2,  size.Y/2,  size.Z/2),
+                                Vector3.new( size.X/2,  size.Y/2, -size.Z/2),
+                                Vector3.new( size.X/2, -size.Y/2,  size.Z/2),
+                                Vector3.new( size.X/2, -size.Y/2, -size.Z/2),
+                                Vector3.new(-size.X/2,  size.Y/2,  size.Z/2),
+                                Vector3.new(-size.X/2,  size.Y/2, -size.Z/2),
+                                Vector3.new(-size.X/2, -size.Y/2,  size.Z/2),
+                                Vector3.new(-size.X/2, -size.Y/2, -size.Z/2),
+                            }
+                            local screenPoints = {}
+                            for i, offset in ipairs(offsets) do
+                                local worldPos = CFrame.new(position) * offset
+                                local vec, _ = camera:WorldToViewportPoint(worldPos)
+                                screenPoints[i] = {pos = Vector2.new(vec.X, vec.Y), depth = vec.Z}
+                            end
+                            local edges = {
+                                {1,2}, {1,3}, {1,5},
+                                {2,4}, {2,6},
+                                {3,4}, {3,7},
+                                {5,6}, {5,7},
+                                {4,8}, {6,8}, {7,8}
+                            }
+                            local lineIndex = 1
+                            for _, edge in ipairs(edges) do
+                                local p1 = screenPoints[edge[1]]
+                                local p2 = screenPoints[edge[2]]
+                                local line = esp.boxLines[lineIndex]
+                                line.Color = boxColor
+                                if p1.depth > 0 and p2.depth > 0 then
+                                    line.From = p1.pos
+                                    line.To = p2.pos
+                                    line.Visible = true
+                                else
+                                    line.Visible = false
+                                end
+                                lineIndex = lineIndex + 1
+                            end
+                        end
+                    else
+                        esp.box.Visible = false
+                        if esp.boxLines then
+                            for _, line in ipairs(esp.boxLines) do
+                                line.Visible = false
+                            end
+                        end
+                    end
+
+                    -- Tracer ESP
+                    if toggles.tracers then
+                        esp.tracer.Visible = true
+                        esp.tracer.From = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y)
+                        esp.tracer.To = Vector2.new(vector.X, vector.Y)
+                        if toggles.rainbowTracers then
+                            local hue = (tick() % 5) / 5
+                            esp.tracer.Color = Color3.fromHSV(hue, 1, 1)
+                        else
+                            esp.tracer.Color = Color3.fromRGB(255, 215, 0) -- Gold color
+                        end
+                    else
+                        esp.tracer.Visible = false
+                    end
+                else
+                    esp.name.Visible = false
+                    esp.distance.Visible = false
+                    esp.box.Visible = false
+                    esp.tracer.Visible = false
+                    if esp.boxLines then
+                        for _, line in ipairs(esp.boxLines) do
+                            line.Visible = false
+                        end
+                    end
+                end
+            end
+            ::continue::
+        end
+    end
+
+    -- Clean up removed tickets
+    for target, esp in pairs(ticketEspElements) do
+        if not currentTargets[target] then
+            for _, drawing in pairs(esp) do
+                safeCleanupObject(drawing)
+            end
+            if esp.boxLines then
+                for _, line in ipairs(esp.boxLines) do
+                    safeCleanupObject(line)
+                end
+            end
+            ticketEspElements[target] = nil
+        end
+    end
+end
+
+-- Start Ticket ESP
+local function startTicketESP()
+    if ticketEspConnection then 
+        ticketEspConnection:Disconnect()
+    end
+    ticketEspConnection = RunService.RenderStepped:Connect(updateTicketESP)
+    
+    -- Initial scan
+    updateTicketESP()
+end
+
+-- Stop Ticket ESP
+local function stopTicketESP()
+    if ticketEspConnection then
+        ticketEspConnection:Disconnect()
+        ticketEspConnection = nil
+    end
+    
+    for _, esp in pairs(ticketEspElements) do
+        for _, drawing in pairs(esp) do
+            safeCleanupObject(drawing)
+        end
+        if esp.boxLines then
+            for _, line in ipairs(esp.boxLines) do
+                safeCleanupObject(line)
+            end
+        end
+    end
+    ticketEspElements = {}
+end
+
 local function startDownedNameESP()
     downedNameESPConnection = RunService.Heartbeat:Connect(function()
         cleanupNameESPLabels(downedNameESPLabels)
@@ -1958,244 +2191,6 @@ local function stopDownedNameESP()
     end
     cleanupNameESPLabels(downedNameESPLabels)
     downedNameESPLabels = {}
-end
-
--- Ticket ESP Variables
-local ticketEspObjects = {}
-local ticketEspConnection = nil
-
--- Get object position helper function for tickets
-local function getTicketPosition(object)
-    if object:IsA("BasePart") then
-        return object.Position
-    elseif object:IsA("Model") then
-        local primaryPart = object.PrimaryPart
-        if primaryPart then
-            return primaryPart.Position
-        else
-            local humanoidRoot = object:FindFirstChild("HumanoidRootPart")
-            if humanoidRoot then
-                return humanoidRoot.Position
-            else
-                for _, child in pairs(object:GetChildren()) do
-                    if child:IsA("BasePart") then
-                        return child.Position
-                    end
-                end
-            end
-        end
-    end
-    return nil
-end
-
--- Create ESP for a ticket
-local function createTicketESP(ticket)
-    if not ticket or not ticket.Parent then return end
-    
-    local character = player.Character
-    if not character then return end
-    
-    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-    if not humanoidRootPart then return end
-    
-    -- Get ticket position
-    local ticketPosition = getTicketPosition(ticket)
-    if not ticketPosition then return end
-    
-    -- Calculate distance
-    local distance = (humanoidRootPart.Position - ticketPosition).Magnitude
-    if distance > featureStates.TicketESP.maxDistance then return end
-    
-    -- Create GUI for name
-    local nameGui = nil
-    if featureStates.TicketESP.showNames then
-        nameGui = Instance.new("BillboardGui")
-        nameGui.Name = "TicketESP_Name"
-        nameGui.Size = UDim2.new(0, 200, 0, 50)
-        nameGui.StudsOffset = Vector3.new(0, 2, 0)
-        nameGui.AlwaysOnTop = true
-        nameGui.Parent = ticket
-        
-        local nameLabel = Instance.new("TextLabel")
-        nameLabel.Name = "NameLabel"
-        nameLabel.Size = UDim2.new(1, 0, 1, 0)
-        nameLabel.BackgroundTransparency = 1
-        nameLabel.Text = ticket.Name .. " [" .. math.floor(distance) .. "m]"
-        nameLabel.TextColor3 = featureStates.TicketESP.nameColor
-        nameLabel.TextStrokeTransparency = 0
-        nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-        nameLabel.TextScaled = true
-        nameLabel.Font = Enum.Font.SourceSansBold
-        nameLabel.Parent = nameGui
-    end
-    
-    -- Create tracer
-    local tracer = nil
-    if featureStates.TicketESP.showTracers then
-        tracer = Drawing.new("Line")
-        tracer.Visible = true
-        tracer.Color = featureStates.TicketESP.tracerColor
-        tracer.Thickness = 2
-        tracer.Transparency = 0.8
-    end
-    
-    -- Create highlight
-    local highlight = nil
-    if featureStates.TicketESP.showHighlight then
-        highlight = Instance.new("Highlight")
-        highlight.Name = "TicketESP_Highlight"
-        highlight.FillColor = featureStates.TicketESP.highlightColor
-        highlight.OutlineColor = featureStates.TicketESP.highlightColor
-        highlight.FillTransparency = 0.3
-        highlight.OutlineTransparency = 0
-        highlight.Parent = ticket
-    end
-    
-    -- Store ESP objects
-    ticketEspObjects[ticket] = {
-        nameGui = nameGui,
-        tracer = tracer,
-        highlight = highlight,
-        ticket = ticket
-    }
-end
-
--- Remove ESP from a ticket
-local function removeTicketESP(ticket)
-    local espData = ticketEspObjects[ticket]
-    if espData then
-        if espData.nameGui then
-            espData.nameGui:Destroy()
-        end
-        if espData.tracer then
-            espData.tracer:Remove()
-        end
-        if espData.highlight then
-            espData.highlight:Destroy()
-        end
-        ticketEspObjects[ticket] = nil
-    end
-end
-
--- Update Ticket ESP
-local function updateTicketESP()
-    if not featureStates.TicketESP.enabled then return end
-    
-    local character = player.Character
-    if not character then return end
-    
-    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-    if not humanoidRootPart then return end
-    
-    for ticket, espData in pairs(ticketEspObjects) do
-        if ticket and ticket.Parent then
-            local ticketPosition = getTicketPosition(ticket)
-            if not ticketPosition then
-                removeTicketESP(ticket)
-            else
-                -- Update tracer
-                if espData.tracer and featureStates.TicketESP.showTracers then
-                    local screenPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(ticketPosition)
-                    if onScreen then
-                        local screenCenter = workspace.CurrentCamera.ViewportSize / 2
-                        espData.tracer.From = Vector2.new(screenCenter.X, screenCenter.Y)
-                        espData.tracer.To = Vector2.new(screenPos.X, screenPos.Y)
-                        espData.tracer.Visible = true
-                    else
-                        espData.tracer.Visible = false
-                    end
-                end
-                
-                -- Update name distance
-                if espData.nameGui and espData.nameGui.Parent then
-                    local distance = (humanoidRootPart.Position - ticketPosition).Magnitude
-                    local nameLabel = espData.nameGui:FindFirstChild("NameLabel")
-                    if nameLabel then
-                        nameLabel.Text = ticket.Name .. " [" .. math.floor(distance) .. "m]"
-                    end
-                end
-            end
-        else
-            -- Ticket no longer exists, remove ESP
-            removeTicketESP(ticket)
-        end
-    end
-end
-
--- Find and create ESP for all tickets
-local function findTickets()
-    local ticketsFolder = workspace:FindFirstChild("Game")
-    if ticketsFolder then
-        ticketsFolder = ticketsFolder:FindFirstChild("Effects")
-        if ticketsFolder then
-            ticketsFolder = ticketsFolder:FindFirstChild("Tickets")
-            if ticketsFolder then
-                for _, ticket in pairs(ticketsFolder:GetChildren()) do
-                    if ticket:IsA("BasePart") or ticket:IsA("Model") then
-                        createTicketESP(ticket)
-                    end
-                end
-            end
-        end
-    end
-end
-
--- Monitor for new tickets
-local function monitorTickets()
-    local ticketsFolder = workspace:FindFirstChild("Game")
-    if ticketsFolder then
-        ticketsFolder = ticketsFolder:FindFirstChild("Effects")
-        if ticketsFolder then
-            ticketsFolder = ticketsFolder:FindFirstChild("Tickets")
-            if ticketsFolder then
-                -- Connect to child added
-                local connection = ticketsFolder.ChildAdded:Connect(function(child)
-                    task.wait(0.1) -- Small delay to ensure object is fully loaded
-                    if child:IsA("BasePart") or child:IsA("Model") then
-                        createTicketESP(child)
-                    end
-                end)
-                
-                -- Connect to child removed
-                local connection2 = ticketsFolder.ChildRemoved:Connect(function(child)
-                    removeTicketESP(child)
-                end)
-                
-                return connection, connection2
-            end
-        end
-    end
-    return nil, nil
-end
-
--- Start Ticket ESP
-local function startTicketESP()
-    if ticketEspConnection then return end
-    
-    findTickets()
-    local connection1, connection2 = monitorTickets()
-    
-    ticketEspConnection = RunService.Heartbeat:Connect(updateTicketESP)
-    
-    if connection1 then
-        connection1:Disconnect()
-    end
-    if connection2 then
-        connection2:Disconnect()
-    end
-end
-
--- Stop Ticket ESP
-local function stopTicketESP()
-    if ticketEspConnection then
-        ticketEspConnection:Disconnect()
-        ticketEspConnection = nil
-    end
-    
-    for ticket, espData in pairs(ticketEspObjects) do
-        removeTicketESP(ticket)
-    end
-    ticketEspObjects = {}
 end
 
 -- Function to handle character loading
@@ -2295,7 +2290,7 @@ end
         if downedNameESPConnection then stopDownedNameESP() end
         startDownedNameESP()
     end
-    if featureStates.TicketESP.enabled then
+    if featureStates.TicketESP.names or featureStates.TicketESP.boxes or featureStates.TicketESP.tracers or featureStates.TicketESP.distance then
         stopTicketESP()
         startTicketESP()
     end
@@ -3231,13 +3226,12 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
 
     Tabs.ESP:Section({ Title = "Ticket ESP" })
 
-    local TicketESPToggle = Tabs.ESP:Toggle({
-        Title = "Ticket ESP",
-        Desc = "Show ESP for tickets",
-        Value = featureStates.TicketESP.enabled,
+    local TicketNameESPToggle = Tabs.ESP:Toggle({
+        Title = "Ticket Name ESP",
+        Value = featureStates.TicketESP.names,
         Callback = function(state)
-            featureStates.TicketESP.enabled = state
-            if state then
+            featureStates.TicketESP.names = state
+            if state or featureStates.TicketESP.boxes or featureStates.TicketESP.tracers or featureStates.TicketESP.distance then
                 startTicketESP()
             else
                 stopTicketESP()
@@ -3245,41 +3239,78 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
         end
     })
 
+    local TicketBoxESPToggle = Tabs.ESP:Toggle({
+        Title = "Ticket Box ESP",
+        Value = featureStates.TicketESP.boxes,
+        Callback = function(state)
+            featureStates.TicketESP.boxes = state
+            if state or featureStates.TicketESP.names or featureStates.TicketESP.tracers or featureStates.TicketESP.distance then
+                startTicketESP()
+            else
+                stopTicketESP()
+            end
+        end
+    })
+
+    local TicketBoxTypeDropdown = Tabs.ESP:Dropdown({
+        Title = "Ticket Box Type",
+        Values = {"2D", "3D"},
+        Value = "2D",
+        Callback = function(value)
+            featureStates.TicketESP.boxType = value
+            if featureStates.TicketESP.boxes then
+                stopTicketESP()
+                startTicketESP()
+            end
+        end
+    })
+
+    local TicketRainbowBoxesToggle = Tabs.ESP:Toggle({
+        Title = "Ticket Rainbow Boxes",
+        Value = featureStates.TicketESP.rainbowBoxes,
+        Callback = function(state)
+            featureStates.TicketESP.rainbowBoxes = state
+            if featureStates.TicketESP.boxes then
+                stopTicketESP()
+                startTicketESP()
+            end
+        end
+    })
+
     local TicketTracerToggle = Tabs.ESP:Toggle({
         Title = "Ticket Tracer",
-        Desc = "Show tracers to tickets",
-        Value = featureStates.TicketESP.showTracers,
+        Value = featureStates.TicketESP.tracers,
         Callback = function(state)
-            featureStates.TicketESP.showTracers = state
-            if featureStates.TicketESP.enabled then
+            featureStates.TicketESP.tracers = state
+            if state or featureStates.TicketESP.names or featureStates.TicketESP.boxes or featureStates.TicketESP.distance then
+                startTicketESP()
+            else
+                stopTicketESP()
+            end
+        end
+    })
+
+    local TicketRainbowTracersToggle = Tabs.ESP:Toggle({
+        Title = "Ticket Rainbow Tracers",
+        Value = featureStates.TicketESP.rainbowTracers,
+        Callback = function(state)
+            featureStates.TicketESP.rainbowTracers = state
+            if featureStates.TicketESP.tracers then
                 stopTicketESP()
                 startTicketESP()
             end
         end
     })
 
-    local TicketNameToggle = Tabs.ESP:Toggle({
-        Title = "Ticket Name ESP",
-        Desc = "Show ticket names and distance",
-        Value = featureStates.TicketESP.showNames,
+    local TicketDistanceESPToggle = Tabs.ESP:Toggle({
+        Title = "Ticket Distance ESP",
+        Value = featureStates.TicketESP.distance,
         Callback = function(state)
-            featureStates.TicketESP.showNames = state
-            if featureStates.TicketESP.enabled then
-                stopTicketESP()
+            featureStates.TicketESP.distance = state
+            if state or featureStates.TicketESP.names or featureStates.TicketESP.boxes or featureStates.TicketESP.tracers then
                 startTicketESP()
-            end
-        end
-    })
-
-    local TicketHighlightToggle = Tabs.ESP:Toggle({
-        Title = "Ticket Highlight",
-        Desc = "Highlight tickets with colored outline",
-        Value = featureStates.TicketESP.showHighlight,
-        Callback = function(state)
-            featureStates.TicketESP.showHighlight = state
-            if featureStates.TicketESP.enabled then
+            else
                 stopTicketESP()
-                startTicketESP()
             end
         end
     })
@@ -3601,10 +3632,13 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 configFile:Register("DownedTracerToggle", DownedTracerToggle)
                 configFile:Register("DownedNameESPToggle", DownedNameESPToggle)
                 configFile:Register("DownedDistanceESPToggle", DownedDistanceESPToggle)
-                configFile:Register("TicketESPToggle", TicketESPToggle)
+                configFile:Register("TicketNameESPToggle", TicketNameESPToggle)
+                configFile:Register("TicketBoxESPToggle", TicketBoxESPToggle)
+                configFile:Register("TicketBoxTypeDropdown", TicketBoxTypeDropdown)
+                configFile:Register("TicketRainbowBoxesToggle", TicketRainbowBoxesToggle)
                 configFile:Register("TicketTracerToggle", TicketTracerToggle)
-                configFile:Register("TicketNameToggle", TicketNameToggle)
-                configFile:Register("TicketHighlightToggle", TicketHighlightToggle)
+                configFile:Register("TicketRainbowTracersToggle", TicketRainbowTracersToggle)
+                configFile:Register("TicketDistanceESPToggle", TicketDistanceESPToggle)
                 configFile:Register("AutoCarryToggle", AutoCarryToggle)
                 configFile:Register("CarryRangeInput", CarryRangeInput)
                 configFile:Register("CarryDelayInput", CarryDelayInput)
@@ -3722,14 +3756,13 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                     DownedBoxType = "3D",
                     DownedHighlight = false,
                     TicketESP = {
-                        enabled = false,
-                        showTracers = false,
-                        showNames = false,
-                        showHighlight = false,
-                        maxDistance = 10000,
-                        tracerColor = Color3.fromRGB(255, 0, 0),
-                        nameColor = Color3.fromRGB(255, 255, 255),
-                        highlightColor = Color3.fromRGB(255, 255, 0)
+                        boxes = false,
+                        tracers = false,
+                        names = false,
+                        distance = false,
+                        rainbowBoxes = false,
+                        rainbowTracers = false,
+                        boxType = "2D",
                     },
                     FlySpeed = 5,
                     TpwalkValue = 1,
@@ -3786,10 +3819,13 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 if DownedHighlightToggle then DownedHighlightToggle:Set(false) end
                 
                 -- Reset Ticket ESP
-                if TicketESPToggle then TicketESPToggle:Set(false) end
+                if TicketNameESPToggle then TicketNameESPToggle:Set(false) end
+                if TicketBoxESPToggle then TicketBoxESPToggle:Set(false) end
+                if TicketBoxTypeDropdown then TicketBoxTypeDropdown:Select("2D") end
+                if TicketRainbowBoxesToggle then TicketRainbowBoxesToggle:Set(false) end
                 if TicketTracerToggle then TicketTracerToggle:Set(false) end
-                if TicketNameToggle then TicketNameToggle:Set(false) end
-                if TicketHighlightToggle then TicketHighlightToggle:Set(false) end
+                if TicketRainbowTracersToggle then TicketRainbowTracersToggle:Set(false) end
+                if TicketDistanceESPToggle then TicketDistanceESPToggle:Set(false) end
                 
                 -- Reset Auto features
                 if AutoCarryToggle then AutoCarryToggle:Set(false) end
