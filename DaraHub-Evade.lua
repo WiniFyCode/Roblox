@@ -771,7 +771,8 @@ local function createTicketESP(object)
     
     -- Calculate distance
     local distance = (humanoidRootPart.Position - objectPosition).Magnitude
-    if distance > featureStates.TicketESP.maxDistance then return end
+    local maxDistance = tonumber(featureStates.TicketESP.maxDistance) or 10000
+    if distance > maxDistance then return end
     
     -- Create GUI for name
     local nameGui = nil
