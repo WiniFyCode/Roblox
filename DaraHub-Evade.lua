@@ -571,8 +571,14 @@ local featureStates = {
     DownedBoxType = "3D",
     DownedHighlight = false,
     TicketESP = {
-        highlight = false,
-        tracer = false,
+        enabled = false,
+        showTracers = true,
+        showNames = true,
+        showHighlight = true,
+        maxDistance = 10000,
+        tracerColor = Color3.fromRGB(255, 0, 0),
+        nameColor = Color3.fromRGB(255, 255, 255),
+        highlightColor = Color3.fromRGB(255, 255, 0)
     },
     FlySpeed = 5,
     TpwalkValue = 1,
@@ -633,13 +639,14 @@ local downedNameESPConnection
 local downedTracerLines = {}
 local downedNameESPLabels = {}
 
--- Ticket ESP Variables
-local ticketEspElements = {}
-local ticketEspConnection = nil
-
 -- Highlight Variables
 local playerHighlights = {}
 local downedHighlights = {}
+
+-- Ticket ESP Variables
+local ticketEspObjects = {}
+local ticketEspConnection = nil
+local ticketConnections = {}
 
 -- Utility to safely clean up Drawing or Instance objects
 local function safeCleanupObject(obj)
@@ -716,28 +723,243 @@ local function createDownedHighlight(character)
     return highlight
 end
 
--- Function to create highlight for ticket
-local function createTicketHighlight(ticket)
-    if not ticket then return nil end
-    
-    local highlight = Instance.new("Highlight")
-    highlight.Name = "TicketESP_Highlight"
-    highlight.Adornee = ticket
-    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    highlight.FillColor = Color3.fromRGB(255, 215, 0) -- Gold for tickets
-    highlight.OutlineColor = Color3.fromRGB(255, 255, 0) -- Yellow outline
-    highlight.FillTransparency = 0.2
-    highlight.OutlineTransparency = 0
-    highlight.Parent = ticket
-    
-    return highlight
-end
-
 -- Function to cleanup highlight
 local function cleanupHighlight(highlight)
     if highlight and highlight.Parent then
         highlight:Destroy()
     end
+end
+
+-- Ticket ESP Functions
+-- Get object position helper function for tickets
+local function getTicketPosition(object)
+    if object:IsA("BasePart") then
+        return object.Position
+    elseif object:IsA("Model") then
+        local primaryPart = object.PrimaryPart
+        if primaryPart then
+            return primaryPart.Position
+        else
+            local humanoidRoot = object:FindFirstChild("HumanoidRootPart")
+            if humanoidRoot then
+                return humanoidRoot.Position
+            else
+                for _, child in pairs(object:GetChildren()) do
+                    if child:IsA("BasePart") then
+                        return child.Position
+                    end
+                end
+            end
+        end
+    end
+    return nil
+end
+
+-- Create ESP for a ticket
+local function createTicketESP(object)
+    if not object or not object.Parent then return end
+    
+    local character = player.Character
+    if not character then return end
+    
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
+    
+    -- Get object position
+    local objectPosition = getTicketPosition(object)
+    if not objectPosition then return end
+    
+    -- Calculate distance
+    local distance = (humanoidRootPart.Position - objectPosition).Magnitude
+    if distance > featureStates.TicketESP.maxDistance then return end
+    
+    -- Create GUI for name
+    local nameGui = nil
+    if featureStates.TicketESP.showNames then
+        nameGui = Instance.new("BillboardGui")
+        nameGui.Name = "TicketESP_Name"
+        nameGui.Size = UDim2.new(0, 200, 0, 50)
+        nameGui.StudsOffset = Vector3.new(0, 2, 0)
+        nameGui.AlwaysOnTop = true
+        nameGui.Parent = object
+        
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Name = "NameLabel"
+        nameLabel.Size = UDim2.new(1, 0, 1, 0)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.Text = object.Name .. " [" .. math.floor(distance) .. "m]"
+        nameLabel.TextColor3 = featureStates.TicketESP.nameColor
+        nameLabel.TextStrokeTransparency = 0
+        nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+        nameLabel.TextScaled = true
+        nameLabel.Font = Enum.Font.SourceSansBold
+        nameLabel.Parent = nameGui
+    end
+    
+    -- Create tracer
+    local tracer = nil
+    if featureStates.TicketESP.showTracers then
+        tracer = Drawing.new("Line")
+        tracer.Visible = true
+        tracer.Color = featureStates.TicketESP.tracerColor
+        tracer.Thickness = 2
+        tracer.Transparency = 0.8
+    end
+    
+    -- Create highlight
+    local highlight = nil
+    if featureStates.TicketESP.showHighlight then
+        highlight = Instance.new("Highlight")
+        highlight.Name = "TicketESP_Highlight"
+        highlight.FillColor = featureStates.TicketESP.highlightColor
+        highlight.OutlineColor = featureStates.TicketESP.highlightColor
+        highlight.FillTransparency = 0.3
+        highlight.OutlineTransparency = 0
+        highlight.Parent = object
+    end
+    
+    -- Store ESP objects
+    ticketEspObjects[object] = {
+        nameGui = nameGui,
+        tracer = tracer,
+        highlight = highlight,
+        object = object
+    }
+end
+
+-- Remove ESP from a ticket
+local function removeTicketESP(object)
+    local espData = ticketEspObjects[object]
+    if espData then
+        if espData.nameGui then
+            espData.nameGui:Destroy()
+        end
+        if espData.tracer then
+            espData.tracer:Remove()
+        end
+        if espData.highlight then
+            espData.highlight:Destroy()
+        end
+        ticketEspObjects[object] = nil
+    end
+end
+
+-- Update Ticket ESP
+local function updateTicketESP()
+    if not featureStates.TicketESP.enabled then return end
+    
+    local character = player.Character
+    if not character then return end
+    
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
+    
+    for object, espData in pairs(ticketEspObjects) do
+        if object and object.Parent then
+            local objectPosition = getTicketPosition(object)
+            if not objectPosition then
+                removeTicketESP(object)
+            else
+            
+            -- Update tracer
+            if espData.tracer and featureStates.TicketESP.showTracers then
+                local screenPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(objectPosition)
+                if onScreen then
+                    local screenCenter = workspace.CurrentCamera.ViewportSize / 2
+                    espData.tracer.From = Vector2.new(screenCenter.X, screenCenter.Y)
+                    espData.tracer.To = Vector2.new(screenPos.X, screenPos.Y)
+                    espData.tracer.Visible = true
+                else
+                    espData.tracer.Visible = false
+                end
+            end
+            
+            -- Update name distance
+            if espData.nameGui and espData.nameGui.Parent then
+                local distance = (humanoidRootPart.Position - objectPosition).Magnitude
+                local nameLabel = espData.nameGui:FindFirstChild("NameLabel")
+                if nameLabel then
+                    nameLabel.Text = object.Name .. " [" .. math.floor(distance) .. "m]"
+                end
+            end
+            end
+        else
+            -- Object no longer exists, remove ESP
+            removeTicketESP(object)
+        end
+    end
+end
+
+-- Find and create ESP for all tickets
+local function findTickets()
+    local ticketsFolder = workspace:FindFirstChild("Game")
+    if ticketsFolder then
+        ticketsFolder = ticketsFolder:FindFirstChild("Effects")
+        if ticketsFolder then
+            ticketsFolder = ticketsFolder:FindFirstChild("Tickets")
+            if ticketsFolder then
+                for _, ticket in pairs(ticketsFolder:GetChildren()) do
+                    if ticket:IsA("BasePart") or ticket:IsA("Model") then
+                        createTicketESP(ticket)
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- Monitor for new tickets
+local function monitorTickets()
+    local ticketsFolder = workspace:FindFirstChild("Game")
+    if ticketsFolder then
+        ticketsFolder = ticketsFolder:FindFirstChild("Effects")
+        if ticketsFolder then
+            ticketsFolder = ticketsFolder:FindFirstChild("Tickets")
+            if ticketsFolder then
+                -- Connect to child added
+                local connection = ticketsFolder.ChildAdded:Connect(function(child)
+                    task.wait(0.1) -- Small delay to ensure object is fully loaded
+                    if child:IsA("BasePart") or child:IsA("Model") then
+                        createTicketESP(child)
+                    end
+                end)
+                
+                -- Connect to child removed
+                local connection2 = ticketsFolder.ChildRemoved:Connect(function(child)
+                    removeTicketESP(child)
+                end)
+                
+                table.insert(ticketConnections, connection)
+                table.insert(ticketConnections, connection2)
+            end
+        end
+    end
+end
+
+-- Start Ticket ESP
+local function startTicketESP()
+    if ticketEspConnection then return end
+    findTickets()
+    monitorTickets()
+    ticketEspConnection = RunService.Heartbeat:Connect(updateTicketESP)
+end
+
+-- Stop Ticket ESP
+local function stopTicketESP()
+    if ticketEspConnection then
+        ticketEspConnection:Disconnect()
+        ticketEspConnection = nil
+    end
+    
+    for _, connection in pairs(ticketConnections) do
+        connection:Disconnect()
+    end
+    ticketConnections = {}
+    
+    for object, espData in pairs(ticketEspObjects) do
+        removeTicketESP(object)
+    end
+    ticketEspObjects = {}
 end
 
 -- Function to draw 3D box
@@ -1975,180 +2197,6 @@ local function stopDownedNameESP()
     downedNameESPLabels = {}
 end
 
--- Ticket ESP Functions (Using test.lua logic)
-local function createTicketESP(ticket)
-    if not ticket or not ticket.Parent then return end
-    
-    local character = player.Character
-    if not character then return end
-    
-    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-    if not humanoidRootPart then return end
-    
-    -- Get object position
-    local objectPosition = ticket.Position
-    if not objectPosition then return end
-    
-    -- Calculate distance (for debug only)
-    local distance = (humanoidRootPart.Position - objectPosition).Magnitude
-    
-    print("Creating ESP for ticket:", ticket.Name, "at distance:", math.floor(distance))
-    
-    -- Create tracer
-    local tracer = nil
-    if featureStates.TicketESP.tracer then
-        tracer = Drawing.new("Line")
-        tracer.Visible = true
-        tracer.Color = Color3.fromRGB(255, 215, 0) -- Gold color
-        tracer.Thickness = 2
-        tracer.Transparency = 0.8
-        print("Created tracer for ticket:", ticket.Name)
-    end
-    
-    -- Create highlight
-    local highlight = nil
-    if featureStates.TicketESP.highlight then
-        highlight = createTicketHighlight(ticket)
-        print("Created highlight for ticket:", ticket.Name)
-    end
-    
-    -- Store ESP objects
-    ticketEspElements[ticket] = {
-        tracer = tracer,
-        highlight = highlight,
-        object = ticket
-    }
-end
-
-local function removeTicketESP(ticket)
-    local espData = ticketEspElements[ticket]
-    if espData then
-        if espData.tracer then
-            espData.tracer:Remove()
-        end
-        if espData.highlight then
-            espData.highlight:Destroy()
-        end
-        ticketEspElements[ticket] = nil
-    end
-end
-
-local function updateTicketESP()
-    if not (featureStates.TicketESP.tracer or featureStates.TicketESP.highlight) then return end
-    
-    local character = player.Character
-    if not character then return end
-    
-    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-    if not humanoidRootPart then return end
-    
-    for ticket, espData in pairs(ticketEspElements) do
-        if ticket and ticket.Parent then
-            local objectPosition = ticket.Position
-            if not objectPosition then
-                removeTicketESP(ticket)
-            else
-            
-            -- Update tracer
-            if espData.tracer and featureStates.TicketESP.tracer then
-                local screenPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(objectPosition)
-                if onScreen then
-                    local screenCenter = workspace.CurrentCamera.ViewportSize / 2
-                    espData.tracer.From = Vector2.new(screenCenter.X, screenCenter.Y)
-                    espData.tracer.To = Vector2.new(screenPos.X, screenPos.Y)
-                    espData.tracer.Visible = true
-                    print("Tracer visible for ticket:", ticket.Name, "at screen pos:", screenPos.X, screenPos.Y)
-                else
-                    espData.tracer.Visible = false
-                end
-            end
-            
-            -- Update highlight
-            if espData.highlight and featureStates.TicketESP.highlight then
-                espData.highlight.Enabled = true
-            elseif espData.highlight then
-                espData.highlight.Enabled = false
-            end
-            end
-        else
-            -- Object no longer exists, remove ESP
-            removeTicketESP(ticket)
-        end
-    end
-end
-
-local function findTickets()
-    local ticketsFolder = workspace:FindFirstChild("Game")
-    if ticketsFolder then
-        ticketsFolder = ticketsFolder:FindFirstChild("Effects")
-        if ticketsFolder then
-            ticketsFolder = ticketsFolder:FindFirstChild("Tickets")
-            if ticketsFolder then
-                print("Found Tickets folder with", #ticketsFolder:GetChildren(), "children")
-                for _, ticket in pairs(ticketsFolder:GetChildren()) do
-                    if ticket:IsA("BasePart") then
-                        print("Found ticket:", ticket.Name)
-                        createTicketESP(ticket)
-                    end
-                end
-            else
-                print("Tickets folder not found")
-            end
-        else
-            print("Effects folder not found")
-        end
-    else
-        print("Game folder not found")
-    end
-end
-
-local function monitorTickets()
-    local ticketsFolder = workspace:FindFirstChild("Game")
-    if ticketsFolder then
-        ticketsFolder = ticketsFolder:FindFirstChild("Effects")
-        if ticketsFolder then
-            ticketsFolder = ticketsFolder:FindFirstChild("Tickets")
-            if ticketsFolder then
-                -- Connect to child added
-                ticketsFolder.ChildAdded:Connect(function(child)
-                    task.wait(0.1) -- Small delay to ensure object is fully loaded
-                    if child:IsA("BasePart") then
-                        createTicketESP(child)
-                    end
-                end)
-                
-                -- Connect to child removed
-                ticketsFolder.ChildRemoved:Connect(function(child)
-                    removeTicketESP(child)
-                end)
-            end
-        end
-    end
-end
-
-local function startTicketESP()
-    if ticketEspConnection then return end
-    
-    print("Starting Ticket ESP...")
-    findTickets()
-    monitorTickets()
-    
-    -- Update loop
-    ticketEspConnection = RunService.Heartbeat:Connect(updateTicketESP)
-end
-
-local function stopTicketESP()
-    if ticketEspConnection then
-        ticketEspConnection:Disconnect()
-        ticketEspConnection = nil
-    end
-    
-    for ticket, espData in pairs(ticketEspElements) do
-        removeTicketESP(ticket)
-    end
-    ticketEspElements = {}
-end
-
 -- Function to handle character loading
 local function onCharacterAdded(newCharacter, plr)
     if plr == player then
@@ -2246,7 +2294,7 @@ end
         if downedNameESPConnection then stopDownedNameESP() end
         startDownedNameESP()
     end
-    if featureStates.TicketESP.highlight or featureStates.TicketESP.tracer then
+    if featureStates.TicketESP.enabled then
         if ticketEspConnection then stopTicketESP() end
         startTicketESP()
     end
@@ -3182,15 +3230,13 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
 
     Tabs.ESP:Section({ Title = "Ticket ESP" })
 
-    local TicketHighlightToggle = Tabs.ESP:Toggle({
-        Title = "Ticket Highlight",
-        Desc = "Highlight tickets with colored outline",
-        Value = featureStates.TicketESP.highlight,
+    local TicketESPToggle = Tabs.ESP:Toggle({
+        Title = "Ticket ESP",
+        Desc = "ESP for tickets in workspace.Game.Effects.Tickets",
+        Value = featureStates.TicketESP.enabled,
         Callback = function(state)
-            print("Ticket Highlight toggled:", state)
-            featureStates.TicketESP.highlight = state
-            if state or featureStates.TicketESP.tracer then
-                if ticketEspConnection then stopTicketESP() end
+            featureStates.TicketESP.enabled = state
+            if state then
                 startTicketESP()
             else
                 stopTicketESP()
@@ -3200,17 +3246,49 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
 
     local TicketTracerToggle = Tabs.ESP:Toggle({
         Title = "Ticket Tracer",
-        Desc = "Show tracers to tickets",
-        Value = featureStates.TicketESP.tracer,
+        Desc = "Show tracer lines to tickets",
+        Value = featureStates.TicketESP.showTracers,
         Callback = function(state)
-            print("Ticket Tracer toggled:", state)
-            featureStates.TicketESP.tracer = state
-            if state or featureStates.TicketESP.highlight then
-                if ticketEspConnection then stopTicketESP() end
-                startTicketESP()
-            else
+            featureStates.TicketESP.showTracers = state
+            if featureStates.TicketESP.enabled then
                 stopTicketESP()
+                startTicketESP()
             end
+        end
+    })
+
+    local TicketNameToggle = Tabs.ESP:Toggle({
+        Title = "Ticket Name ESP",
+        Desc = "Show ticket names and distance",
+        Value = featureStates.TicketESP.showNames,
+        Callback = function(state)
+            featureStates.TicketESP.showNames = state
+            if featureStates.TicketESP.enabled then
+                stopTicketESP()
+                startTicketESP()
+            end
+        end
+    })
+
+    local TicketHighlightToggle = Tabs.ESP:Toggle({
+        Title = "Ticket Highlight",
+        Desc = "Highlight tickets with colored outline",
+        Value = featureStates.TicketESP.showHighlight,
+        Callback = function(state)
+            featureStates.TicketESP.showHighlight = state
+            if featureStates.TicketESP.enabled then
+                stopTicketESP()
+                startTicketESP()
+            end
+        end
+    })
+
+    local TicketMaxDistanceSlider = Tabs.ESP:Slider({
+        Title = "Ticket Max Distance",
+        Desc = "Maximum distance to show ticket ESP",
+        Value = { Min = 100, Max = 50000, Default = 10000, Step = 100 },
+        Callback = function(value)
+            featureStates.TicketESP.maxDistance = value
         end
     })
 
@@ -3531,8 +3609,11 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 configFile:Register("DownedTracerToggle", DownedTracerToggle)
                 configFile:Register("DownedNameESPToggle", DownedNameESPToggle)
                 configFile:Register("DownedDistanceESPToggle", DownedDistanceESPToggle)
-                configFile:Register("TicketHighlightToggle", TicketHighlightToggle)
+                configFile:Register("TicketESPToggle", TicketESPToggle)
                 configFile:Register("TicketTracerToggle", TicketTracerToggle)
+                configFile:Register("TicketNameToggle", TicketNameToggle)
+                configFile:Register("TicketHighlightToggle", TicketHighlightToggle)
+                configFile:Register("TicketMaxDistanceSlider", TicketMaxDistanceSlider)
                 configFile:Register("AutoCarryToggle", AutoCarryToggle)
                 configFile:Register("CarryRangeInput", CarryRangeInput)
                 configFile:Register("CarryDelayInput", CarryDelayInput)
@@ -3595,12 +3676,6 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                     if loadedData.ManualReviveKeyBindButton then
                         manualReviveKeyBindButton:Set(loadedData.ManualReviveKeyBindButton)
                     end
-                    if loadedData.TicketHighlightToggle then
-                        TicketHighlightToggle:Set(loadedData.TicketHighlightToggle)
-                    end
-                    if loadedData.TicketTracerToggle then
-                        TicketTracerToggle:Set(loadedData.TicketTracerToggle)
-                    end
                 end
             end
         })
@@ -3656,8 +3731,14 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                     DownedBoxType = "3D",
                     DownedHighlight = false,
                     TicketESP = {
-                        highlight = false,
-                        tracer = false,
+                        enabled = false,
+                        showTracers = true,
+                        showNames = true,
+                        showHighlight = true,
+                        maxDistance = 10000,
+                        tracerColor = Color3.fromRGB(255, 0, 0),
+                        nameColor = Color3.fromRGB(255, 255, 255),
+                        highlightColor = Color3.fromRGB(255, 255, 0)
                     },
                     FlySpeed = 5,
                     TpwalkValue = 1,
@@ -3714,8 +3795,11 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 if DownedHighlightToggle then DownedHighlightToggle:Set(false) end
                 
                 -- Reset Ticket ESP
-                if TicketHighlightToggle then TicketHighlightToggle:Set(false) end
-                if TicketTracerToggle then TicketTracerToggle:Set(false) end
+                if TicketESPToggle then TicketESPToggle:Set(false) end
+                if TicketTracerToggle then TicketTracerToggle:Set(true) end
+                if TicketNameToggle then TicketNameToggle:Set(true) end
+                if TicketHighlightToggle then TicketHighlightToggle:Set(true) end
+                if TicketMaxDistanceSlider then TicketMaxDistanceSlider:Set(10000) end
                 
                 -- Reset Auto features
                 if AutoCarryToggle then AutoCarryToggle:Set(false) end
