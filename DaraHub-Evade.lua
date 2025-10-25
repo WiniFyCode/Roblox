@@ -1800,23 +1800,31 @@ local function startAutoTicketFarm()
                         if ticket:IsA("BasePart") or ticket:IsA("Model") then
                             local ticketPosition
                             
-                            -- Get position based on object type
-                            if ticket:IsA("BasePart") then
-                                ticketPosition = ticket.Position
-                            elseif ticket:IsA("Model") then
-                                if ticket:FindFirstChild("HumanoidRootPart") then
-                                    ticketPosition = ticket.HumanoidRootPart.Position
-                                elseif ticket:FindFirstChild("PrimaryPart") then
-                                    ticketPosition = ticket.PrimaryPart.Position
-                                elseif ticket:FindFirstChild("Head") then
-                                    ticketPosition = ticket.Head.Position
+                            -- Get position based on object type with error protection
+                            local success, result = pcall(function()
+                                if ticket:IsA("BasePart") then
+                                    return ticket.Position
+                                elseif ticket:IsA("Model") then
+                                    if ticket:FindFirstChild("HumanoidRootPart") then
+                                        return ticket.HumanoidRootPart.Position
+                                    elseif ticket:FindFirstChild("PrimaryPart") then
+                                        return ticket.PrimaryPart.Position
+                                    elseif ticket:FindFirstChild("Head") then
+                                        return ticket.Head.Position
+                                    else
+                                        return nil
+                                    end
                                 else
-                                    -- Skip this ticket if we can't find a valid position
-                                    goto continue_farm
+                                    return nil
                                 end
-                            else
+                            end)
+                            
+                            if not success or not result then
+                                -- Skip this ticket if we can't get a valid position
                                 goto continue_farm
                             end
+                            
+                            ticketPosition = result
                             
                             local distance = (rootPart.Position - ticketPosition).Magnitude
                             if distance < nearestDistance then
@@ -1831,22 +1839,30 @@ local function startAutoTicketFarm()
                     if nearestTicket then
                         local ticketPosition
                         
-                        -- Get position based on object type
-                        if nearestTicket:IsA("BasePart") then
-                            ticketPosition = nearestTicket.Position
-                        elseif nearestTicket:IsA("Model") then
-                            if nearestTicket:FindFirstChild("HumanoidRootPart") then
-                                ticketPosition = nearestTicket.HumanoidRootPart.Position
-                            elseif nearestTicket:FindFirstChild("PrimaryPart") then
-                                ticketPosition = nearestTicket.PrimaryPart.Position
-                            elseif nearestTicket:FindFirstChild("Head") then
-                                ticketPosition = nearestTicket.Head.Position
+                        -- Get position based on object type with error protection
+                        local success, result = pcall(function()
+                            if nearestTicket:IsA("BasePart") then
+                                return nearestTicket.Position
+                            elseif nearestTicket:IsA("Model") then
+                                if nearestTicket:FindFirstChild("HumanoidRootPart") then
+                                    return nearestTicket.HumanoidRootPart.Position
+                                elseif nearestTicket:FindFirstChild("PrimaryPart") then
+                                    return nearestTicket.PrimaryPart.Position
+                                elseif nearestTicket:FindFirstChild("Head") then
+                                    return nearestTicket.Head.Position
+                                else
+                                    return nil
+                                end
                             else
-                                goto skip_teleport
+                                return nil
                             end
-                        else
+                        end)
+                        
+                        if not success or not result then
                             goto skip_teleport
                         end
+                        
+                        ticketPosition = result
                         
                         -- Teleport to ticket
                         rootPart.CFrame = CFrame.new(ticketPosition + Vector3.new(0, 3, 0))
@@ -2084,6 +2100,7 @@ local function updateTicketESP()
     local ticketsFolder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Effects") and workspace.Game.Effects:FindFirstChild("Tickets")
     if ticketsFolder then
         for _, ticket in pairs(ticketsFolder:GetChildren()) do
+            -- Only process BasePart and Model objects
             if ticket:IsA("BasePart") or ticket:IsA("Model") then
                 currentTargets[ticket] = true
                 
@@ -2103,24 +2120,31 @@ local function updateTicketESP()
                 local esp = ticketEspElements[ticket]
                 local position
                 
-                -- Get position based on object type
-                if ticket:IsA("BasePart") then
-                    position = ticket.Position
-                elseif ticket:IsA("Model") then
-                    if ticket:FindFirstChild("HumanoidRootPart") then
-                        position = ticket.HumanoidRootPart.Position
-                    elseif ticket:FindFirstChild("PrimaryPart") then
-                        position = ticket.PrimaryPart.Position
-                    elseif ticket:FindFirstChild("Head") then
-                        position = ticket.Head.Position
+                -- Get position based on object type with error protection
+                local success, result = pcall(function()
+                    if ticket:IsA("BasePart") then
+                        return ticket.Position
+                    elseif ticket:IsA("Model") then
+                        if ticket:FindFirstChild("HumanoidRootPart") then
+                            return ticket.HumanoidRootPart.Position
+                        elseif ticket:FindFirstChild("PrimaryPart") then
+                            return ticket.PrimaryPart.Position
+                        elseif ticket:FindFirstChild("Head") then
+                            return ticket.Head.Position
+                        else
+                            return nil
+                        end
                     else
-                        -- Skip this ticket if we can't find a valid position
-                        goto continue
+                        return nil
                     end
-                else
-                    -- Skip non-BasePart and non-Model objects
+                end)
+                
+                if not success or not result then
+                    -- Skip this ticket if we can't get a valid position
                     goto continue
                 end
+                
+                position = result
                 
                 local vector, onScreen = camera:WorldToViewportPoint(position)
                 
