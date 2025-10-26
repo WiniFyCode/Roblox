@@ -9,6 +9,9 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
+-- Hit Box System Variables (moved to top to avoid reference errors)
+local hitBoxSize = 5 -- Kích thước hit box mặc định
+
 -- Tạo ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "RealTimeInfo"
@@ -291,7 +294,6 @@ local playerConnections = {} -- Lưu connections cho từng player
 
 -- Hit Box System Variables
 local hitBoxEnabled = false
-local hitBoxSize = 5 -- Kích thước hit box mặc định
 local hitBoxObjects = {} -- Lưu hit box objects
 
 -- Lưu trạng thái ESP để tự động khôi phục khi qua ván mới
