@@ -9,9 +9,6 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Hit Box System Variables (moved to top to avoid reference errors)
-local hitBoxSize = 5 -- Kích thước hit box mặc định
-
 -- Tạo ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "RealTimeInfo"
@@ -78,114 +75,6 @@ local ContextCorner = Instance.new("UICorner")
 ContextCorner.Parent = ContextMenu
 ContextCorner.CornerRadius = UDim.new(0, 0)
 
--- Tạo Hit Box Settings Frame
-local HitBoxSettingsFrame = Instance.new("Frame")
-HitBoxSettingsFrame.Name = "HitBoxSettings"
-HitBoxSettingsFrame.Parent = ScreenGui
-HitBoxSettingsFrame.Size = UDim2.new(0, 250, 0, 120)
-HitBoxSettingsFrame.Position = UDim2.new(0, 300, 0, 10)
-HitBoxSettingsFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-HitBoxSettingsFrame.BorderSizePixel = 0
-HitBoxSettingsFrame.Visible = false
-HitBoxSettingsFrame.ZIndex = 20
-
-local HitBoxBorder = Instance.new("UIStroke")
-HitBoxBorder.Parent = HitBoxSettingsFrame
-HitBoxBorder.Color = Color3.fromRGB(60, 60, 60)
-HitBoxBorder.Thickness = 1
-
-local HitBoxCorner = Instance.new("UICorner")
-HitBoxCorner.Parent = HitBoxSettingsFrame
-HitBoxCorner.CornerRadius = UDim.new(0, 0)
-
-local HitBoxPadding = Instance.new("UIPadding")
-HitBoxPadding.Parent = HitBoxSettingsFrame
-HitBoxPadding.PaddingTop = UDim.new(0, 10)
-HitBoxPadding.PaddingBottom = UDim.new(0, 10)
-HitBoxPadding.PaddingLeft = UDim.new(0, 10)
-HitBoxPadding.PaddingRight = UDim.new(0, 10)
-
--- Title
-local HitBoxTitle = Instance.new("TextLabel")
-HitBoxTitle.Name = "Title"
-HitBoxTitle.Parent = HitBoxSettingsFrame
-HitBoxTitle.Size = UDim2.new(1, 0, 0, 25)
-HitBoxTitle.BackgroundTransparency = 1
-HitBoxTitle.Text = "Hit Box Settings"
-HitBoxTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-HitBoxTitle.TextSize = 14
-HitBoxTitle.Font = Enum.Font.GothamBold
-HitBoxTitle.TextXAlignment = Enum.TextXAlignment.Center
-
--- Size Label
-local HitBoxSizeLabel = Instance.new("TextLabel")
-HitBoxSizeLabel.Name = "SizeLabel"
-HitBoxSizeLabel.Parent = HitBoxSettingsFrame
-HitBoxSizeLabel.Size = UDim2.new(0, 80, 0, 25)
-HitBoxSizeLabel.Position = UDim2.new(0, 0, 0, 35)
-HitBoxSizeLabel.BackgroundTransparency = 1
-HitBoxSizeLabel.Text = "Size:"
-HitBoxSizeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-HitBoxSizeLabel.TextSize = 12
-HitBoxSizeLabel.Font = Enum.Font.Gotham
-HitBoxSizeLabel.TextXAlignment = Enum.TextXAlignment.Left
-
--- Size TextBox
-local HitBoxSizeTextBox = Instance.new("TextBox")
-HitBoxSizeTextBox.Name = "SizeTextBox"
-HitBoxSizeTextBox.Parent = HitBoxSettingsFrame
-HitBoxSizeTextBox.Size = UDim2.new(0, 60, 0, 25)
-HitBoxSizeTextBox.Position = UDim2.new(0, 90, 0, 35)
-HitBoxSizeTextBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-HitBoxSizeTextBox.BorderSizePixel = 0
-HitBoxSizeTextBox.Text = tostring(hitBoxSize)
-HitBoxSizeTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-HitBoxSizeTextBox.TextSize = 12
-HitBoxSizeTextBox.Font = Enum.Font.Gotham
-HitBoxSizeTextBox.PlaceholderText = "Size"
-
-local HitBoxTextBoxCorner = Instance.new("UICorner")
-HitBoxTextBoxCorner.Parent = HitBoxSizeTextBox
-HitBoxTextBoxCorner.CornerRadius = UDim.new(0, 0)
-
-local HitBoxTextBoxBorder = Instance.new("UIStroke")
-HitBoxTextBoxBorder.Parent = HitBoxSizeTextBox
-HitBoxTextBoxBorder.Color = Color3.fromRGB(60, 60, 60)
-HitBoxTextBoxBorder.Thickness = 1
-
--- Apply Button
-local HitBoxApplyButton = Instance.new("TextButton")
-HitBoxApplyButton.Name = "ApplyButton"
-HitBoxApplyButton.Parent = HitBoxSettingsFrame
-HitBoxApplyButton.Size = UDim2.new(0, 80, 0, 25)
-HitBoxApplyButton.Position = UDim2.new(0, 160, 0, 35)
-HitBoxApplyButton.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
-HitBoxApplyButton.BorderSizePixel = 0
-HitBoxApplyButton.Text = "Apply"
-HitBoxApplyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-HitBoxApplyButton.TextSize = 12
-HitBoxApplyButton.Font = Enum.Font.Gotham
-
-local HitBoxApplyCorner = Instance.new("UICorner")
-HitBoxApplyCorner.Parent = HitBoxApplyButton
-HitBoxApplyCorner.CornerRadius = UDim.new(0, 0)
-
--- Close Button
-local HitBoxCloseButton = Instance.new("TextButton")
-HitBoxCloseButton.Name = "CloseButton"
-HitBoxCloseButton.Parent = HitBoxSettingsFrame
-HitBoxCloseButton.Size = UDim2.new(0, 25, 0, 25)
-HitBoxCloseButton.Position = UDim2.new(1, -25, 0, 0)
-HitBoxCloseButton.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
-HitBoxCloseButton.BorderSizePixel = 0
-HitBoxCloseButton.Text = "X"
-HitBoxCloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-HitBoxCloseButton.TextSize = 14
-HitBoxCloseButton.Font = Enum.Font.GothamBold
-
-local HitBoxCloseCorner = Instance.new("UICorner")
-HitBoxCloseCorner.Parent = HitBoxCloseButton
-HitBoxCloseCorner.CornerRadius = UDim.new(0, 0)
 
 -- Tạo các button trong menu
 local function createMenuButton(text, callback)
@@ -294,6 +183,7 @@ local playerConnections = {} -- Lưu connections cho từng player
 
 -- Hit Box System Variables
 local hitBoxEnabled = false
+local hitBoxSize = 5 -- Kích thước hit box mặc định
 local hitBoxObjects = {} -- Lưu hit box objects
 
 -- Lưu trạng thái ESP để tự động khôi phục khi qua ván mới
@@ -357,13 +247,6 @@ local function createHitBox(player)
     return true
 end
 
-local function updateHitBoxSize()
-    for player, hitBoxData in pairs(hitBoxObjects) do
-        if hitBoxData.box and hitBoxData.box.Parent then
-            hitBoxData.box.Size = Vector3.new(hitBoxSize, hitBoxSize, hitBoxSize)
-        end
-    end
-end
 
 local function enableHitBox()
     -- Tạo hit box cho tất cả người chơi hiện tại
@@ -712,10 +595,6 @@ toggleHitBoxButton = createMenuButton("Hit Box: OFF", function()
     toggleHitBoxButton.Text = "Hit Box: " .. (hitBoxEnabled and "ON" or "OFF")
 end)
 
--- Tạo Hit Box Settings Button
-local hitBoxSettingsButton = createMenuButton("Hit Box Settings", function()
-    HitBoxSettingsFrame.Visible = not HitBoxSettingsFrame.Visible
-end)
 
 -- Biến để tính FPS
 local lastTime = tick()
@@ -934,47 +813,6 @@ task.spawn(function()
     autoRestoreESP()
 end)
 
--- Hit Box Settings Event Handlers
-HitBoxApplyButton.MouseButton1Click:Connect(function()
-    local newSize = tonumber(HitBoxSizeTextBox.Text)
-    if newSize and newSize > 0 and newSize <= 50 then -- Giới hạn từ 1-50
-        hitBoxSize = newSize
-        updateHitBoxSize()
-        print("[RealTimeInfo] Hit Box size updated to: " .. hitBoxSize)
-    else
-        warn("[RealTimeInfo] Invalid hit box size! Please enter a number between 1-50")
-        HitBoxSizeTextBox.Text = tostring(hitBoxSize) -- Reset về giá trị cũ
-    end
-end)
-
-HitBoxCloseButton.MouseButton1Click:Connect(function()
-    HitBoxSettingsFrame.Visible = false
-end)
-
--- Hover effects cho buttons
-HitBoxApplyButton.MouseEnter:Connect(function()
-    TweenService:Create(HitBoxApplyButton, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-    }):Play()
-end)
-
-HitBoxApplyButton.MouseLeave:Connect(function()
-    TweenService:Create(HitBoxApplyButton, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        BackgroundColor3 = Color3.fromRGB(0, 120, 0)
-    }):Play()
-end)
-
-HitBoxCloseButton.MouseEnter:Connect(function()
-    TweenService:Create(HitBoxCloseButton, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-    }):Play()
-end)
-
-HitBoxCloseButton.MouseLeave:Connect(function()
-    TweenService:Create(HitBoxCloseButton, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        BackgroundColor3 = Color3.fromRGB(150, 0, 0)
-    }):Play()
-end)
 
 -- Cập nhật thông tin tĩnh khi có thay đổi về server
 Players.PlayerAdded:Connect(function()
