@@ -34,6 +34,7 @@ local espZombieEnabled = true
 local espChestEnabled = false
 local hitboxEnabled = true
 local teleportEnabled = true
+local autoKillEnabled = false
 local cameraTeleportEnabled = true
 local teleportToLastZombie = false -- Teleport tới zombie cuối cùng hay không
 local cameraTeleportKey = Enum.KeyCode.X -- ấn X để tele camera tới zombie
@@ -468,7 +469,34 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	end
 end)
 
-
+----------------------------------------------------------
+-- 🔹 Auto Kill Zombies
+task.spawn(function()
+	while task.wait(0.1) do
+		if autoKillEnabled then
+			for _, zombie in ipairs(entityFolder:GetChildren()) do
+				if zombie:IsA("Model") then
+					local humanoid = zombie:FindFirstChild("Humanoid")
+					if humanoid and humanoid.Health > 0 then
+						pcall(function()
+							-- Phương pháp 1: Set Health = 0 (nhanh nhất)
+							-- humanoid.Health = 0
+							
+							-- Phương pháp 2: Dùng TakeDamage (nếu phương pháp 1 không work)
+							humanoid:TakeDamage(humanoid.Health)
+							
+							-- Phương pháp 3: Phá hủy Head (nếu cần)
+							-- local head = zombie:FindFirstChild("Head")
+							-- if head then head:Destroy() end
+							
+							print("✅ Auto Kill: Zombie", zombie.Name, "killed")
+						end)
+					end
+				end
+			end
+		end
+	end
+end)
 
 ----------------------------------------------------------
 -- 🔹 Auto Move Keybind (Press M)
@@ -727,6 +755,14 @@ MainTab:AddToggle("Teleport", {
     end
 })
 
+MainTab:AddToggle("AutoKill", {
+    Title = "Auto Kill Zombies",
+    Default = autoKillEnabled,
+    Callback = function(Value)
+        autoKillEnabled = Value
+        print("Auto Kill:", Value and "ON" or "OFF")
+    end
+})
 
 MainTab:AddToggle("CameraTeleport", {
     Title = "Camera Teleport (X Key)",
