@@ -499,15 +499,8 @@ task.spawn(function()
 							end
 						end)
 						
-						-- Phương pháp 5: Phá hủy toàn bộ zombie model sau một chút
-						task.spawn(function()
-							task.wait(0.2)
-							if zombie and zombie.Parent then
-								pcall(function()
-									zombie:Destroy()
-								end)
-							end
-						end)
+						-- Zombie đã chết, không cần xóa model
+						-- Zombie sẽ nằm xuống và không di chuyển
 					end
 				end
 			end
@@ -549,13 +542,8 @@ local function setupOneHitKill()
 								hrp:Destroy()
 							end
 							
-							-- Xóa zombie sau 0.1 giây
-							task.spawn(function()
-								task.wait(0.1)
-								if zombie and zombie.Parent then
-									zombie:Destroy()
-								end
-							end)
+							-- Không xóa zombie, chỉ để nó nằm chết
+							-- Zombie sẽ nằm xuống và không di chuyển
 						end)
 					end
 				end)
@@ -592,12 +580,8 @@ entityFolder.ChildAdded:Connect(function(zombie)
 							hrp:Destroy()
 						end
 						
-						task.spawn(function()
-							task.wait(0.1)
-							if zombie and zombie.Parent then
-								zombie:Destroy()
-							end
-						end)
+						-- Không xóa zombie, chỉ để nó nằm chết
+						-- Zombie sẽ nằm xuống và không di chuyển
 					end)
 				end
 			end)
