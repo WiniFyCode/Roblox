@@ -37,6 +37,7 @@ local teleportEnabled = true
 local autoKillEnabled = false
 local oneHitEnabled = false
 local cameraTeleportEnabled = true
+local teleportToLastZombie = false -- Teleport tới zombie cuối cùng hay không
 local cameraTeleportKey = Enum.KeyCode.C -- ấn C để tele camera tới zombie
 local cameraTeleportActive = false -- Biến kiểm tra đang chạy camera teleport loop
 local cameraTeleportStartPosition = nil -- Vị trí ban đầu của nhân vật
@@ -381,7 +382,6 @@ task.spawn(function()
 	end
 end)
 
-
 ----------------------------------------------------------
 -- 🔹 Auto Teleport to Chests and Items (Press T)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
@@ -477,109 +477,10 @@ task.spawn(function()
 					local humanoid = zombie:FindFirstChild("Humanoid")
 					if humanoid and humanoid.Health > 0 then
 						pcall(function()
-							-- Thử nhiều cách để kill zombie thật sự
-							humanoid:TakeDamage(humanoid.Health)
-							humanoid.Health = 0
-							humanoid.PlatformStand = true
-							humanoid.WalkSpeed = 0
-							humanoid.JumpPower = 0
-							humanoid:BreakJoints()
-							
-							-- Thử set StateType
-							if humanoid:GetAttribute("StateType") then
-								humanoid:SetAttribute("StateType", "Dead")
-							end
-						end)
-						
-						-- Zombie đã chết, không cần xóa model
-						-- Zombie sẽ nằm xuống và không di chuyển
-					end
-				end
-			end
-		end
-	end
-end)
-
-----------------------------------------------------------
--- 🔹 One Hit Kill - Zombie chết ngay khi bị trừ máu
-local function setupOneHitKill()
-	-- Theo dõi tất cả zombie hiện có
-	for _, zombie in ipairs(entityFolder:GetChildren()) do
-		if zombie:IsA("Model") then
-			local humanoid = zombie:FindFirstChild("Humanoid")
-			if humanoid then
-				-- Lưu máu ban đầu
-				local originalHealth = humanoid.Health
-				humanoid:SetAttribute("OriginalHealth", originalHealth)
-				
-				-- Kết nối sự kiện thay đổi máu
-				humanoid.HealthChanged:Connect(function(newHealth)
-					if oneHitEnabled and newHealth < originalHealth then
-						-- Zombie bị trừ máu, kill ngay lập tức
-						pcall(function()
-							-- Thử nhiều cách để kill zombie thật sự
-							humanoid:TakeDamage(humanoid.Health)
-							humanoid.Health = 0
-							humanoid.PlatformStand = true
-							humanoid.WalkSpeed = 0
-							humanoid.JumpPower = 0
-							humanoid:BreakJoints()
-							
-							-- Thử set StateType
-							if humanoid:GetAttribute("StateType") then
-								humanoid:SetAttribute("StateType", "Dead")
-							end
-						end)
-					end
-				end)
-			end
-		end
-	end
-end
-
--- Theo dõi zombie mới sinh ra để áp dụng One Hit
-entityFolder.ChildAdded:Connect(function(zombie)
-	if zombie:IsA("Model") and oneHitEnabled then
-		task.wait(0.5) -- Đợi zombie load xong
-		local humanoid = zombie:FindFirstChild("Humanoid")
-		if humanoid then
-			local originalHealth = humanoid.Health
-			humanoid:SetAttribute("OriginalHealth", originalHealth)
-			
-			humanoid.HealthChanged:Connect(function(newHealth)
-				if oneHitEnabled and newHealth < originalHealth then
-					pcall(function()
-						-- Thử nhiều cách để kill zombie thật sự
-						humanoid:TakeDamage(humanoid.Health)
-						humanoid.Health = 0
-						humanoid.PlatformStand = true
-						humanoid.WalkSpeed = 0
-						humanoid.JumpPower = 0
-						humanoid:BreakJoints()
-						
-						-- Thử set StateType
-						if humanoid:GetAttribute("StateType") then
-							humanoid:SetAttribute("StateType", "Dead")
-						end
-					end)
-				end
-			end)
-		end
-	end
-end)
-
-----------------------------------------------------------
--- 🔹 Auto Kill Zombies
-task.spawn(function()
-	while task.wait(0.1) do
-		if autoKillEnabled then
-			for _, zombie in ipairs(entityFolder:GetChildren()) do
-				if zombie:IsA("Model") then
-					local humanoid = zombie:FindFirstChild("Humanoid")
-					if humanoid and humanoid.Health > 0 then
-						pcall(function()
 							-- Kill zombie bằng cách gây damage
+							print("🔴 Auto Kill: Killing zombie", zombie.Name, "| Health:", humanoid.Health)
 							humanoid:TakeDamage(humanoid.Health)
+							print("✅ Auto Kill: Zombie", zombie.Name, "killed successfully!")
 						end)
 					end
 				end
@@ -601,7 +502,9 @@ local function setupOneHitKill()
 				humanoid.HealthChanged:Connect(function(newHealth)
 					if oneHitEnabled and newHealth < originalHealth then
 						pcall(function()
+							print("🔴 One Hit: Killing zombie", zombie.Name, "| Health:", newHealth, "->", humanoid.Health)
 							humanoid:TakeDamage(humanoid.Health)
+							print("✅ One Hit: Zombie", zombie.Name, "killed successfully!")
 						end)
 					end
 				end)
@@ -622,69 +525,9 @@ entityFolder.ChildAdded:Connect(function(zombie)
 			humanoid.HealthChanged:Connect(function(newHealth)
 				if oneHitEnabled and newHealth < originalHealth then
 					pcall(function()
+						print("🔴 One Hit: Killing zombie", zombie.Name, "| Health:", newHealth, "->", humanoid.Health)
 						humanoid:TakeDamage(humanoid.Health)
-					end)
-				end
-			end)
-		end
-	end
-end)
-
-----------------------------------------------------------
--- 🔹 Auto Kill Zombies
-task.spawn(function()
-	while task.wait(0.1) do
-		if autoKillEnabled then
-			for _, zombie in ipairs(entityFolder:GetChildren()) do
-				if zombie:IsA("Model") then
-					local humanoid = zombie:FindFirstChild("Humanoid")
-					if humanoid and humanoid.Health > 0 then
-						pcall(function()
-							-- Kill zombie bằng cách gây damage
-							humanoid:TakeDamage(humanoid.Health)
-						end)
-					end
-				end
-			end
-		end
-	end
-end)
-
-----------------------------------------------------------
--- 🔹 One Hit Kill - Zombie chết ngay khi bị trừ máu
-local function setupOneHitKill()
-	for _, zombie in ipairs(entityFolder:GetChildren()) do
-		if zombie:IsA("Model") then
-			local humanoid = zombie:FindFirstChild("Humanoid")
-			if humanoid then
-				local originalHealth = humanoid.Health
-				humanoid:SetAttribute("OriginalHealth", originalHealth)
-				
-				humanoid.HealthChanged:Connect(function(newHealth)
-					if oneHitEnabled and newHealth < originalHealth then
-						pcall(function()
-							humanoid:TakeDamage(humanoid.Health)
-						end)
-					end
-				end)
-			end
-		end
-	end
-end
-
--- Theo dõi zombie mới sinh ra để áp dụng One Hit
-entityFolder.ChildAdded:Connect(function(zombie)
-	if zombie:IsA("Model") and oneHitEnabled then
-		task.wait(0.5)
-		local humanoid = zombie:FindFirstChild("Humanoid")
-		if humanoid then
-			local originalHealth = humanoid.Health
-			humanoid:SetAttribute("OriginalHealth", originalHealth)
-			
-			humanoid.HealthChanged:Connect(function(newHealth)
-				if oneHitEnabled and newHealth < originalHealth then
-					pcall(function()
-						humanoid:TakeDamage(humanoid.Health)
+						print("✅ One Hit: Zombie", zombie.Name, "killed successfully!")
 					end)
 				end
 			end)
@@ -873,9 +716,12 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 			if hrp then
 				hrp.Anchored = false -- Bỏ khóa nhân vật
 				
-				if lastZombiePosition then
+				if teleportToLastZombie and lastZombiePosition then
 					hrp.CFrame = CFrame.new(lastZombiePosition + Vector3.new(0, 5, 0))
 					print("Teleported to last zombie position")
+				elseif not teleportToLastZombie then
+					-- Không teleport tới zombie cuối, giữ nguyên vị trí an toàn
+					print("Staying at safe position (teleport to last zombie disabled)")
 				else
 					-- Nếu không có zombie cuối cùng, giữ nguyên vị trí an toàn
 					print("Remaining at safe position")
@@ -973,6 +819,15 @@ MainTab:AddToggle("CameraTeleport", {
     Callback = function(Value)
         cameraTeleportEnabled = Value
         print("Camera Teleport:", Value and "ON" or "OFF")
+    end
+})
+
+MainTab:AddToggle("TeleportToLastZombie", {
+    Title = "Teleport to Last Zombie",
+    Default = teleportToLastZombie,
+    Callback = function(Value)
+        teleportToLastZombie = Value
+        print("Teleport to Last Zombie:", Value and "ON" or "OFF")
     end
 })
 
