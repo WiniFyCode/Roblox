@@ -39,6 +39,9 @@ local teleportToLastZombie = false -- Teleport tới zombie cuối cùng hay kh�
 local cameraTeleportKey = Enum.KeyCode.X -- ấn X để tele camera tới zombie
 local cameraTeleportActive = false -- Biến kiểm tra đang chạy camera teleport loop
 local cameraTeleportStartPosition = nil -- Vị trí ban đầu của nhân vật
+local cameraOffsetX = 0 -- Camera offset X
+local cameraOffsetY = 10 -- Camera offset Y
+local cameraOffsetZ = -10 -- Camera offset Z
 
 -- Auto Move Configuration
 local autoMoveEnabled = false -- Tự động duy trì khoảng cách với zombie
@@ -620,7 +623,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 						camera.CameraSubject = humanoid
 						camera.CameraType = Enum.CameraType.Custom
 						
-						local cameraOffset = Vector3.new(0, 10, -10)
+						local cameraOffset = Vector3.new(cameraOffsetX, cameraOffsetY, cameraOffsetZ)
 						camera.CFrame = CFrame.lookAt(targetPosition + cameraOffset, targetPosition)
 						
 						print("Camera focusing on zombie")
@@ -807,6 +810,45 @@ SettingsTab:AddToggle("TeleportToLastZombie", {
     Callback = function(Value)
         teleportToLastZombie = Value
         print("Teleport to Last Zombie:", Value and "ON" or "OFF")
+    end
+})
+
+SettingsTab:AddSlider("CameraOffsetX", {
+    Title = "Camera Offset X",
+    Description = "Camera X offset position",
+    Default = 0,
+    Min = -50,
+    Max = 50,
+    Rounding = 1,
+    Callback = function(Value)
+        cameraOffsetX = Value
+        print("Camera Offset X:", Value)
+    end
+})
+
+SettingsTab:AddSlider("CameraOffsetY", {
+    Title = "Camera Offset Y",
+    Description = "Camera Y offset position (height)",
+    Default = 10,
+    Min = -50,
+    Max = 50,
+    Rounding = 1,
+    Callback = function(Value)
+        cameraOffsetY = Value
+        print("Camera Offset Y:", Value)
+    end
+})
+
+SettingsTab:AddSlider("CameraOffsetZ", {
+    Title = "Camera Offset Z",
+    Description = "Camera Z offset position (distance)",
+    Default = -10,
+    Min = -50,
+    Max = 50,
+    Rounding = 1,
+    Callback = function(Value)
+        cameraOffsetZ = Value
+        print("Camera Offset Z:", Value)
     end
 })
 
