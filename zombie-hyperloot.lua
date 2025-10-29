@@ -35,6 +35,7 @@ local espChestEnabled = false
 local hitboxEnabled = true
 local teleportEnabled = true
 local autoKillEnabled = false
+local oneHitEnabled = false
 local cameraTeleportEnabled = true
 local cameraTeleportKey = Enum.KeyCode.C -- ấn C để tele camera tới zombie
 local cameraTeleportActive = false -- Biến kiểm tra đang chạy camera teleport loop
@@ -515,6 +516,96 @@ task.spawn(function()
 end)
 
 ----------------------------------------------------------
+-- 🔹 One Hit Kill - Zombie chết ngay khi bị trừ máu
+local function setupOneHitKill()
+	-- Theo dõi tất cả zombie hiện có
+	for _, zombie in ipairs(entityFolder:GetChildren()) do
+		if zombie:IsA("Model") then
+			local humanoid = zombie:FindFirstChild("Humanoid")
+			if humanoid then
+				-- Lưu máu ban đầu
+				local originalHealth = humanoid.Health
+				humanoid:SetAttribute("OriginalHealth", originalHealth)
+				
+				-- Kết nối sự kiện thay đổi máu
+				humanoid.HealthChanged:Connect(function(newHealth)
+					if oneHitEnabled and newHealth < originalHealth then
+						-- Zombie bị trừ máu, kill ngay lập tức
+						pcall(function()
+							humanoid.Health = 0
+							humanoid.MaxHealth = 0
+							humanoid.PlatformStand = true
+							humanoid.WalkSpeed = 0
+							humanoid.JumpPower = 0
+							
+							-- Phá hủy các bộ phận quan trọng
+							local head = zombie:FindFirstChild("Head")
+							if head and head:IsA("BasePart") then
+								head:Destroy()
+							end
+							
+							local hrp = zombie:FindFirstChild("HumanoidRootPart")
+							if hrp and hrp:IsA("BasePart") then
+								hrp:Destroy()
+							end
+							
+							-- Xóa zombie sau 0.1 giây
+							task.spawn(function()
+								task.wait(0.1)
+								if zombie and zombie.Parent then
+									zombie:Destroy()
+								end
+							end)
+						end)
+					end
+				end)
+			end
+		end
+	end
+end
+
+-- Theo dõi zombie mới sinh ra để áp dụng One Hit
+entityFolder.ChildAdded:Connect(function(zombie)
+	if zombie:IsA("Model") and oneHitEnabled then
+		task.wait(0.5) -- Đợi zombie load xong
+		local humanoid = zombie:FindFirstChild("Humanoid")
+		if humanoid then
+			local originalHealth = humanoid.Health
+			humanoid:SetAttribute("OriginalHealth", originalHealth)
+			
+			humanoid.HealthChanged:Connect(function(newHealth)
+				if oneHitEnabled and newHealth < originalHealth then
+					pcall(function()
+						humanoid.Health = 0
+						humanoid.MaxHealth = 0
+						humanoid.PlatformStand = true
+						humanoid.WalkSpeed = 0
+						humanoid.JumpPower = 0
+						
+						local head = zombie:FindFirstChild("Head")
+						if head and head:IsA("BasePart") then
+							head:Destroy()
+						end
+						
+						local hrp = zombie:FindFirstChild("HumanoidRootPart")
+						if hrp and hrp:IsA("BasePart") then
+							hrp:Destroy()
+						end
+						
+						task.spawn(function()
+							task.wait(0.1)
+							if zombie and zombie.Parent then
+								zombie:Destroy()
+							end
+						end)
+					end)
+				end
+			end)
+		end
+	end
+end)
+
+----------------------------------------------------------
 -- 🔹 Auto Move Keybind (Press M)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then return end
@@ -774,6 +865,18 @@ MainTab:AddToggle("AutoKill", {
     Callback = function(Value)
         autoKillEnabled = Value
         print("Auto Kill:", Value and "ON" or "OFF")
+    end
+})
+
+MainTab:AddToggle("OneHit", {
+    Title = "One Hit Kill",
+    Default = oneHitEnabled,
+    Callback = function(Value)
+        oneHitEnabled = Value
+        if Value then
+            setupOneHitKill() -- Áp dụng One Hit cho zombie hiện có
+        end
+        print("One Hit Kill:", Value and "ON" or "OFF")
     end
 })
 
