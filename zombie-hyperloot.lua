@@ -477,26 +477,12 @@ task.spawn(function()
 					local humanoid = zombie:FindFirstChild("Humanoid")
 					if humanoid and humanoid.Health > 0 then
 						pcall(function()
-							-- Phương pháp 1: Set Health = 0 và MaxHealth = 0
+							-- Chỉ set Health = 0 và disable humanoid
 							humanoid.Health = 0
 							humanoid.MaxHealth = 0
-							
-							-- Phương pháp 2: Disable humanoid
 							humanoid.PlatformStand = true
 							humanoid.WalkSpeed = 0
 							humanoid.JumpPower = 0
-							
-							-- Phương pháp 3: Nếu có Head, phá hủy nó
-							local head = zombie:FindFirstChild("Head")
-							if head and head:IsA("BasePart") then
-								head:Destroy()
-							end
-							
-							-- Phương pháp 4: Nếu có HumanoidRootPart, phá hủy nó
-							local hrp = zombie:FindFirstChild("HumanoidRootPart")
-							if hrp and hrp:IsA("BasePart") then
-								hrp:Destroy()
-							end
 						end)
 						
 						-- Zombie đã chết, không cần xóa model
@@ -525,25 +511,9 @@ local function setupOneHitKill()
 					if oneHitEnabled and newHealth < originalHealth then
 						-- Zombie bị trừ máu, kill ngay lập tức
 						pcall(function()
+							-- Chỉ set Health = 0 và disable humanoid
 							humanoid.Health = 0
 							humanoid.MaxHealth = 0
-							humanoid.PlatformStand = true
-							humanoid.WalkSpeed = 0
-							humanoid.JumpPower = 0
-							
-							-- Phá hủy các bộ phận quan trọng
-							local head = zombie:FindFirstChild("Head")
-							if head and head:IsA("BasePart") then
-								head:Destroy()
-							end
-							
-							local hrp = zombie:FindFirstChild("HumanoidRootPart")
-							if hrp and hrp:IsA("BasePart") then
-								hrp:Destroy()
-							end
-							
-							-- Không xóa zombie, chỉ để nó nằm chết
-							-- Zombie sẽ nằm xuống và không di chuyển
 						end)
 					end
 				end)
@@ -564,24 +534,9 @@ entityFolder.ChildAdded:Connect(function(zombie)
 			humanoid.HealthChanged:Connect(function(newHealth)
 				if oneHitEnabled and newHealth < originalHealth then
 					pcall(function()
+						-- Chỉ set Health = 0 và disable humanoid
 						humanoid.Health = 0
 						humanoid.MaxHealth = 0
-						humanoid.PlatformStand = true
-						humanoid.WalkSpeed = 0
-						humanoid.JumpPower = 0
-						
-						local head = zombie:FindFirstChild("Head")
-						if head and head:IsA("BasePart") then
-							head:Destroy()
-						end
-						
-						local hrp = zombie:FindFirstChild("HumanoidRootPart")
-						if hrp and hrp:IsA("BasePart") then
-							hrp:Destroy()
-						end
-						
-						-- Không xóa zombie, chỉ để nó nằm chết
-						-- Zombie sẽ nằm xuống và không di chuyển
 					end)
 				end
 			end)
