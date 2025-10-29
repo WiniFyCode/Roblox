@@ -477,10 +477,18 @@ task.spawn(function()
 					local humanoid = zombie:FindFirstChild("Humanoid")
 					if humanoid and humanoid.Health > 0 then
 						pcall(function()
-							-- Sử dụng TakeDamage để kill zombie
+							-- Thử nhiều cách để kill zombie thật sự
 							humanoid:TakeDamage(humanoid.Health)
-							-- Hoặc sử dụng BreakJoints để làm zombie nằm xuống
+							humanoid.Health = 0
+							humanoid.PlatformStand = true
+							humanoid.WalkSpeed = 0
+							humanoid.JumpPower = 0
 							humanoid:BreakJoints()
+							
+							-- Thử set StateType
+							if humanoid:GetAttribute("StateType") then
+								humanoid:SetAttribute("StateType", "Dead")
+							end
 						end)
 						
 						-- Zombie đã chết, không cần xóa model
@@ -509,10 +517,18 @@ local function setupOneHitKill()
 					if oneHitEnabled and newHealth < originalHealth then
 						-- Zombie bị trừ máu, kill ngay lập tức
 						pcall(function()
-							-- Sử dụng TakeDamage để kill zombie
+							-- Thử nhiều cách để kill zombie thật sự
 							humanoid:TakeDamage(humanoid.Health)
-							-- Hoặc sử dụng BreakJoints để làm zombie nằm xuống
+							humanoid.Health = 0
+							humanoid.PlatformStand = true
+							humanoid.WalkSpeed = 0
+							humanoid.JumpPower = 0
 							humanoid:BreakJoints()
+							
+							-- Thử set StateType
+							if humanoid:GetAttribute("StateType") then
+								humanoid:SetAttribute("StateType", "Dead")
+							end
 						end)
 					end
 				end)
@@ -533,10 +549,18 @@ entityFolder.ChildAdded:Connect(function(zombie)
 			humanoid.HealthChanged:Connect(function(newHealth)
 				if oneHitEnabled and newHealth < originalHealth then
 					pcall(function()
-						-- Sử dụng TakeDamage để kill zombie
+						-- Thử nhiều cách để kill zombie thật sự
 						humanoid:TakeDamage(humanoid.Health)
-						-- Hoặc sử dụng BreakJoints để làm zombie nằm xuống
+						humanoid.Health = 0
+						humanoid.PlatformStand = true
+						humanoid.WalkSpeed = 0
+						humanoid.JumpPower = 0
 						humanoid:BreakJoints()
+						
+						-- Thử set StateType
+						if humanoid:GetAttribute("StateType") then
+							humanoid:SetAttribute("StateType", "Dead")
+						end
 					end)
 				end
 			end)
