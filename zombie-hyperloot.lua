@@ -213,31 +213,20 @@ local function createESP(part, color, name, zombie)
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "ESPTag"
 	billboard.AlwaysOnTop = true
-	billboard.Size = UDim2.new(0, 200, 0, 70) -- Tăng chiều cao để chứa cả tên và máu
+	billboard.Size = UDim2.new(0, 200, 0, 30) -- Chỉ cần kích thước cho máu
 	billboard.StudsOffset = Vector3.new(0, 2, 0)
 	billboard.Parent = part
 
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(1, 0, 0, 25) -- Chỉ chiếm 25 pixel cho tên
-	label.Position = UDim2.new(0, 0, 0, 0)
-	label.BackgroundTransparency = 1
-	label.Text = name
-	label.TextColor3 = color
-	label.TextStrokeTransparency = 0
-	label.Font = Enum.Font.SourceSansBold
-	label.TextSize = 16
-	label.Parent = billboard
+	-- Không tạo label tên nữa, chỉ hiển thị máu
 	
 	-- Thêm hiển thị máu cho zombie
-	print("Debug: zombie =", zombie, "has humanoid =", zombie and zombie:FindFirstChild("Humanoid"))
 	if zombie and zombie:FindFirstChild("Humanoid") then
 		local humanoid = zombie.Humanoid
 		local healthText = string.format("[%d/%d]", math.floor(humanoid.Health), math.floor(humanoid.MaxHealth))
-		print("Creating health label for", zombie.Name, "with health:", healthText)
 		
 		local healthLabel = Instance.new("TextLabel")
 		healthLabel.Size = UDim2.new(1, 0, 0, 20)
-		healthLabel.Position = UDim2.new(0, 0, 0, 30) -- Đặt ở vị trí 30 pixel từ trên xuống
+		healthLabel.Position = UDim2.new(0, 0, 0, 0) -- Đặt ở vị trí đầu tiên
 		healthLabel.BackgroundTransparency = 1
 		healthLabel.Text = healthText
 		healthLabel.TextColor3 = Color3.fromRGB(255, 100, 100) -- Màu đỏ cho máu
