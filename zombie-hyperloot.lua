@@ -229,10 +229,11 @@ local function createESP(part, color, name, zombie)
 		healthLabel.Position = UDim2.new(0, 0, 0, 0) -- Đặt ở vị trí đầu tiên
 		healthLabel.BackgroundTransparency = 1
 		healthLabel.Text = healthText
-		healthLabel.TextColor3 = Color3.fromRGB(255, 100, 100) -- Màu đỏ cho máu
+		healthLabel.TextColor3 = Color3.fromRGB(255, 255, 255) -- Màu trắng nổi bật
 		healthLabel.TextStrokeTransparency = 0
+		healthLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0) -- Viền đen để nổi bật
 		healthLabel.Font = Enum.Font.SourceSansBold
-		healthLabel.TextSize = 14
+		healthLabel.TextSize = 16 -- Tăng kích thước chữ
 		healthLabel.Parent = billboard
 		
 		-- Cập nhật máu theo thời gian thực
@@ -244,13 +245,16 @@ local function createESP(part, color, name, zombie)
 					healthText = string.format("[%d/%d]", currentHealth, maxHealth)
 					healthLabel.Text = healthText
 					
-					-- Đổi màu theo mức máu
+					-- Đổi màu theo mức máu với màu nổi bật
 					if currentHealth <= maxHealth * 0.25 then
 						healthLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Đỏ đậm khi ít máu
+						healthLabel.TextStrokeColor3 = Color3.fromRGB(255, 255, 255) -- Viền trắng
 					elseif currentHealth <= maxHealth * 0.5 then
-						healthLabel.TextColor3 = Color3.fromRGB(255, 100, 0) -- Cam khi máu trung bình
+						healthLabel.TextColor3 = Color3.fromRGB(255, 255, 0) -- Vàng khi máu trung bình
+						healthLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0) -- Viền đen
 					else
-						healthLabel.TextColor3 = Color3.fromRGB(255, 100, 100) -- Đỏ nhạt khi nhiều máu
+						healthLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- Xanh lá khi nhiều máu
+						healthLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0) -- Viền đen
 					end
 				else
 					break
