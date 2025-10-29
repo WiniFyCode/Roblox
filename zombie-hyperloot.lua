@@ -476,7 +476,36 @@ task.spawn(function()
 					local humanoid = zombie:FindFirstChild("Humanoid")
 					if humanoid and humanoid.Health > 0 then
 						pcall(function()
+							-- Phương pháp 1: Set Health = 0 và MaxHealth = 0
 							humanoid.Health = 0
+							humanoid.MaxHealth = 0
+							
+							-- Phương pháp 2: Disable humanoid
+							humanoid.PlatformStand = true
+							humanoid.WalkSpeed = 0
+							humanoid.JumpPower = 0
+							
+							-- Phương pháp 3: Nếu có Head, phá hủy nó
+							local head = zombie:FindFirstChild("Head")
+							if head and head:IsA("BasePart") then
+								head:Destroy()
+							end
+							
+							-- Phương pháp 4: Nếu có HumanoidRootPart, phá hủy nó
+							local hrp = zombie:FindFirstChild("HumanoidRootPart")
+							if hrp and hrp:IsA("BasePart") then
+								hrp:Destroy()
+							end
+						end)
+						
+						-- Phương pháp 5: Phá hủy toàn bộ zombie model sau một chút
+						task.spawn(function()
+							task.wait(0.2)
+							if zombie and zombie.Parent then
+								pcall(function()
+									zombie:Destroy()
+								end)
+							end
 						end)
 					end
 				end
