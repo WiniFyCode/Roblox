@@ -569,6 +569,130 @@ entityFolder.ChildAdded:Connect(function(zombie)
 end)
 
 ----------------------------------------------------------
+-- 🔹 Auto Kill Zombies
+task.spawn(function()
+	while task.wait(0.1) do
+		if autoKillEnabled then
+			for _, zombie in ipairs(entityFolder:GetChildren()) do
+				if zombie:IsA("Model") then
+					local humanoid = zombie:FindFirstChild("Humanoid")
+					if humanoid and humanoid.Health > 0 then
+						pcall(function()
+							-- Kill zombie bằng cách gây damage
+							humanoid:TakeDamage(humanoid.Health)
+						end)
+					end
+				end
+			end
+		end
+	end
+end)
+
+----------------------------------------------------------
+-- 🔹 One Hit Kill - Zombie chết ngay khi bị trừ máu
+local function setupOneHitKill()
+	for _, zombie in ipairs(entityFolder:GetChildren()) do
+		if zombie:IsA("Model") then
+			local humanoid = zombie:FindFirstChild("Humanoid")
+			if humanoid then
+				local originalHealth = humanoid.Health
+				humanoid:SetAttribute("OriginalHealth", originalHealth)
+				
+				humanoid.HealthChanged:Connect(function(newHealth)
+					if oneHitEnabled and newHealth < originalHealth then
+						pcall(function()
+							humanoid:TakeDamage(humanoid.Health)
+						end)
+					end
+				end)
+			end
+		end
+	end
+end
+
+-- Theo dõi zombie mới sinh ra để áp dụng One Hit
+entityFolder.ChildAdded:Connect(function(zombie)
+	if zombie:IsA("Model") and oneHitEnabled then
+		task.wait(0.5)
+		local humanoid = zombie:FindFirstChild("Humanoid")
+		if humanoid then
+			local originalHealth = humanoid.Health
+			humanoid:SetAttribute("OriginalHealth", originalHealth)
+			
+			humanoid.HealthChanged:Connect(function(newHealth)
+				if oneHitEnabled and newHealth < originalHealth then
+					pcall(function()
+						humanoid:TakeDamage(humanoid.Health)
+					end)
+				end
+			end)
+		end
+	end
+end)
+
+----------------------------------------------------------
+-- 🔹 Auto Kill Zombies
+task.spawn(function()
+	while task.wait(0.1) do
+		if autoKillEnabled then
+			for _, zombie in ipairs(entityFolder:GetChildren()) do
+				if zombie:IsA("Model") then
+					local humanoid = zombie:FindFirstChild("Humanoid")
+					if humanoid and humanoid.Health > 0 then
+						pcall(function()
+							-- Kill zombie bằng cách gây damage
+							humanoid:TakeDamage(humanoid.Health)
+						end)
+					end
+				end
+			end
+		end
+	end
+end)
+
+----------------------------------------------------------
+-- 🔹 One Hit Kill - Zombie chết ngay khi bị trừ máu
+local function setupOneHitKill()
+	for _, zombie in ipairs(entityFolder:GetChildren()) do
+		if zombie:IsA("Model") then
+			local humanoid = zombie:FindFirstChild("Humanoid")
+			if humanoid then
+				local originalHealth = humanoid.Health
+				humanoid:SetAttribute("OriginalHealth", originalHealth)
+				
+				humanoid.HealthChanged:Connect(function(newHealth)
+					if oneHitEnabled and newHealth < originalHealth then
+						pcall(function()
+							humanoid:TakeDamage(humanoid.Health)
+						end)
+					end
+				end)
+			end
+		end
+	end
+end
+
+-- Theo dõi zombie mới sinh ra để áp dụng One Hit
+entityFolder.ChildAdded:Connect(function(zombie)
+	if zombie:IsA("Model") and oneHitEnabled then
+		task.wait(0.5)
+		local humanoid = zombie:FindFirstChild("Humanoid")
+		if humanoid then
+			local originalHealth = humanoid.Health
+			humanoid:SetAttribute("OriginalHealth", originalHealth)
+			
+			humanoid.HealthChanged:Connect(function(newHealth)
+				if oneHitEnabled and newHealth < originalHealth then
+					pcall(function()
+						humanoid:TakeDamage(humanoid.Health)
+					end)
+				end
+			end)
+		end
+	end
+end)
+
+----------------------------------------------------------
 -- 🔹 Auto Move Keybind (Press M)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then return end
