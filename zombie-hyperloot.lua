@@ -35,13 +35,13 @@ local espChestEnabled = false
 local hitboxEnabled = true
 local teleportEnabled = true
 local autoKillEnabled = false
-local cameraTeleportEnabled = false
+local cameraTeleportEnabled = true
 local cameraTeleportKey = Enum.KeyCode.C -- ấn C để tele camera tới zombie
 local cameraTeleportActive = false -- Biến kiểm tra đang chạy camera teleport loop
 local cameraTeleportStartPosition = nil -- Vị trí ban đầu của nhân vật
 
 -- Auto Move Configuration
-local autoMoveEnabled = true -- Tự động duy trì khoảng cách với zombie
+local autoMoveEnabled = false -- Tự động duy trì khoảng cách với zombie
 local autoMoveDistance = 100 -- Khoảng cách cần duy trì với zombie (studs)
 local autoMoveSpeed = 16 -- Tốc độ di chuyển (studs/second)
 local autoMoveKey = Enum.KeyCode.M -- ấn M để bật/tắt auto move
@@ -207,7 +207,7 @@ end)
 
 ----------------------------------------------------------
 -- 🔹 Hàm tạo ESP Billboard
-local function createESP(part, color, name)
+local function createESP(part, color, name, zombie)
 	if not part or part:FindFirstChild("ESPTag") then return end
 
 	local billboard = Instance.new("BillboardGui")
@@ -226,6 +226,47 @@ local function createESP(part, color, name)
 	label.Font = Enum.Font.SourceSansBold
 	label.TextSize = 16
 	label.Parent = billboard
+	
+	-- Thêm hiển thị máu cho zombie
+	if zombie and zombie:FindFirstChild("Humanoid") then
+		local humanoid = zombie.Humanoid
+		local healthText = string.format("[%d/%d]", math.floor(humanoid.Health), math.floor(humanoid.MaxHealth))
+		
+		local healthLabel = Instance.new("TextLabel")
+		healthLabel.Size = UDim2.new(1, 0, 0, 20)
+		healthLabel.Position = UDim2.new(0, 0, 1, 0)
+		healthLabel.BackgroundTransparency = 1
+		healthLabel.Text = healthText
+		healthLabel.TextColor3 = Color3.fromRGB(255, 100, 100) -- Màu đỏ cho máu
+		healthLabel.TextStrokeTransparency = 0
+		healthLabel.Font = Enum.Font.SourceSansBold
+		healthLabel.TextSize = 14
+		healthLabel.Parent = billboard
+		
+		-- Cập nhật máu theo thời gian thực
+		task.spawn(function()
+			while part and part.Parent and billboard and billboard.Parent do
+				if humanoid and humanoid.Parent then
+					local currentHealth = math.floor(humanoid.Health)
+					local maxHealth = math.floor(humanoid.MaxHealth)
+					healthText = string.format("[%d/%d]", currentHealth, maxHealth)
+					healthLabel.Text = healthText
+					
+					-- Đổi màu theo mức máu
+					if currentHealth <= maxHealth * 0.25 then
+						healthLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Đỏ đậm khi ít máu
+					elseif currentHealth <= maxHealth * 0.5 then
+						healthLabel.TextColor3 = Color3.fromRGB(255, 100, 0) -- Cam khi máu trung bình
+					else
+						healthLabel.TextColor3 = Color3.fromRGB(255, 100, 100) -- Đỏ nhạt khi nhiều máu
+					end
+				else
+					break
+				end
+				task.wait(0.1) -- Cập nhật mỗi 0.1 giây
+			end
+		end)
+	end
 end
 
 ----------------------------------------------------------
@@ -287,7 +328,7 @@ entityFolder.ChildAdded:Connect(function(zombie)
 		if head then
 			task.wait(0.5) -- Đợi thêm một chút để model load xong hoàn toàn
 			if espZombieEnabled then
-				createESP(head, espColorZombie, zombie.Name)
+				createESP(head, espColorZombie, zombie.Name, zombie)
 			end
 			if hitboxEnabled then
 				expandHitbox(zombie)
@@ -316,7 +357,7 @@ local function setupChestESP()
 		if chestObj:IsA("Model") then
 			local chestPart = chestObj:FindFirstChild("Chest")
 			if chestPart and chestPart:IsA("BasePart") then
-				createESP(chestPart, espColorChest, "Chest")
+				createESP(chestPart, espColorChest, "Chest", nil)
 			end
 		end
 	end
@@ -331,7 +372,7 @@ task.spawn(function()
 				local head = zombie:FindFirstChild("Head")
 				if head then
 					if espZombieEnabled then
-						createESP(head, espColorZombie, zombie.Name)
+						createESP(head, espColorZombie, zombie.Name, zombie)
 					end
 					-- Không gọi expandHitbox ở đây nữa vì đã xử lý trong ChildAdded
 				end
