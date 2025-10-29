@@ -34,8 +34,6 @@ local espZombieEnabled = true
 local espChestEnabled = false
 local hitboxEnabled = true
 local teleportEnabled = true
-local autoKillEnabled = false
-local oneHitEnabled = false
 local cameraTeleportEnabled = true
 local teleportToLastZombie = false -- Teleport tới zombie cuối cùng hay không
 local cameraTeleportKey = Enum.KeyCode.C -- ấn C để tele camera tới zombie
@@ -467,73 +465,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	end
 end)
 
-----------------------------------------------------------
--- 🔹 Auto Kill Zombies
-task.spawn(function()
-	while task.wait(0.1) do
-		if autoKillEnabled then
-			for _, zombie in ipairs(entityFolder:GetChildren()) do
-				if zombie:IsA("Model") then
-					local humanoid = zombie:FindFirstChild("Humanoid")
-					if humanoid and humanoid.Health > 0 then
-						pcall(function()
-							-- Kill zombie bằng cách gây damage
-							print("🔴 Auto Kill: Killing zombie", zombie.Name, "| Health:", humanoid.Health)
-							humanoid:TakeDamage(humanoid.Health)
-							print("✅ Auto Kill: Zombie", zombie.Name, "killed successfully!")
-						end)
-					end
-				end
-			end
-		end
-	end
-end)
 
-----------------------------------------------------------
--- 🔹 One Hit Kill - Zombie chết ngay khi bị trừ máu
-local function setupOneHitKill()
-	for _, zombie in ipairs(entityFolder:GetChildren()) do
-		if zombie:IsA("Model") then
-			local humanoid = zombie:FindFirstChild("Humanoid")
-			if humanoid then
-				local originalHealth = humanoid.Health
-				humanoid:SetAttribute("OriginalHealth", originalHealth)
-				
-				humanoid.HealthChanged:Connect(function(newHealth)
-					if oneHitEnabled and newHealth < originalHealth then
-						pcall(function()
-							print("🔴 One Hit: Killing zombie", zombie.Name, "| Health:", newHealth, "->", humanoid.Health)
-							humanoid:TakeDamage(humanoid.Health)
-							print("✅ One Hit: Zombie", zombie.Name, "killed successfully!")
-						end)
-					end
-				end)
-			end
-		end
-	end
-end
-
--- Theo dõi zombie mới sinh ra để áp dụng One Hit
-entityFolder.ChildAdded:Connect(function(zombie)
-	if zombie:IsA("Model") and oneHitEnabled then
-		task.wait(0.5)
-		local humanoid = zombie:FindFirstChild("Humanoid")
-		if humanoid then
-			local originalHealth = humanoid.Health
-			humanoid:SetAttribute("OriginalHealth", originalHealth)
-			
-			humanoid.HealthChanged:Connect(function(newHealth)
-				if oneHitEnabled and newHealth < originalHealth then
-					pcall(function()
-						print("🔴 One Hit: Killing zombie", zombie.Name, "| Health:", newHealth, "->", humanoid.Health)
-						humanoid:TakeDamage(humanoid.Health)
-						print("✅ One Hit: Zombie", zombie.Name, "killed successfully!")
-					end)
-				end
-			end)
-		end
-	end
-end)
 
 ----------------------------------------------------------
 -- 🔹 Auto Move Keybind (Press M)
@@ -792,26 +724,6 @@ MainTab:AddToggle("Teleport", {
     end
 })
 
-MainTab:AddToggle("AutoKill", {
-    Title = "Auto Kill Zombies",
-    Default = autoKillEnabled,
-    Callback = function(Value)
-        autoKillEnabled = Value
-        print("Auto Kill:", Value and "ON" or "OFF")
-    end
-})
-
-MainTab:AddToggle("OneHit", {
-    Title = "One Hit Kill",
-    Default = oneHitEnabled,
-    Callback = function(Value)
-        oneHitEnabled = Value
-        if Value then
-            setupOneHitKill() -- Áp dụng One Hit cho zombie hiện có
-        end
-        print("One Hit Kill:", Value and "ON" or "OFF")
-    end
-})
 
 MainTab:AddToggle("CameraTeleport", {
     Title = "Camera Teleport (C Key)",
@@ -822,14 +734,6 @@ MainTab:AddToggle("CameraTeleport", {
     end
 })
 
-MainTab:AddToggle("TeleportToLastZombie", {
-    Title = "Teleport to Last Zombie",
-    Default = teleportToLastZombie,
-    Callback = function(Value)
-        teleportToLastZombie = Value
-        print("Teleport to Last Zombie:", Value and "ON" or "OFF")
-    end
-})
 
 MainTab:AddToggle("AutoMove", {
     Title = "Auto Move (M Key) - Maintain Distance",
@@ -893,6 +797,16 @@ SettingsTab:AddSlider("AutoMoveSpeed", {
     Callback = function(Value)
         autoMoveSpeed = Value
         print("Auto Move Speed:", Value)
+    end
+})
+
+SettingsTab:AddToggle("TeleportToLastZombie", {
+    Title = "Teleport to Last Zombie",
+    Description = "Teleport to last zombie after camera teleport",
+    Default = teleportToLastZombie,
+    Callback = function(Value)
+        teleportToLastZombie = Value
+        print("Teleport to Last Zombie:", Value and "ON" or "OFF")
     end
 })
 
