@@ -477,12 +477,10 @@ task.spawn(function()
 					local humanoid = zombie:FindFirstChild("Humanoid")
 					if humanoid and humanoid.Health > 0 then
 						pcall(function()
-							-- Chỉ set Health = 0 và disable humanoid
-							humanoid.Health = 0
-							humanoid.MaxHealth = 0
-							humanoid.PlatformStand = true
-							humanoid.WalkSpeed = 0
-							humanoid.JumpPower = 0
+							-- Sử dụng TakeDamage để kill zombie
+							humanoid:TakeDamage(humanoid.Health)
+							-- Hoặc sử dụng BreakJoints để làm zombie nằm xuống
+							humanoid:BreakJoints()
 						end)
 						
 						-- Zombie đã chết, không cần xóa model
@@ -511,9 +509,10 @@ local function setupOneHitKill()
 					if oneHitEnabled and newHealth < originalHealth then
 						-- Zombie bị trừ máu, kill ngay lập tức
 						pcall(function()
-							-- Chỉ set Health = 0 và disable humanoid
-							humanoid.Health = 0
-							humanoid.MaxHealth = 0
+							-- Sử dụng TakeDamage để kill zombie
+							humanoid:TakeDamage(humanoid.Health)
+							-- Hoặc sử dụng BreakJoints để làm zombie nằm xuống
+							humanoid:BreakJoints()
 						end)
 					end
 				end)
@@ -534,9 +533,10 @@ entityFolder.ChildAdded:Connect(function(zombie)
 			humanoid.HealthChanged:Connect(function(newHealth)
 				if oneHitEnabled and newHealth < originalHealth then
 					pcall(function()
-						-- Chỉ set Health = 0 và disable humanoid
-						humanoid.Health = 0
-						humanoid.MaxHealth = 0
+						-- Sử dụng TakeDamage để kill zombie
+						humanoid:TakeDamage(humanoid.Health)
+						-- Hoặc sử dụng BreakJoints để làm zombie nằm xuống
+						humanoid:BreakJoints()
 					end)
 				end
 			end)
