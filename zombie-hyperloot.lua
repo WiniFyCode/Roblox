@@ -36,7 +36,7 @@ local hitboxEnabled = true
 local teleportEnabled = true
 local cameraTeleportEnabled = true
 local teleportToLastZombie = false -- Teleport tới zombie cuối cùng hay không
-local cameraTeleportKey = Enum.KeyCode.C -- ấn C để tele camera tới zombie
+local cameraTeleportKey = Enum.KeyCode.X -- ấn X để tele camera tới zombie
 local cameraTeleportActive = false -- Biến kiểm tra đang chạy camera teleport loop
 local cameraTeleportStartPosition = nil -- Vị trí ban đầu của nhân vật
 
@@ -726,7 +726,7 @@ MainTab:AddToggle("Teleport", {
 
 
 MainTab:AddToggle("CameraTeleport", {
-    Title = "Camera Teleport (C Key)",
+    Title = "Camera Teleport (X Key)",
     Default = cameraTeleportEnabled,
     Callback = function(Value)
         cameraTeleportEnabled = Value
