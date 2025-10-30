@@ -22,6 +22,19 @@ local entityFolder = Workspace:WaitForChild("Entity")
 local fxFolder = Workspace:WaitForChild("FX")
 local mapModel = Workspace:WaitForChild("Map")
 
+-- Cached references and state for performance
+local activeZombies = {}
+local virtualUser = game:GetService("VirtualUser")
+local raycastParams = RaycastParams.new()
+raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+raycastParams.FilterDescendantsInstances = {localPlayer.Character}
+
+local function getCharacterParts()
+	local char = localPlayer.Character
+	if not char then return nil, nil end
+	return char:FindFirstChild("Humanoid"), char:FindFirstChild("HumanoidRootPart")
+end
+
 -- Cấu hình
 local hitboxSize = Vector3.new(4, 4, 4)
 local espColorZombie = Color3.fromRGB(0, 255, 0)
@@ -39,9 +52,6 @@ local teleportToLastZombie = false -- Teleport tới zombie cuối cùng hay kh�
 local cameraTeleportKey = Enum.KeyCode.X -- ấn X để tele camera tới zombie
 local cameraTeleportActive = false -- Biến kiểm tra đang chạy camera teleport loop
 local cameraTeleportStartPosition = nil -- Vị trí ban đầu của nhân vật
-local cameraOffsetX = 0 -- Camera offset X
-local cameraOffsetY = 10 -- Camera offset Y
-local cameraOffsetZ = -10 -- Camera offset Z
 
 -- Auto Move Configuration
 local autoMoveEnabled = false -- Tự động duy trì khoảng cách với zombie
@@ -51,18 +61,15 @@ local autoMoveKey = Enum.KeyCode.M -- ấn M để bật/tắt auto move
 local isAutoMoving = false -- Trạng thái đang auto move
 local autoMoveTarget = nil -- Zombie đang theo dõi
 local lastTargetZombie = nil -- Zombie được theo dõi lần trước
+local originalWalkSpeed = nil -- Lưu tốc độ gốc của người chơi
 
 
 ----------------------------------------------------------
 -- 🔹 Auto Move Functions - Duy trì khoảng cách cố định với zombie
 -- Kiểm tra vật cản trên đường đi
 local function checkObstacle(startPos, endPos)
-	local raycastParams = RaycastParams.new()
-	raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-	raycastParams.FilterDescendantsInstances = {localPlayer.Character}
-	
 	local direction = (endPos - startPos)
-	local raycastResult = Workspace:Raycast(startPos, direction)
+	local raycastResult = Workspace:Raycast(startPos, direction, raycastParams)
 	
 	if raycastResult then
 		local distance = (raycastResult.Position - startPos).Magnitude
@@ -79,15 +86,12 @@ end
 
 -- Tìm zombie gần nhất để theo dõi
 local function findNearestZombieToPlayer()
-	local char = localPlayer.Character
-	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+	local _, hrp = getCharacterParts()
 	if not hrp then return nil end
-	
 	local playerPosition = hrp.Position
 	local nearestZombie = nil
 	local nearestDistance = math.huge
-	
-	for _, zombie in ipairs(entityFolder:GetChildren()) do
+	for zombie in pairs(activeZombies) do
 		if zombie:IsA("Model") then
 			local humanoid = zombie:FindFirstChild("Humanoid")
 			local zombieHRP = zombie:FindFirstChild("HumanoidRootPart")
@@ -308,6 +312,7 @@ end
 -- 🔹 ESP cho zombie mới sinh ra (đợi load hết)
 entityFolder.ChildAdded:Connect(function(zombie)
 	if zombie:IsA("Model") then
+		activeZombies[zombie] = true
 		-- Đợi zombie load đủ các bộ phận
 		local head = zombie:WaitForChild("Head", 3)
 		if head then
@@ -322,8 +327,20 @@ entityFolder.ChildAdded:Connect(function(zombie)
 	end
 end)
 
+entityFolder.ChildRemoved:Connect(function(zombie)
+	activeZombies[zombie] = nil
+end)
+
+-- Khởi tạo danh sách zombie hiện tại
+for _, z in ipairs(entityFolder:GetChildren()) do
+	if z:IsA("Model") then
+		activeZombies[z] = true
+	end
+end
+
 ----------------------------------------------------------
 -- 🔹 ESP cho chest (chính xác đường dẫn: Map.Model.Chest.Model.Chest)
+local chestESPInitialized = false
 local function setupChestESP()
 	local map = Workspace:FindFirstChild("Map")
 	if not map then return end
@@ -346,6 +363,8 @@ local function setupChestESP()
 			end
 		end
 	end
+	-- Chỉ khởi tạo một lần
+	chestESPInitialized = true
 end
 
 ----------------------------------------------------------
@@ -364,7 +383,9 @@ task.spawn(function()
 			end
 		end
 		if espChestEnabled then
-			setupChestESP()
+			if not chestESPInitialized then
+				setupChestESP()
+			end
 		end
 	end
 end)
@@ -501,14 +522,13 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		-- Tìm zombie còn sống máu ít nhất từ vị trí người chơi
         -- Tìm zombie còn sống có MaxHealth nhỏ nhất. Nếu hiện tại đã tele vào 1 zombie mà có zombie mới MaxHealth thấp hơn, chuyển sang tele tới con đó.
         local function findLowestMaxHealthZombie(currentZombie)
-            local char = localPlayer.Character
-            local playerHRP = char and char:FindFirstChild("HumanoidRootPart")
+            local _, playerHRP = getCharacterParts()
             if not playerHRP then return nil end
             local playerPosition = playerHRP.Position
             local lowestMaxHealth = math.huge
             local nearestDistance = math.huge
             local result = nil
-            for _, zombie in ipairs(entityFolder:GetChildren()) do
+            for zombie in pairs(activeZombies) do
                 if zombie:IsA("Model") then
                     local humanoid = zombie:FindFirstChild("Humanoid")
                     if humanoid and humanoid.Health > 0 then
@@ -536,16 +556,13 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         
         -- Tìm zombie máu hiện tại thấp nhất (ưu tiên gần nếu trùng máu)
         local function findLowestHealthZombie()
-            local char = localPlayer.Character
-            local playerHRP = char and char:FindFirstChild("HumanoidRootPart")
+            local _, playerHRP = getCharacterParts()
             if not playerHRP then return nil end
-        
             local playerPosition = playerHRP.Position
             local lowestZombie = nil
             local lowestHealth = math.huge
             local nearestDistance = math.huge
-        
-            for _, zombie in ipairs(entityFolder:GetChildren()) do
+            for zombie in pairs(activeZombies) do
                 if zombie:IsA("Model") then
                     local humanoid = zombie:FindFirstChild("Humanoid")
                     if humanoid and humanoid.Health > 0 then -- chỉ lấy zombie còn sống
@@ -575,6 +592,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
             local lastZombiePosition = nil
             local currentTarget = nil
+            local notFocusedStart = nil -- thời điểm bắt đầu không focus vào zombie
             while cameraTeleportActive do
                 local newTarget = nil
                 -- Nếu đã có target, luôn kiểm tra nếu xuất hiện zombie mới có MaxHealth nhỏ hơn
@@ -595,8 +613,11 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                         lastZombiePosition = targetPosition
                         camera.CameraSubject = humanoid
                         camera.CameraType = Enum.CameraType.Custom
-                        local cameraOffset = Vector3.new(cameraOffsetX, cameraOffsetY, cameraOffsetZ)
-                        camera.CFrame = CFrame.lookAt(targetPosition + cameraOffset, targetPosition)
+                        local backPos, lookAtPos = getZombieBackPosition(currentTarget.zombie)
+                        if backPos and lookAtPos then
+                            camera.CFrame = CFrame.new(backPos, lookAtPos)
+                        end
+                        notFocusedStart = nil -- đã focus vào zombie, reset đếm thời gian
                         -- Đợi zombie chết/thay đổi mục tiêu
                         repeat
                             task.wait(0.1)
@@ -607,10 +628,22 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                             end
                         until false
                     else
-                        break
+                        -- Không có humanoid hợp lệ
+                        if not notFocusedStart then
+                            notFocusedStart = os.clock()
+                        elseif os.clock() - notFocusedStart >= 3 then
+                            break
+                        end
+                        task.wait(0.1)
                     end
                 else
-                    break
+                    -- Không có target hợp lệ, bắt đầu/tiếp tục đếm 3 giây
+                    if not notFocusedStart then
+                        notFocusedStart = os.clock()
+                    elseif os.clock() - notFocusedStart >= 3 then
+                        break
+                    end
+                    task.wait(0.1)
                 end
             end
             if hrp then
@@ -697,6 +730,20 @@ MainTab:AddToggle("AutoMove", {
     Default = autoMoveEnabled,
     Callback = function(Value)
         autoMoveEnabled = Value
+        local humanoid = getCharacterParts()
+        if humanoid then
+            if Value then
+                if originalWalkSpeed == nil then
+                    originalWalkSpeed = humanoid.WalkSpeed
+                end
+                humanoid.WalkSpeed = autoMoveSpeed
+            else
+                if originalWalkSpeed ~= nil then
+                    humanoid.WalkSpeed = originalWalkSpeed
+                    originalWalkSpeed = nil
+                end
+            end
+        end
         print("Auto Move:", Value and "ON" or "OFF")
     end
 })
@@ -753,6 +800,10 @@ SettingsTab:AddSlider("AutoMoveSpeed", {
     Rounding = 1,
     Callback = function(Value)
         autoMoveSpeed = Value
+        local humanoid = getCharacterParts()
+        if humanoid and autoMoveEnabled then
+            humanoid.WalkSpeed = autoMoveSpeed
+        end
         print("Auto Move Speed:", Value)
     end
 })
@@ -764,45 +815,6 @@ SettingsTab:AddToggle("TeleportToLastZombie", {
     Callback = function(Value)
         teleportToLastZombie = Value
         print("Teleport to Last Zombie:", Value and "ON" or "OFF")
-    end
-})
-
-SettingsTab:AddSlider("CameraOffsetX", {
-    Title = "Camera Offset X",
-    Description = "Camera X offset position",
-    Default = 0,
-    Min = -50,
-    Max = 50,
-    Rounding = 1,
-    Callback = function(Value)
-        cameraOffsetX = Value
-        print("Camera Offset X:", Value)
-    end
-})
-
-SettingsTab:AddSlider("CameraOffsetY", {
-    Title = "Camera Offset Y",
-    Description = "Camera Y offset position (height)",
-    Default = 10,
-    Min = -50,
-    Max = 50,
-    Rounding = 1,
-    Callback = function(Value)
-        cameraOffsetY = Value
-        print("Camera Offset Y:", Value)
-    end
-})
-
-SettingsTab:AddSlider("CameraOffsetZ", {
-    Title = "Camera Offset Z",
-    Description = "Camera Z offset position (distance)",
-    Default = -10,
-    Min = -50,
-    Max = 50,
-    Rounding = 1,
-    Callback = function(Value)
-        cameraOffsetZ = Value
-        print("Camera Offset Z:", Value)
     end
 })
 
