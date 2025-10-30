@@ -568,13 +568,14 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             return lowestZombie
         end
         
-        -- Loop teleport tới zombie máu thấp nhất hoặc zombie MaxHealth thấp hơn
+        -- Loop teleport tới zombie máu thấp nhất hoặc zombie MaxHealth thấp hơn; dừng sau 3s nếu không có zombie tốt hơn
         task.spawn(function()
             local camera = Workspace.CurrentCamera
             local char = localPlayer.Character
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
             local lastZombiePosition = nil
             local currentTarget = nil
+            local teleportStartTime = nil
             while cameraTeleportActive do
                 local newTarget = nil
                 -- Nếu đã có target, luôn kiểm tra nếu xuất hiện zombie mới có MaxHealth nhỏ hơn
@@ -582,12 +583,20 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                     local lowerMaxZombie = findLowestMaxHealthZombie(currentTarget.zombie)
                     if lowerMaxZombie then
                         newTarget = lowerMaxZombie
+                        teleportStartTime = os.clock() -- reset thời gian canh lại khi có target mới
                     end
                 end
                 if not newTarget then
                     newTarget = findLowestHealthZombie()
+                    if currentTarget ~= newTarget then
+                        teleportStartTime = os.clock() -- reset khi chuyển target
+                    end
                 end
                 currentTarget = newTarget
+                -- Gắn thời gian bắt đầu nếu lần đầu vào
+                if not teleportStartTime then
+                    teleportStartTime = os.clock()
+                end
                 if currentTarget and currentTarget.zombie then
                     local humanoid = currentTarget.zombie:FindFirstChild("Humanoid")
                     if humanoid and humanoid.Health > 0 then
@@ -597,15 +606,18 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                         camera.CameraType = Enum.CameraType.Custom
                         local cameraOffset = Vector3.new(cameraOffsetX, cameraOffsetY, cameraOffsetZ)
                         camera.CFrame = CFrame.lookAt(targetPosition + cameraOffset, targetPosition)
-                        -- Đợi zombie chết/thay đổi mục tiêu
+                        -- Đợi zombie chết hoặc xuất hiện con mới maxHealth thấp hơn hoặc quá 3s thì dừng
                         repeat
                             task.wait(0.1)
-                            -- Nếu zombie đã chết hoặc đổi sang target maxHealth thấp hơn thì break ngay
                             local lowerMaxZombie = findLowestMaxHealthZombie(currentTarget.zombie)
                             if not humanoid or humanoid.Parent == nil or humanoid.Health <= 0 or lowerMaxZombie then
                                 break
                             end
-                        until false
+                        until os.clock() - teleportStartTime >= 3
+                        -- Nếu hết 3s thì ngắt luôn camera teleport
+                        if os.clock() - teleportStartTime >= 3 then
+                            break
+                        end
                     else
                         break
                     end
