@@ -609,10 +609,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                     else
                         break
                     end
-					task.wait(3)
-					if os.clock() - teleportStartTime >= 3 then
-                        break
-                    end
                 else
                     break
                 end
