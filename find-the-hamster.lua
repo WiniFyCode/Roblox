@@ -8,6 +8,7 @@ local collectiblesFolder = Workspace:WaitForChild("Collectibles")
 local tpEnabled = false
 local visitedNames = {}
 local totalCount = #collectiblesFolder:GetChildren()
+local isLooping = false
 
 -- 🧮 GUI hiển thị đếm
 local screenGui = Instance.new("ScreenGui")
@@ -32,14 +33,6 @@ local function updateCounter()
 	end
 	counterLabel.Text = string.format("💎 %d / %d", visitedCount, totalCount)
 end
-
--- Toggle bằng T
-UserInputService.InputBegan:Connect(function(input, gp)
-	if input.KeyCode == Enum.KeyCode.T then
-		tpEnabled = not tpEnabled
-		print("Auto TP:", tpEnabled and "ON" or "OFF")
-	end
-end)
 
 -- ESP
 local function createESP(part, name)
@@ -109,6 +102,34 @@ local function handleCollectible(collectible)
 	task.wait(0.8)
 end
 
+-- Loop TP liên tục
+local function startLooping()
+	if isLooping then return end
+	isLooping = true
+	
+	task.spawn(function()
+		while tpEnabled do
+			for _, collectible in pairs(collectiblesFolder:GetChildren()) do
+				if not tpEnabled then break end
+				handleCollectible(collectible)
+			end
+			task.wait(0.1)
+		end
+		isLooping = false
+	end)
+end
+
+-- Toggle bằng T
+UserInputService.InputBegan:Connect(function(input, gp)
+	if input.KeyCode == Enum.KeyCode.T then
+		tpEnabled = not tpEnabled
+		print("Auto TP:", tpEnabled and "ON" or "OFF")
+		if tpEnabled then
+			startLooping()
+		end
+	end
+end)
+
 -- Xử lý có sẵn
 for _, collectible in pairs(collectiblesFolder:GetChildren()) do
 	handleCollectible(collectible)
@@ -129,4 +150,4 @@ collectiblesFolder.ChildRemoved:Connect(function()
 	updateCounter()
 end)
 
-print("✅ ESP + Auto TP Collectibles đang chạy (RightShift để bật/tắt)")
+print("✅ ESP + Auto TP Collectibles đang chạy (T để bật/tắt)")
