@@ -5,7 +5,7 @@ local UserInputService = game:GetService("UserInputService")
 local localPlayer = Players.LocalPlayer
 local collectiblesFolder = Workspace:WaitForChild("Collectibles")
 
-local tpEnabled = true
+local tpEnabled = false
 local visitedNames = {}
 local totalCount = #collectiblesFolder:GetChildren()
 
