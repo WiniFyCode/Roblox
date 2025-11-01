@@ -33,9 +33,9 @@ local function updateCounter()
 	counterLabel.Text = string.format("💎 %d / %d", visitedCount, totalCount)
 end
 
--- Toggle bằng RightShift
+-- Toggle bằng T
 UserInputService.InputBegan:Connect(function(input, gp)
-	if input.KeyCode == Enum.KeyCode.RightShift then
+	if input.KeyCode == Enum.KeyCode.T then
 		tpEnabled = not tpEnabled
 		print("Auto TP:", tpEnabled and "ON" or "OFF")
 	end
@@ -70,6 +70,15 @@ local function createESP(part, name)
 	text.Parent = billboard
 end
 
+-- Xóa ESP
+local function removeESP(part)
+	if not part then return end
+	local highlight = part:FindFirstChild("ESP_Highlight")
+	if highlight then highlight:Destroy() end
+	local billboard = part:FindFirstChild("ESP_Label")
+	if billboard then billboard:Destroy() end
+end
+
 -- Teleport
 local function teleportTo(part)
 	local character = localPlayer.Character
@@ -85,7 +94,9 @@ local function handleCollectible(collectible)
 	local part = collectible:FindFirstChild("DetectionPart")
 	if not part then return end
 
-	createESP(part, collectible.Name)
+	if not visitedNames[collectible.Name] then
+		createESP(part, collectible.Name)
+	end
 
 	if visitedNames[collectible.Name] then return end
 	if not tpEnabled then return end
@@ -93,6 +104,7 @@ local function handleCollectible(collectible)
 	print("Teleporting to:", collectible.Name)
 	teleportTo(part)
 	visitedNames[collectible.Name] = true
+	removeESP(part)
 	updateCounter()
 	task.wait(0.8)
 end
