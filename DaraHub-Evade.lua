@@ -2038,38 +2038,19 @@ local function startAutoTicketFarm()
                                 end
                             end
                             
-                            -- Teleport ticket to player if found
+                            -- Teleport to nearest ticket if found
                             if nearestTicket then
-                                pcall(function()
-                                    if nearestTicket:IsA("BasePart") then
-                                        -- If ticket is a BasePart, teleport it directly
-                                        nearestTicket.CFrame = hrp.CFrame + Vector3.new(0, 2, 0)
-                                    elseif nearestTicket:IsA("Model") then
-                                        -- If ticket is a Model, try to teleport its PrimaryPart or HumanoidRootPart
-                                        local targetPart = nearestTicket.PrimaryPart
-                                        if not targetPart then
-                                            targetPart = nearestTicket:FindFirstChild("HumanoidRootPart")
-                                        end
-                                        if not targetPart then
-                                            -- Try to find any BasePart in the model
-                                            for _, part in pairs(nearestTicket:GetChildren()) do
-                                                if part:IsA("BasePart") then
-                                                    targetPart = part
-                                                    break
-                                                end
-                                            end
-                                        end
-                                        if targetPart then
-                                            nearestTicket:SetPrimaryPartCFrame(CFrame.new(hrp.Position + Vector3.new(0, 2, 0)))
-                                        end
-                                    end
+                                local ticketPosition = getTicketPosition(nearestTicket)
+                                if ticketPosition then
+                                    -- Teleport to ticket
+                                    hrp.CFrame = CFrame.new(ticketPosition)
                                     
                                     WindUI:Notify({
                                         Title = "Auto Ticket Farm",
-                                        Content = "Teleported ticket to player: " .. nearestTicket.Name,
+                                        Content = "Teleported to ticket: " .. nearestTicket.Name,
                                         Duration = 2
                                     })
-                                end)
+                                end
                             end
                         end
                     end
@@ -3571,7 +3552,7 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
 
     local AutoTicketFarmToggle = Tabs.Auto:Toggle({
         Title = "Auto Ticket Farm",
-        Desc = "Automatically teleport nearest tickets to player",
+        Desc = "Automatically teleport to nearest tickets",
         Value = featureStates.AutoTicketFarm,
         Callback = function(state)
             featureStates.AutoTicketFarm = state
