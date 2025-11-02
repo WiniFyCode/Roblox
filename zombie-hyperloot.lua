@@ -41,12 +41,12 @@ local cameraTeleportActive = false -- Biến kiểm tra đang chạy camera tele
 local cameraTeleportStartPosition = nil -- Vị trí ban đầu của nhân vật
 local cameraOffsetX = 0 -- Camera offset X
 local cameraOffsetY = 10 -- Camera offset Y
-local cameraOffsetZ = -10 -- Camera offset Z
+local cameraOffsetZ = -2 -- Camera offset Z
 
 -- Auto Move Configuration
 local autoMoveEnabled = false -- Tự động duy trì khoảng cách với zombie
 local autoMoveDistance = 100 -- Khoảng cách cần duy trì với zombie (studs)
-local autoMoveSpeed = 20 -- Tốc độ di chuyển (studs/second)
+local autoMoveSpeed = 16 -- Tốc độ di chuyển (studs/second)
 local autoMoveKey = Enum.KeyCode.M -- ấn M để bật/tắt auto move
 local isAutoMoving = false -- Trạng thái đang auto move
 local autoMoveTarget = nil -- Zombie đang theo dõi
@@ -187,7 +187,7 @@ task.spawn(function()
 				-- Chỉ di chuyển nếu khoảng cách sai lệch > 10 studs (cho khoảng cách 100)
 				if distanceDiff > 10 then
 					maintainDistanceFromZombie()
-					task.wait(0.1) -- Đợi ngắn hơn để phản ứng nhanh hơn
+					task.wait(0.5) -- Đợi ngắn hơn để phản ứng nhanh hơn
 				end
 			end
 		end
@@ -595,21 +595,8 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                         lastZombiePosition = targetPosition
                         camera.CameraSubject = humanoid
                         camera.CameraType = Enum.CameraType.Custom
-                        -- Tính vị trí phía sau lưng zombie
-                        local cameraBehindDist = 3 -- khoảng cách phía sau lưng zombie (studs)
-                        local hrpZombie = currentTarget.zombie:FindFirstChild("HumanoidRootPart")
-                        local cameraPos, lookAtPos
-                        if hrpZombie then
-                            local lookVec = hrpZombie.CFrame.LookVector
-                            lookAtPos = hrpZombie.Position
-                            -- Cộng offset
-                            cameraPos = hrpZombie.Position - lookVec * cameraBehindDist + Vector3.new(cameraOffsetX, cameraOffsetY, cameraOffsetZ)
-                        else
-                            -- Không tìm thấy HRP, dùng part vị trí hiện tại và offset
-                            lookAtPos = targetPosition
-                            cameraPos = targetPosition + Vector3.new(cameraOffsetX, cameraOffsetY, cameraOffsetZ)
-                        end
-                        camera.CFrame = CFrame.new(cameraPos, lookAtPos)
+                        local cameraOffset = Vector3.new(cameraOffsetX, cameraOffsetY, cameraOffsetZ)
+                        camera.CFrame = CFrame.lookAt(targetPosition + cameraOffset, targetPosition)
                         -- Đợi zombie chết/thay đổi mục tiêu
                         repeat
                             task.wait(0.1)
@@ -629,7 +616,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             if hrp then
                 hrp.Anchored = false -- Bỏ khóa nhân vật
                 if teleportToLastZombie and lastZombiePosition then
-                    hrp.CFrame = CFrame.new(lastZombiePosition + Vector3.new(0, 3, 0))
+                    hrp.CFrame = CFrame.new(lastZombiePosition + Vector3.new(0, 5, 0))
                 end
             end
             camera.CameraSubject = localPlayer.Character and localPlayer.Character:FindFirstChild("Humanoid")
@@ -821,3 +808,319 @@ SettingsTab:AddSlider("CameraOffsetZ", {
 
 Window:SelectTab(1)
 print("Zombie Hyperloot: Script loaded successfully!")
+
+----------------------------------------------------------
+-- 🔹 Quick Teleport Buttons (Right Side of Screen)
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "QuickTeleportButtons"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = localPlayer:WaitForChild("PlayerGui")
+
+local Container = Instance.new("Frame")
+Container.Name = "Container"
+Container.BackgroundTransparency = 1
+Container.Size = UDim2.new(0, 160, 0, 200)
+Container.Position = UDim2.new(1, -180, 0.5, -100) -- Bên phải, giữa màn hình
+Container.Parent = ScreenGui
+
+-- Sử dụng UIListLayout để tự động sắp xếp các button
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Padding = UDim.new(0, 5)
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Parent = Container
+
+-- Thêm padding cho container
+local UIPadding = Instance.new("UIPadding")
+UIPadding.PaddingTop = UDim.new(0, 10)
+UIPadding.PaddingRight = UDim.new(0, 10)
+UIPadding.Parent = Container
+
+local function createTeleportButton(name, text, color)
+	local button = Instance.new("TextButton")
+	button.Name = name
+	button.Size = UDim2.new(0, 150, 0, 35)
+	button.BackgroundColor3 = color
+	button.BorderSizePixel = 0
+	button.Text = text
+	button.TextColor3 = Color3.fromRGB(255, 255, 255)
+	button.TextSize = 14
+	button.Font = Enum.Font.SourceSansBold
+	button.AutoButtonColor = false
+	button.Parent = Container
+	
+	-- Hover effects
+	local hoverColor = Color3.new(math.min(color.R + 0.2, 1), math.min(color.G + 0.2, 1), math.min(color.B + 0.2, 1))
+	local originalColor = color
+	
+	button.MouseEnter:Connect(function()
+		button.BackgroundColor3 = hoverColor
+	end)
+	
+	button.MouseLeave:Connect(function()
+		button.BackgroundColor3 = originalColor
+	end)
+	
+	return button
+end
+
+-- Tìm vị trí Task cuối map
+local function findTaskPosition()
+	local map = Workspace:FindFirstChild("Map")
+	if not map then return nil end
+	
+	local model = map:FindFirstChild("Model")
+	if not model then return nil end
+	
+	local eItem = model:FindFirstChild("EItem")
+	if not eItem then return nil end
+	
+	local task = eItem:FindFirstChild("Task")
+	if not task then return nil end
+	
+	local default = task:FindFirstChild("default")
+	if default then
+		local part = default:FindFirstChildWhichIsA("BasePart")
+		if part then
+			return part.Position + Vector3.new(0, 3, 0)
+		end
+	end
+	
+	return nil
+end
+
+-- Tìm vị trí Safe Zone
+local function findSafeZonePosition()
+	local map = Workspace:FindFirstChild("Map")
+	if not map then return nil end
+	
+	local model = map:FindFirstChild("Model")
+	if not model then return nil end
+	
+	local decoration = model:FindFirstChild("Decoration")
+	if not decoration then return nil end
+	
+	local crane = decoration:FindFirstChild("Crane")
+	if crane then
+		local craneModel = crane:FindFirstChild("Model")
+		if craneModel then
+			local part = craneModel:FindFirstChild("Part")
+			if part and part:IsA("BasePart") then
+				return part.Position + Vector3.new(0, 3, 0)
+			end
+		end
+	end
+	
+	return nil
+end
+
+-- Tìm tất cả Exit Door (có thể có nhiều door)
+local function findAllExitDoors()
+	local doors = {}
+	local map = Workspace:FindFirstChild("Map")
+	if not map then return doors end
+	
+	local model = map:FindFirstChild("Model")
+	if not model then return doors end
+	
+	local eItem = model:FindFirstChild("EItem")
+	if not eItem then return doors end
+	
+	-- Tìm ExitDoor
+	local exitDoor = eItem:FindFirstChild("ExitDoor")
+	if exitDoor then
+		local body = exitDoor:FindFirstChild("Body")
+		if body and body:IsA("BasePart") then
+			table.insert(doors, body.Position + Vector3.new(0, 3, 0))
+		end
+	end
+	
+	-- Tìm tất cả door có thể có (ExitDoor1, ExitDoor2, etc.)
+	for _, child in ipairs(eItem:GetChildren()) do
+		if string.find(child.Name, "ExitDoor") then
+			local body = child:FindFirstChild("Body")
+			if body and body:IsA("BasePart") then
+				table.insert(doors, body.Position + Vector3.new(0, 3, 0))
+			end
+		end
+	end
+	
+	return doors
+end
+
+-- Tìm tất cả Supply Piles (chỗ lấy đạn)
+local function findAllSupplyPiles()
+	local supplies = {}
+	local map = Workspace:FindFirstChild("Map")
+	if not map then return supplies end
+	
+	local model = map:FindFirstChild("Model")
+	if not model then return supplies end
+	
+	local eItem = model:FindFirstChild("EItem")
+	if not eItem then return supplies end
+	
+	-- Tìm tất cả số (1, 2, 3, 4...)
+	for _, child in ipairs(eItem:GetChildren()) do
+		if tonumber(child.Name) then -- Nếu là số
+			-- Tìm SM_Prop_SupplyPile_01 trong child này
+			local function searchSupplyPile(parent)
+				for _, descendant in ipairs(parent:GetDescendants()) do
+					if string.find(descendant.Name, "SM_Prop_SupplyPile") then
+						local part = descendant:FindFirstChildWhichIsA("BasePart")
+						if part then
+							table.insert(supplies, part.Position + Vector3.new(0, 3, 0))
+							break -- Chỉ lấy 1 part từ mỗi SupplyPile
+						end
+					end
+				end
+			end
+			searchSupplyPile(child)
+		end
+	end
+	
+	-- Nếu không tìm thấy, thử tìm trực tiếp trong EItem
+	if #supplies == 0 then
+		for _, descendant in ipairs(eItem:GetDescendants()) do
+			if string.find(descendant.Name, "SM_Prop_SupplyPile") then
+				local part = descendant:FindFirstChildWhichIsA("BasePart")
+				if part then
+					table.insert(supplies, part.Position + Vector3.new(0, 3, 0))
+				end
+			end
+		end
+	end
+	
+	return supplies
+end
+
+-- Hàm teleport
+local function teleportToPosition(position)
+	if not position then
+		print("Không tìm thấy vị trí!")
+		return
+	end
+	
+	local char = localPlayer.Character
+	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+	if not hrp then
+		print("Không tìm thấy nhân vật!")
+		return
+	end
+	
+	hrp.CFrame = CFrame.new(position)
+	print("Đã teleport tới vị trí:", position)
+end
+
+-- Đợi game load hoàn toàn trước khi kiểm tra
+task.wait(1)
+
+-- Tạo các button (chỉ hiển thị nếu tìm thấy vị trí)
+local buttonLayoutOrder = 1
+
+-- Kiểm tra và tạo button Task
+local taskPos = findTaskPosition()
+if taskPos then
+	local taskButton = createTeleportButton("TaskButton", "📋 Task Cuối Map", Color3.fromRGB(52, 152, 219))
+	taskButton.LayoutOrder = buttonLayoutOrder
+	buttonLayoutOrder = buttonLayoutOrder + 1
+	
+	taskButton.MouseButton1Click:Connect(function()
+		local pos = findTaskPosition()
+		teleportToPosition(pos)
+	end)
+end
+
+-- Kiểm tra và tạo button Safe Zone
+local safeZonePos = findSafeZonePosition()
+if safeZonePos then
+	local safeZoneButton = createTeleportButton("SafeZoneButton", "🛡️ Safe Zone", Color3.fromRGB(46, 204, 113))
+	safeZoneButton.LayoutOrder = buttonLayoutOrder
+	buttonLayoutOrder = buttonLayoutOrder + 1
+	
+	safeZoneButton.MouseButton1Click:Connect(function()
+		local pos = findSafeZonePosition()
+		teleportToPosition(pos)
+	end)
+end
+
+-- Kiểm tra và tạo button Exit Door
+local exitDoors = findAllExitDoors()
+if #exitDoors > 0 then
+	local exitDoorButton = createTeleportButton("ExitDoorButton", "🚪 Exit Door", Color3.fromRGB(155, 89, 182))
+	exitDoorButton.LayoutOrder = buttonLayoutOrder
+	buttonLayoutOrder = buttonLayoutOrder + 1
+	
+	exitDoorButton.MouseButton1Click:Connect(function()
+		local doors = findAllExitDoors()
+		if #doors > 0 then
+			-- Teleport tới door gần nhất
+			local char = localPlayer.Character
+			local hrp = char and char:FindFirstChild("HumanoidRootPart")
+			if hrp then
+				local playerPos = hrp.Position
+				local nearestDoor = doors[1]
+				local nearestDistance = (playerPos - nearestDoor).Magnitude
+				
+				for _, doorPos in ipairs(doors) do
+					local distance = (playerPos - doorPos).Magnitude
+					if distance < nearestDistance then
+						nearestDistance = distance
+						nearestDoor = doorPos
+					end
+				end
+				
+				teleportToPosition(nearestDoor)
+				print("Tìm thấy", #doors, "door(s), teleport tới door gần nhất")
+			end
+		else
+			print("Không tìm thấy Exit Door!")
+		end
+	end)
+end
+
+-- Kiểm tra và tạo button Supply
+local supplies = findAllSupplyPiles()
+if #supplies > 0 then
+	local supplyButton = createTeleportButton("SupplyButton", "🔫 Lấy Đạn", Color3.fromRGB(241, 196, 15))
+	supplyButton.LayoutOrder = buttonLayoutOrder
+	buttonLayoutOrder = buttonLayoutOrder + 1
+	
+	supplyButton.MouseButton1Click:Connect(function()
+		local supplies = findAllSupplyPiles()
+		if #supplies > 0 then
+			-- Teleport tới supply pile gần nhất
+			local char = localPlayer.Character
+			local hrp = char and char:FindFirstChild("HumanoidRootPart")
+			if hrp then
+				local playerPos = hrp.Position
+				local nearestSupply = supplies[1]
+				local nearestDistance = (playerPos - nearestSupply).Magnitude
+				
+				for _, supplyPos in ipairs(supplies) do
+					local distance = (playerPos - supplyPos).Magnitude
+					if distance < nearestDistance then
+						nearestDistance = distance
+						nearestSupply = supplyPos
+					end
+				end
+				
+				teleportToPosition(nearestSupply)
+				print("Tìm thấy", #supplies, "supply pile(s), teleport tới supply gần nhất")
+			end
+		else
+			print("Không tìm thấy Supply Pile!")
+		end
+	end)
+end
+
+-- Cập nhật kích thước container dựa trên số button
+if buttonLayoutOrder > 1 then
+	local buttonCount = buttonLayoutOrder - 1
+	Container.Size = UDim2.new(0, 160, 0, buttonCount * 40 + 20)
+	Container.Position = UDim2.new(1, -180, 0.5, -(buttonCount * 40 + 20) / 2)
+	print("Quick Teleport Buttons đã được tạo! (" .. buttonCount .. " button(s))")
+else
+	Container.Visible = false
+	print("Không tìm thấy vị trí teleport nào!")
+end
