@@ -599,6 +599,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                         camera.CFrame = CFrame.lookAt(targetPosition + cameraOffset, targetPosition)
                         -- Đợi zombie chết/thay đổi mục tiêu
                         repeat
+							task.wait(0.1)
                             -- Nếu zombie đã chết hoặc đổi sang target maxHealth thấp hơn thì break ngay
                             local lowerMaxZombie = findLowestMaxHealthZombie(currentTarget.zombie)
                             if not humanoid or humanoid.Parent == nil or humanoid.Health <= 0 or lowerMaxZombie then
