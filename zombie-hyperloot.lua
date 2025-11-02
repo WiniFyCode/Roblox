@@ -1298,9 +1298,9 @@ end
 -- Tạo buttons lần đầu
 refreshButtons()
 
--- Tự động refresh buttons mỗi 3 giây để cập nhật khi qua map mới
+-- Tự động refresh buttons mỗi 10 giây để cập nhật khi qua map mới
 task.spawn(function()
-	while task.wait(3) do
+	while task.wait(10) do
 		refreshButtons()
 	end
 end)
