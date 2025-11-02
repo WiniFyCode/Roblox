@@ -599,7 +599,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                         camera.CFrame = CFrame.lookAt(targetPosition + cameraOffset, targetPosition)
                         -- Đợi zombie chết/thay đổi mục tiêu
                         repeat
-                            task.wait(0.1)
                             -- Nếu zombie đã chết hoặc đổi sang target maxHealth thấp hơn thì break ngay
                             local lowerMaxZombie = findLowestMaxHealthZombie(currentTarget.zombie)
                             if not humanoid or humanoid.Parent == nil or humanoid.Health <= 0 or lowerMaxZombie then
@@ -867,23 +866,41 @@ end
 -- Tìm vị trí Task cuối map
 local function findTaskPosition()
 	local map = Workspace:FindFirstChild("Map")
-	if not map then return nil end
+	if not map then 
+		warn("findTaskPosition: Không tìm thấy Map!")
+		return nil 
+	end
 	
 	local model = map:FindFirstChild("Model")
-	if not model then return nil end
+	if not model then 
+		warn("findTaskPosition: Không tìm thấy Map.Model!")
+		return nil 
+	end
 	
 	local eItem = model:FindFirstChild("EItem")
-	if not eItem then return nil end
+	if not eItem then 
+		warn("findTaskPosition: Không tìm thấy Map.Model.EItem!")
+		return nil 
+	end
 	
 	local task = eItem:FindFirstChild("Task")
-	if not task then return nil end
+	if not task then 
+		warn("findTaskPosition: Không tìm thấy Task trong EItem!")
+		return nil 
+	end
 	
 	local default = task:FindFirstChild("default")
-	if default then
-		local part = default:FindFirstChildWhichIsA("BasePart")
-		if part then
-			return part.Position + Vector3.new(0, 3, 0)
-		end
+	if not default then 
+		warn("findTaskPosition: Không tìm thấy Task.default!")
+		return nil 
+	end
+	
+	local part = default:FindFirstChildWhichIsA("BasePart")
+	if part then
+		print("findTaskPosition: Đã tìm thấy Task tại", part.Position)
+		return part.Position + Vector3.new(0, 3, 0)
+	else
+		warn("findTaskPosition: Không tìm thấy BasePart trong Task.default!")
 	end
 	
 	return nil
@@ -892,23 +909,41 @@ end
 -- Tìm vị trí Safe Zone
 local function findSafeZonePosition()
 	local map = Workspace:FindFirstChild("Map")
-	if not map then return nil end
+	if not map then 
+		warn("findSafeZonePosition: Không tìm thấy Map!")
+		return nil 
+	end
 	
 	local model = map:FindFirstChild("Model")
-	if not model then return nil end
+	if not model then 
+		warn("findSafeZonePosition: Không tìm thấy Map.Model!")
+		return nil 
+	end
 	
 	local decoration = model:FindFirstChild("Decoration")
-	if not decoration then return nil end
+	if not decoration then 
+		warn("findSafeZonePosition: Không tìm thấy Decoration!")
+		return nil 
+	end
 	
 	local crane = decoration:FindFirstChild("Crane")
-	if crane then
-		local craneModel = crane:FindFirstChild("Model")
-		if craneModel then
-			local part = craneModel:FindFirstChild("Part")
-			if part and part:IsA("BasePart") then
-				return part.Position + Vector3.new(0, 3, 0)
-			end
-		end
+	if not crane then 
+		warn("findSafeZonePosition: Không tìm thấy Decoration.Crane!")
+		return nil 
+	end
+	
+	local craneModel = crane:FindFirstChild("Model")
+	if not craneModel then 
+		warn("findSafeZonePosition: Không tìm thấy Decoration.Crane.Model!")
+		return nil 
+	end
+	
+	local part = craneModel:FindFirstChild("Part")
+	if part and part:IsA("BasePart") then
+		print("findSafeZonePosition: Đã tìm thấy Safe Zone tại", part.Position)
+		return part.Position + Vector3.new(0, 3, 0)
+	else
+		warn("findSafeZonePosition: Không tìm thấy Part trong Crane.Model!")
 	end
 	
 	return nil
@@ -918,30 +953,51 @@ end
 local function findAllExitDoors()
 	local doors = {}
 	local map = Workspace:FindFirstChild("Map")
-	if not map then return doors end
-	
-	local model = map:FindFirstChild("Model")
-	if not model then return doors end
-	
-	local eItem = model:FindFirstChild("EItem")
-	if not eItem then return doors end
-	
-	-- Tìm ExitDoor
-	local exitDoor = eItem:FindFirstChild("ExitDoor")
-	if exitDoor then
-		local body = exitDoor:FindFirstChild("Body")
-		if body and body:IsA("BasePart") then
-			table.insert(doors, body.Position + Vector3.new(0, 3, 0))
-		end
+	if not map then 
+		warn("Không tìm thấy Map!")
+		return doors 
 	end
 	
-	-- Tìm tất cả door có thể có (ExitDoor1, ExitDoor2, etc.)
+	local model = map:FindFirstChild("Model")
+	if not model then 
+		warn("Không tìm thấy Map.Model!")
+		return doors 
+	end
+	
+	local eItem = model:FindFirstChild("EItem")
+	if not eItem then 
+		warn("Không tìm thấy Map.Model.EItem!")
+		return doors 
+	end
+	
+	-- Tìm tất cả door có thể có (ExitDoor, ExitDoor1, ExitDoor2, etc.)
 	for _, child in ipairs(eItem:GetChildren()) do
 		if string.find(child.Name, "ExitDoor") then
 			local body = child:FindFirstChild("Body")
-			if body and body:IsA("BasePart") then
-				table.insert(doors, body.Position + Vector3.new(0, 3, 0))
+			if body then
+				-- Nếu Body là BasePart
+				if body:IsA("BasePart") then
+					table.insert(doors, body.Position + Vector3.new(0, 3, 0))
+				else
+					-- Nếu Body là Model hoặc object khác, tìm BasePart bên trong
+					local part = body:FindFirstChildWhichIsA("BasePart")
+					if part then
+						table.insert(doors, part.Position + Vector3.new(0, 3, 0))
+					end
+				end
 			end
+		end
+	end
+	
+	-- Debug: In ra số lượng door tìm được
+	if #doors > 0 then
+		print("Đã tìm thấy", #doors, "Exit Door(s)")
+	else
+		warn("Không tìm thấy Exit Door nào trong EItem!")
+		-- Debug: In ra tất cả children của EItem để kiểm tra
+		print("Danh sách children trong EItem:")
+		for _, child in ipairs(eItem:GetChildren()) do
+			print("  -", child.Name, "(" .. child.ClassName .. ")")
 		end
 	end
 	
@@ -952,13 +1008,22 @@ end
 local function findAllSupplyPiles()
 	local supplies = {}
 	local map = Workspace:FindFirstChild("Map")
-	if not map then return supplies end
+	if not map then 
+		warn("findAllSupplyPiles: Không tìm thấy Map!")
+		return supplies 
+	end
 	
 	local model = map:FindFirstChild("Model")
-	if not model then return supplies end
+	if not model then 
+		warn("findAllSupplyPiles: Không tìm thấy Map.Model!")
+		return supplies 
+	end
 	
 	local eItem = model:FindFirstChild("EItem")
-	if not eItem then return supplies end
+	if not eItem then 
+		warn("findAllSupplyPiles: Không tìm thấy Map.Model.EItem!")
+		return supplies 
+	end
 	
 	-- Tìm tất cả số (1, 2, 3, 4...)
 	for _, child in ipairs(eItem:GetChildren()) do
@@ -991,6 +1056,12 @@ local function findAllSupplyPiles()
 		end
 	end
 	
+	if #supplies > 0 then
+		print("findAllSupplyPiles: Đã tìm thấy", #supplies, "Supply Pile(s)")
+	else
+		warn("findAllSupplyPiles: Không tìm thấy Supply Pile nào!")
+	end
+	
 	return supplies
 end
 
@@ -1012,8 +1083,29 @@ local function teleportToPosition(position)
 	print("Đã teleport tới vị trí:", position)
 end
 
--- Đợi game load hoàn toàn trước khi kiểm tra
-task.wait(1)
+-- Đợi game load hoàn toàn trước khi kiểm tra (tăng thời gian và retry)
+local function waitForMapLoad(maxWait)
+	maxWait = maxWait or 5
+	local waited = 0
+	while waited < maxWait do
+		local map = Workspace:FindFirstChild("Map")
+		if map then
+			local model = map:FindFirstChild("Model")
+			if model then
+				local eItem = model:FindFirstChild("EItem")
+				if eItem then
+					print("Map đã load hoàn toàn!")
+					task.wait(0.5) -- Đợi thêm một chút để chắc chắn
+					break
+				end
+			end
+		end
+		task.wait(0.5)
+		waited = waited + 0.5
+	end
+end
+
+waitForMapLoad(10) -- Đợi tối đa 10 giây
 
 -- Tạo các button (chỉ hiển thị nếu tìm thấy vị trí)
 local buttonLayoutOrder = 1
