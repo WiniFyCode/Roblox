@@ -573,10 +573,21 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             local camera = Workspace.CurrentCamera
             local char = localPlayer.Character
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            
+            -- Kiểm tra xem có zombie không trước khi bắt đầu
+            local initialZombie = findLowestHealthZombie()
+            if not initialZombie then
+                print("Không tìm thấy zombie nào!")
+                cameraTeleportActive = false
+                return
+            end
+            
             local lastZombiePosition = nil
             local currentTarget = nil
+            
             while cameraTeleportActive do
                 local newTarget = nil
+                
                 -- Nếu đã có target, luôn kiểm tra nếu xuất hiện zombie mới có MaxHealth nhỏ hơn
                 if currentTarget then
                     local lowerMaxZombie = findLowestMaxHealthZombie(currentTarget.zombie)
@@ -584,43 +595,86 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                         newTarget = lowerMaxZombie
                     end
                 end
+                
                 if not newTarget then
                     newTarget = findLowestHealthZombie()
                 end
+                
+                -- Nếu không tìm thấy zombie nào, thoát khỏi loop
+                if not newTarget then
+                    print("Không còn zombie nào!")
+                    break
+                end
+                
                 currentTarget = newTarget
+                
                 if currentTarget and currentTarget.zombie then
                     local humanoid = currentTarget.zombie:FindFirstChild("Humanoid")
-                    if humanoid and humanoid.Health > 0 then
+                    if humanoid and humanoid.Health > 0 and humanoid.Parent then
                         local targetPosition = currentTarget.part.Position
                         lastZombiePosition = targetPosition
+                        
+                        -- Set camera
                         camera.CameraSubject = humanoid
                         camera.CameraType = Enum.CameraType.Custom
                         local cameraOffset = Vector3.new(cameraOffsetX, cameraOffsetY, cameraOffsetZ)
                         camera.CFrame = CFrame.lookAt(targetPosition + cameraOffset, targetPosition)
+                        
                         -- Đợi zombie chết/thay đổi mục tiêu
+                        local checkCount = 0
                         repeat
-							task.wait(0.1)
+                            task.wait(0.1)
+                            checkCount = checkCount + 1
+                            
+                            -- Kiểm tra nếu đã bị hủy
+                            if not cameraTeleportActive then
+                                break
+                            end
+                            
                             -- Nếu zombie đã chết hoặc đổi sang target maxHealth thấp hơn thì break ngay
+                            if not humanoid or humanoid.Parent == nil or humanoid.Health <= 0 then
+                                break
+                            end
+                            
+                            -- Kiểm tra zombie mới có MaxHealth thấp hơn
                             local lowerMaxZombie = findLowestMaxHealthZombie(currentTarget.zombie)
-                            if not humanoid or humanoid.Parent == nil or humanoid.Health <= 0 or lowerMaxZombie then
+                            if lowerMaxZombie then
+                                break
+                            end
+                            
+                            -- Safety: nếu quá lâu không có thay đổi, break để tìm zombie mới
+                            if checkCount > 300 then -- 30 giây
                                 break
                             end
                         until false
                     else
-                        break
+                        -- Zombie đã chết hoặc không hợp lệ, tìm zombie mới
+                        task.wait(0.2)
                     end
                 else
-                    break
+                    -- Không tìm thấy target, đợi một chút rồi tìm lại
+                    task.wait(0.5)
                 end
             end
+            
+            -- Reset camera và nhân vật
             if hrp then
-                hrp.Anchored = false -- Bỏ khóa nhân vật
+                hrp.Anchored = false
                 if teleportToLastZombie and lastZombiePosition then
                     hrp.CFrame = CFrame.new(lastZombiePosition + Vector3.new(0, 5, 0))
                 end
             end
-            camera.CameraSubject = localPlayer.Character and localPlayer.Character:FindFirstChild("Humanoid")
+            
+            local finalChar = localPlayer.Character
+            if finalChar then
+                local finalHumanoid = finalChar:FindFirstChild("Humanoid")
+                if finalHumanoid then
+                    camera.CameraSubject = finalHumanoid
+                end
+            end
+            
             cameraTeleportActive = false
+            print("Camera Teleport đã dừng")
         end)
 	end
 end)
@@ -894,7 +948,7 @@ local function findTaskPosition()
 	return nil
 end
 
--- Tìm vị trí Safe Zone
+-- Tìm vị trí Safe Zone (Map.Model.Decoration.Crane.Model.Part)
 local function findSafeZonePosition()
 	local map = Workspace:FindFirstChild("Map")
 	if not map then 
@@ -902,25 +956,38 @@ local function findSafeZonePosition()
 		return nil 
 	end
 	
-	-- Tìm trong tất cả children của Map
-	for _, mapChild in ipairs(map:GetChildren()) do
-		local decoration = mapChild:FindFirstChild("Decoration")
-		if decoration then
-			local crane = decoration:FindFirstChild("Crane")
-			if crane then
-				local craneModel = crane:FindFirstChild("Model")
-				if craneModel then
-					local part = craneModel:FindFirstChild("Part")
-					if part and part:IsA("BasePart") then
-						print("findSafeZonePosition: Đã tìm thấy Safe Zone tại", part.Position)
-						return part.Position + Vector3.new(0, 3, 0)
-					end
-				end
-			end
-		end
+	local model = map:FindFirstChild("Model")
+	if not model then 
+		warn("findSafeZonePosition: Không tìm thấy Map.Model!")
+		return nil 
 	end
 	
-	warn("findSafeZonePosition: Không tìm thấy Safe Zone trong bất kỳ Map child nào!")
+	local decoration = model:FindFirstChild("Decoration")
+	if not decoration then 
+		warn("findSafeZonePosition: Không tìm thấy Decoration!")
+		return nil 
+	end
+	
+	local crane = decoration:FindFirstChild("Crane")
+	if not crane then 
+		warn("findSafeZonePosition: Không tìm thấy Decoration.Crane!")
+		return nil 
+	end
+	
+	local craneModel = crane:FindFirstChild("Model")
+	if not craneModel then 
+		warn("findSafeZonePosition: Không tìm thấy Decoration.Crane.Model!")
+		return nil 
+	end
+	
+	local part = craneModel:FindFirstChild("Part")
+	if part and part:IsA("BasePart") then
+		print("findSafeZonePosition: Đã tìm thấy Safe Zone tại", part.Position)
+		return part.Position + Vector3.new(0, 3, 0)
+	else
+		warn("findSafeZonePosition: Không tìm thấy Part trong Crane.Model!")
+	end
+	
 	return nil
 end
 
@@ -1103,30 +1170,21 @@ end
 -- Tạo các button (chỉ hiển thị nếu tìm thấy vị trí)
 local buttonLayoutOrder = 1
 
--- Kiểm tra và tạo button Task
-local taskPos = findTaskPosition()
-if taskPos then
-	local taskButton = createTeleportButton("TaskButton", "📋 Task Cuối Map", Color3.fromRGB(52, 152, 219))
-	taskButton.LayoutOrder = buttonLayoutOrder
-	buttonLayoutOrder = buttonLayoutOrder + 1
-	
-	taskButton.MouseButton1Click:Connect(function()
-		local pos = findTaskPosition()
-		teleportToPosition(pos)
-	end)
-end
-
--- Kiểm tra và tạo button Safe Zone
-local safeZonePos = findSafeZonePosition()
-if safeZonePos then
-	local safeZoneButton = createTeleportButton("SafeZoneButton", "🛡️ Safe Zone", Color3.fromRGB(46, 204, 113))
-	safeZoneButton.LayoutOrder = buttonLayoutOrder
-	buttonLayoutOrder = buttonLayoutOrder + 1
-	
-	safeZoneButton.MouseButton1Click:Connect(function()
-		local pos = findSafeZonePosition()
-		teleportToPosition(pos)
-	end)
+-- Kiểm tra và tạo button Safe Zone (chỉ ở place ID 77595602575472)
+local currentPlaceId = game.PlaceId
+local safeZonePlaceId = 77595602575472
+if currentPlaceId == safeZonePlaceId then
+	local safeZonePos = findSafeZonePosition()
+	if safeZonePos then
+		local safeZoneButton = createTeleportButton("SafeZoneButton", "🛡️ Safe Zone", Color3.fromRGB(46, 204, 113))
+		safeZoneButton.LayoutOrder = buttonLayoutOrder
+		buttonLayoutOrder = buttonLayoutOrder + 1
+		
+		safeZoneButton.MouseButton1Click:Connect(function()
+			local pos = findSafeZonePosition()
+			teleportToPosition(pos)
+		end)
+	end
 end
 
 -- Kiểm tra và tạo button Exit Door
@@ -1164,38 +1222,32 @@ if #exitDoors > 0 then
 	end)
 end
 
--- Kiểm tra và tạo button Supply
+-- Task chỉ hiển thị khi KHÔNG còn Exit Door nào
+local exitDoorsForTask = findAllExitDoors()
+if #exitDoorsForTask == 0 then
+	local taskPos = findTaskPosition()
+	if taskPos then
+		local taskButton = createTeleportButton("TaskButton", "📋 Task Cuối Map", Color3.fromRGB(52, 152, 219))
+		taskButton.LayoutOrder = buttonLayoutOrder
+		buttonLayoutOrder = buttonLayoutOrder + 1
+		
+		taskButton.MouseButton1Click:Connect(function()
+			local pos = findTaskPosition()
+			teleportToPosition(pos)
+		end)
+	end
+end
+
+-- Tạo button riêng cho TỪNG Supply Pile (nếu có 3 thì tạo 3 button)
 local supplies = findAllSupplyPiles()
-if #supplies > 0 then
-	local supplyButton = createTeleportButton("SupplyButton", "🔫 Lấy Đạn", Color3.fromRGB(241, 196, 15))
+for i, supplyPos in ipairs(supplies) do
+	local supplyButton = createTeleportButton("SupplyButton" .. i, "🔫 Đạn " .. i, Color3.fromRGB(241, 196, 15))
 	supplyButton.LayoutOrder = buttonLayoutOrder
 	buttonLayoutOrder = buttonLayoutOrder + 1
 	
 	supplyButton.MouseButton1Click:Connect(function()
-		local supplies = findAllSupplyPiles()
-		if #supplies > 0 then
-			-- Teleport tới supply pile gần nhất
-			local char = localPlayer.Character
-			local hrp = char and char:FindFirstChild("HumanoidRootPart")
-			if hrp then
-				local playerPos = hrp.Position
-				local nearestSupply = supplies[1]
-				local nearestDistance = (playerPos - nearestSupply).Magnitude
-				
-				for _, supplyPos in ipairs(supplies) do
-					local distance = (playerPos - supplyPos).Magnitude
-					if distance < nearestDistance then
-						nearestDistance = distance
-						nearestSupply = supplyPos
-					end
-				end
-				
-				teleportToPosition(nearestSupply)
-				print("Tìm thấy", #supplies, "supply pile(s), teleport tới supply gần nhất")
-			end
-		else
-			print("Không tìm thấy Supply Pile!")
-		end
+		teleportToPosition(supplyPos)
+		print("Teleport tới Supply Pile", i)
 	end)
 end
 
