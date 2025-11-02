@@ -1168,96 +1168,120 @@ if map then
 end
 
 -- Tạo các button (chỉ hiển thị nếu tìm thấy vị trí)
-local buttonLayoutOrder = 1
+local createdButtons = {} -- Lưu các button đã tạo để có thể refresh
+local currentButtonCount = 0
 
--- Kiểm tra và tạo button Safe Zone (chỉ ở place ID 77595602575472)
-local currentPlaceId = game.PlaceId
-local safeZonePlaceId = 77595602575472
-if currentPlaceId == safeZonePlaceId then
-	local safeZonePos = findSafeZonePosition()
-	if safeZonePos then
-		local safeZoneButton = createTeleportButton("SafeZoneButton", "🛡️ Safe Zone", Color3.fromRGB(46, 204, 113))
-		safeZoneButton.LayoutOrder = buttonLayoutOrder
-		buttonLayoutOrder = buttonLayoutOrder + 1
-		
-		safeZoneButton.MouseButton1Click:Connect(function()
-			local pos = findSafeZonePosition()
-			teleportToPosition(pos)
-		end)
-	end
-end
-
--- Kiểm tra và tạo button Exit Door
-local exitDoors = findAllExitDoors()
-if #exitDoors > 0 then
-	local exitDoorButton = createTeleportButton("ExitDoorButton", "🚪 Exit Door", Color3.fromRGB(155, 89, 182))
-	exitDoorButton.LayoutOrder = buttonLayoutOrder
-	buttonLayoutOrder = buttonLayoutOrder + 1
-	
-	exitDoorButton.MouseButton1Click:Connect(function()
-		local doors = findAllExitDoors()
-		if #doors > 0 then
-			-- Teleport tới door gần nhất
-			local char = localPlayer.Character
-			local hrp = char and char:FindFirstChild("HumanoidRootPart")
-			if hrp then
-				local playerPos = hrp.Position
-				local nearestDoor = doors[1]
-				local nearestDistance = (playerPos - nearestDoor).Magnitude
-				
-				for _, doorPos in ipairs(doors) do
-					local distance = (playerPos - doorPos).Magnitude
-					if distance < nearestDistance then
-						nearestDistance = distance
-						nearestDoor = doorPos
-					end
-				end
-				
-				teleportToPosition(nearestDoor)
-				print("Tìm thấy", #doors, "door(s), teleport tới door gần nhất")
-			end
-		else
-			print("Không tìm thấy Exit Door!")
+-- Hàm xóa tất cả button cũ
+local function clearAllButtons()
+	for _, button in pairs(createdButtons) do
+		if button and button.Parent then
+			button:Destroy()
 		end
-	end)
+	end
+	createdButtons = {}
+	currentButtonCount = 0
 end
 
--- Task chỉ hiển thị khi KHÔNG còn Exit Door nào
-local exitDoorsForTask = findAllExitDoors()
-if #exitDoorsForTask == 0 then
-	local taskPos = findTaskPosition()
-	if taskPos then
-		local taskButton = createTeleportButton("TaskButton", "📋 Task Cuối Map", Color3.fromRGB(52, 152, 219))
-		taskButton.LayoutOrder = buttonLayoutOrder
+-- Hàm tạo lại tất cả buttons
+local function refreshButtons()
+	-- Xóa các button cũ
+	clearAllButtons()
+	
+	local buttonLayoutOrder = 1
+	
+	-- Kiểm tra và tạo button Exit Door
+	local exitDoors = findAllExitDoors()
+	if #exitDoors > 0 then
+		local exitDoorButton = createTeleportButton("ExitDoorButton", "🚪 Exit Door", Color3.fromRGB(155, 89, 182))
+		exitDoorButton.LayoutOrder = buttonLayoutOrder
 		buttonLayoutOrder = buttonLayoutOrder + 1
+		createdButtons["ExitDoor"] = exitDoorButton
 		
-		taskButton.MouseButton1Click:Connect(function()
-			local pos = findTaskPosition()
-			teleportToPosition(pos)
+		exitDoorButton.MouseButton1Click:Connect(function()
+			local doors = findAllExitDoors()
+			if #doors > 0 then
+				-- Teleport tới door gần nhất
+				local char = localPlayer.Character
+				local hrp = char and char:FindFirstChild("HumanoidRootPart")
+				if hrp then
+					local playerPos = hrp.Position
+					local nearestDoor = doors[1]
+					local nearestDistance = (playerPos - nearestDoor).Magnitude
+					
+					for _, doorPos in ipairs(doors) do
+						local distance = (playerPos - doorPos).Magnitude
+						if distance < nearestDistance then
+							nearestDistance = distance
+							nearestDoor = doorPos
+						end
+					end
+					
+					teleportToPosition(nearestDoor)
+					print("Tìm thấy", #doors, "door(s), teleport tới door gần nhất")
+				end
+			else
+				print("Không tìm thấy Exit Door!")
+			end
 		end)
+	end
+	
+	-- Task chỉ hiển thị khi KHÔNG còn Exit Door nào
+	local exitDoorsForTask = findAllExitDoors()
+	if #exitDoorsForTask == 0 then
+		local taskPos = findTaskPosition()
+		if taskPos then
+			local taskButton = createTeleportButton("TaskButton", "📋 Task Cuối Map", Color3.fromRGB(52, 152, 219))
+			taskButton.LayoutOrder = buttonLayoutOrder
+			buttonLayoutOrder = buttonLayoutOrder + 1
+			createdButtons["Task"] = taskButton
+			
+			taskButton.MouseButton1Click:Connect(function()
+				local pos = findTaskPosition()
+				teleportToPosition(pos)
+			end)
+		end
+	end
+	
+	-- Tạo button riêng cho TỪNG Supply Pile (nếu có 3 thì tạo 3 button)
+	local supplies = findAllSupplyPiles()
+	for i, supplyPos in ipairs(supplies) do
+		local supplyButton = createTeleportButton("SupplyButton" .. i, "🔫 Đạn " .. i, Color3.fromRGB(241, 196, 15))
+		supplyButton.LayoutOrder = buttonLayoutOrder
+		buttonLayoutOrder = buttonLayoutOrder + 1
+		createdButtons["Supply" .. i] = supplyButton
+		
+		-- Mỗi lần click sẽ tìm lại tất cả supply piles và teleport tới đúng thứ tự
+		supplyButton.MouseButton1Click:Connect(function()
+			local allSupplies = findAllSupplyPiles()
+			if allSupplies[i] then
+				teleportToPosition(allSupplies[i])
+				print("Teleport tới Supply Pile", i)
+			else
+				print("Supply Pile", i, "không còn tồn tại!")
+			end
+		end)
+	end
+	
+	currentButtonCount = buttonLayoutOrder - 1
+	
+	-- Cập nhật kích thước container dựa trên số button
+	if currentButtonCount > 0 then
+		Container.Size = UDim2.new(0, 160, 0, currentButtonCount * 40 + 20)
+		Container.Position = UDim2.new(1, -180, 0.5, -(currentButtonCount * 40 + 20) / 2)
+		Container.Visible = true
+		print("Quick Teleport Buttons đã được cập nhật! (" .. currentButtonCount .. " button(s))")
+	else
+		Container.Visible = false
+		print("Không tìm thấy vị trí teleport nào!")
 	end
 end
 
--- Tạo button riêng cho TỪNG Supply Pile (nếu có 3 thì tạo 3 button)
-local supplies = findAllSupplyPiles()
-for i, supplyPos in ipairs(supplies) do
-	local supplyButton = createTeleportButton("SupplyButton" .. i, "🔫 Đạn " .. i, Color3.fromRGB(241, 196, 15))
-	supplyButton.LayoutOrder = buttonLayoutOrder
-	buttonLayoutOrder = buttonLayoutOrder + 1
-	
-	supplyButton.MouseButton1Click:Connect(function()
-		teleportToPosition(supplyPos)
-		print("Teleport tới Supply Pile", i)
-	end)
-end
+-- Tạo buttons lần đầu
+refreshButtons()
 
--- Cập nhật kích thước container dựa trên số button
-if buttonLayoutOrder > 1 then
-	local buttonCount = buttonLayoutOrder - 1
-	Container.Size = UDim2.new(0, 160, 0, buttonCount * 40 + 20)
-	Container.Position = UDim2.new(1, -180, 0.5, -(buttonCount * 40 + 20) / 2)
-	print("Quick Teleport Buttons đã được tạo! (" .. buttonCount .. " button(s))")
-else
-	Container.Visible = false
-	print("Không tìm thấy vị trí teleport nào!")
-end
+-- Tự động refresh buttons mỗi 3 giây để cập nhật khi qua map mới
+task.spawn(function()
+	while task.wait(3) do
+		refreshButtons()
+	end
+end)
