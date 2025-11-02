@@ -889,7 +889,7 @@ local function findTaskPosition()
 		end
 	end
 	
-	warn("findTaskPosition: Không tìm thấy Task!")
+	warn("findTaskPosition: Không tìm thấy Task trong bất kỳ Map child nào!")
 	return nil
 end
 
@@ -919,7 +919,7 @@ local function findSafeZonePosition()
 		end
 	end
 	
-	warn("findSafeZonePosition: Không tìm thấy Safe Zone!")
+	warn("findSafeZonePosition: Không tìm thấy Safe Zone trong bất kỳ Map child nào!")
 	return nil
 end
 
@@ -1021,7 +1021,7 @@ local function findAllSupplyPiles()
 	if #uniqueSupplies > 0 then
 		print("findAllSupplyPiles: Đã tìm thấy", #uniqueSupplies, "Supply Pile(s)")
 	else
-		warn("findAllSupplyPiles: Không tìm thấy Supply Pile nào!")
+		warn("findAllSupplyPiles: Không tìm thấy Supply Pile nào trong bất kỳ Map child nào!")
 	end
 	
 	return uniqueSupplies
@@ -1072,6 +1072,32 @@ local function waitForMapLoad(maxWait)
 end
 
 waitForMapLoad(10) -- Đợi tối đa 10 giây
+
+-- Debug: In ra cấu trúc Map để kiểm tra
+local map = Workspace:FindFirstChild("Map")
+if map then
+	print("=== DEBUG: Cấu trúc Map ===")
+	print("Số lượng children của Map:", #map:GetChildren())
+	for i, mapChild in ipairs(map:GetChildren()) do
+		print("Map[" .. i .. "]:", mapChild.Name, "(" .. mapChild.ClassName .. ")")
+		local eItem = mapChild:FindFirstChild("EItem")
+		if eItem then
+			print("  └─ EItem tìm thấy trong", mapChild.Name)
+			-- In ra một vài children của EItem để debug
+			local eItemChildren = eItem:GetChildren()
+			print("  └─ EItem có", #eItemChildren, "children")
+			for j, child in ipairs(eItemChildren) do
+				if j <= 5 then -- Chỉ in 5 children đầu tiên
+					print("    └─", child.Name, "(" .. child.ClassName .. ")")
+				end
+			end
+			if #eItemChildren > 5 then
+				print("    ... và", #eItemChildren - 5, "children khác")
+			end
+		end
+	end
+	print("=== END DEBUG ===")
+end
 
 -- Tạo các button (chỉ hiển thị nếu tìm thấy vị trí)
 local buttonLayoutOrder = 1
