@@ -871,38 +871,25 @@ local function findTaskPosition()
 		return nil 
 	end
 	
-	local model = map:FindFirstChild("Model")
-	if not model then 
-		warn("findTaskPosition: Không tìm thấy Map.Model!")
-		return nil 
+	-- Tìm trong tất cả children của Map
+	for _, mapChild in ipairs(map:GetChildren()) do
+		local eItem = mapChild:FindFirstChild("EItem")
+		if eItem then
+			local task = eItem:FindFirstChild("Task")
+			if task then
+				local default = task:FindFirstChild("default")
+				if default then
+					local part = default:FindFirstChildWhichIsA("BasePart")
+					if part then
+						print("findTaskPosition: Đã tìm thấy Task tại", part.Position)
+						return part.Position + Vector3.new(0, 3, 0)
+					end
+				end
+			end
+		end
 	end
 	
-	local eItem = model:FindFirstChild("EItem")
-	if not eItem then 
-		warn("findTaskPosition: Không tìm thấy Map.Model.EItem!")
-		return nil 
-	end
-	
-	local task = eItem:FindFirstChild("Task")
-	if not task then 
-		warn("findTaskPosition: Không tìm thấy Task trong EItem!")
-		return nil 
-	end
-	
-	local default = task:FindFirstChild("default")
-	if not default then 
-		warn("findTaskPosition: Không tìm thấy Task.default!")
-		return nil 
-	end
-	
-	local part = default:FindFirstChildWhichIsA("BasePart")
-	if part then
-		print("findTaskPosition: Đã tìm thấy Task tại", part.Position)
-		return part.Position + Vector3.new(0, 3, 0)
-	else
-		warn("findTaskPosition: Không tìm thấy BasePart trong Task.default!")
-	end
-	
+	warn("findTaskPosition: Không tìm thấy Task!")
 	return nil
 end
 
@@ -914,38 +901,25 @@ local function findSafeZonePosition()
 		return nil 
 	end
 	
-	local model = map:FindFirstChild("Model")
-	if not model then 
-		warn("findSafeZonePosition: Không tìm thấy Map.Model!")
-		return nil 
+	-- Tìm trong tất cả children của Map
+	for _, mapChild in ipairs(map:GetChildren()) do
+		local decoration = mapChild:FindFirstChild("Decoration")
+		if decoration then
+			local crane = decoration:FindFirstChild("Crane")
+			if crane then
+				local craneModel = crane:FindFirstChild("Model")
+				if craneModel then
+					local part = craneModel:FindFirstChild("Part")
+					if part and part:IsA("BasePart") then
+						print("findSafeZonePosition: Đã tìm thấy Safe Zone tại", part.Position)
+						return part.Position + Vector3.new(0, 3, 0)
+					end
+				end
+			end
+		end
 	end
 	
-	local decoration = model:FindFirstChild("Decoration")
-	if not decoration then 
-		warn("findSafeZonePosition: Không tìm thấy Decoration!")
-		return nil 
-	end
-	
-	local crane = decoration:FindFirstChild("Crane")
-	if not crane then 
-		warn("findSafeZonePosition: Không tìm thấy Decoration.Crane!")
-		return nil 
-	end
-	
-	local craneModel = crane:FindFirstChild("Model")
-	if not craneModel then 
-		warn("findSafeZonePosition: Không tìm thấy Decoration.Crane.Model!")
-		return nil 
-	end
-	
-	local part = craneModel:FindFirstChild("Part")
-	if part and part:IsA("BasePart") then
-		print("findSafeZonePosition: Đã tìm thấy Safe Zone tại", part.Position)
-		return part.Position + Vector3.new(0, 3, 0)
-	else
-		warn("findSafeZonePosition: Không tìm thấy Part trong Crane.Model!")
-	end
-	
+	warn("findSafeZonePosition: Không tìm thấy Safe Zone!")
 	return nil
 end
 
@@ -958,31 +932,25 @@ local function findAllExitDoors()
 		return doors 
 	end
 	
-	local model = map:FindFirstChild("Model")
-	if not model then 
-		warn("Không tìm thấy Map.Model!")
-		return doors 
-	end
-	
-	local eItem = model:FindFirstChild("EItem")
-	if not eItem then 
-		warn("Không tìm thấy Map.Model.EItem!")
-		return doors 
-	end
-	
-	-- Tìm tất cả door có thể có (ExitDoor, ExitDoor1, ExitDoor2, etc.)
-	for _, child in ipairs(eItem:GetChildren()) do
-		if string.find(child.Name, "ExitDoor") then
-			local body = child:FindFirstChild("Body")
-			if body then
-				-- Nếu Body là BasePart
-				if body:IsA("BasePart") then
-					table.insert(doors, body.Position + Vector3.new(0, 3, 0))
-				else
-					-- Nếu Body là Model hoặc object khác, tìm BasePart bên trong
-					local part = body:FindFirstChildWhichIsA("BasePart")
-					if part then
-						table.insert(doors, part.Position + Vector3.new(0, 3, 0))
+	-- Tìm trong tất cả children của Map (có thể là Map[43].EItem.ExitDoor, Map[33].EItem.ExitDoor, etc.)
+	for _, mapChild in ipairs(map:GetChildren()) do
+		local eItem = mapChild:FindFirstChild("EItem")
+		if eItem then
+			-- Tìm ExitDoor trong EItem này
+			for _, child in ipairs(eItem:GetChildren()) do
+				if string.find(child.Name, "ExitDoor") then
+					local body = child:FindFirstChild("Body")
+					if body then
+						-- Nếu Body là BasePart
+						if body:IsA("BasePart") then
+							table.insert(doors, body.Position + Vector3.new(0, 3, 0))
+						else
+							-- Nếu Body là Model hoặc object khác, tìm BasePart bên trong
+							local part = body:FindFirstChildWhichIsA("BasePart")
+							if part then
+								table.insert(doors, part.Position + Vector3.new(0, 3, 0))
+							end
+						end
 					end
 				end
 			end
@@ -993,12 +961,7 @@ local function findAllExitDoors()
 	if #doors > 0 then
 		print("Đã tìm thấy", #doors, "Exit Door(s)")
 	else
-		warn("Không tìm thấy Exit Door nào trong EItem!")
-		-- Debug: In ra tất cả children của EItem để kiểm tra
-		print("Danh sách children trong EItem:")
-		for _, child in ipairs(eItem:GetChildren()) do
-			print("  -", child.Name, "(" .. child.ClassName .. ")")
-		end
+		warn("Không tìm thấy Exit Door nào!")
 	end
 	
 	return doors
@@ -1013,56 +976,55 @@ local function findAllSupplyPiles()
 		return supplies 
 	end
 	
-	local model = map:FindFirstChild("Model")
-	if not model then 
-		warn("findAllSupplyPiles: Không tìm thấy Map.Model!")
-		return supplies 
-	end
-	
-	local eItem = model:FindFirstChild("EItem")
-	if not eItem then 
-		warn("findAllSupplyPiles: Không tìm thấy Map.Model.EItem!")
-		return supplies 
-	end
-	
-	-- Tìm tất cả số (1, 2, 3, 4...)
-	for _, child in ipairs(eItem:GetChildren()) do
-		if tonumber(child.Name) then -- Nếu là số
-			-- Tìm SM_Prop_SupplyPile_01 trong child này
-			local function searchSupplyPile(parent)
-				for _, descendant in ipairs(parent:GetDescendants()) do
-					if string.find(descendant.Name, "SM_Prop_SupplyPile") then
-						local part = descendant:FindFirstChildWhichIsA("BasePart")
+	-- Tìm trong tất cả children của Map
+	for _, mapChild in ipairs(map:GetChildren()) do
+		local eItem = mapChild:FindFirstChild("EItem")
+		if eItem then
+			-- Tìm tất cả object có tên là số (như "3", "1", "2", "4"...)
+			-- Cấu trúc: EItem["3"].Model hoặc EItem["3"] chứa BasePart
+			for _, child in ipairs(eItem:GetChildren()) do
+				if tonumber(child.Name) then -- Nếu tên là số (như "3")
+					-- Tìm Model bên trong
+					local model = child:FindFirstChild("Model")
+					if model then
+						local part = model:FindFirstChildWhichIsA("BasePart")
 						if part then
 							table.insert(supplies, part.Position + Vector3.new(0, 3, 0))
-							break -- Chỉ lấy 1 part từ mỗi SupplyPile
+						end
+					else
+						-- Nếu không có Model, tìm BasePart trực tiếp trong child
+						local part = child:FindFirstChildWhichIsA("BasePart")
+						if part then
+							table.insert(supplies, part.Position + Vector3.new(0, 3, 0))
 						end
 					end
 				end
 			end
-			searchSupplyPile(child)
 		end
 	end
 	
-	-- Nếu không tìm thấy, thử tìm trực tiếp trong EItem
-	if #supplies == 0 then
-		for _, descendant in ipairs(eItem:GetDescendants()) do
-			if string.find(descendant.Name, "SM_Prop_SupplyPile") then
-				local part = descendant:FindFirstChildWhichIsA("BasePart")
-				if part then
-					table.insert(supplies, part.Position + Vector3.new(0, 3, 0))
-				end
+	-- Loại bỏ duplicate dựa trên khoảng cách
+	local uniqueSupplies = {}
+	for i, pos1 in ipairs(supplies) do
+		local isDuplicate = false
+		for j, pos2 in ipairs(uniqueSupplies) do
+			if (pos1 - pos2).Magnitude < 5 then -- Nếu cách nhau < 5 studs thì coi như duplicate
+				isDuplicate = true
+				break
 			end
 		end
+		if not isDuplicate then
+			table.insert(uniqueSupplies, pos1)
+		end
 	end
 	
-	if #supplies > 0 then
-		print("findAllSupplyPiles: Đã tìm thấy", #supplies, "Supply Pile(s)")
+	if #uniqueSupplies > 0 then
+		print("findAllSupplyPiles: Đã tìm thấy", #uniqueSupplies, "Supply Pile(s)")
 	else
 		warn("findAllSupplyPiles: Không tìm thấy Supply Pile nào!")
 	end
 	
-	return supplies
+	return uniqueSupplies
 end
 
 -- Hàm teleport
@@ -1090,14 +1052,18 @@ local function waitForMapLoad(maxWait)
 	while waited < maxWait do
 		local map = Workspace:FindFirstChild("Map")
 		if map then
-			local model = map:FindFirstChild("Model")
-			if model then
-				local eItem = model:FindFirstChild("EItem")
-				if eItem then
-					print("Map đã load hoàn toàn!")
-					task.wait(0.5) -- Đợi thêm một chút để chắc chắn
+			-- Kiểm tra xem có ít nhất một child có EItem không
+			local foundEItem = false
+			for _, mapChild in ipairs(map:GetChildren()) do
+				if mapChild:FindFirstChild("EItem") then
+					foundEItem = true
 					break
 				end
+			end
+			if foundEItem then
+				print("Map đã load hoàn toàn!")
+				task.wait(0.5) -- Đợi thêm một chút để chắc chắn
+				break
 			end
 		end
 		task.wait(0.5)
