@@ -1247,21 +1247,18 @@ local function refreshButtons()
 		end)
 	end
 	
-	-- Task chỉ hiển thị khi KHÔNG còn Exit Door nào
-	local exitDoorsForTask = findAllExitDoors()
-	if #exitDoorsForTask == 0 then
-		local taskPos = findTaskPosition()
-		if taskPos then
-			local taskButton = createTeleportButton("TaskButton", "📋 Task Cuối Map", Color3.fromRGB(52, 152, 219))
-			taskButton.LayoutOrder = buttonLayoutOrder
-			buttonLayoutOrder = buttonLayoutOrder + 1
-			createdButtons["Task"] = taskButton
-			
-			taskButton.MouseButton1Click:Connect(function()
-				local pos = findTaskPosition()
-				teleportToPosition(pos)
-			end)
-		end
+	-- Task button (hiển thị riêng, độc lập với Exit Door)
+	local taskPos = findTaskPosition()
+	if taskPos then
+		local taskButton = createTeleportButton("TaskButton", "📋 Task Cuối Map", Color3.fromRGB(52, 152, 219))
+		taskButton.LayoutOrder = buttonLayoutOrder
+		buttonLayoutOrder = buttonLayoutOrder + 1
+		createdButtons["Task"] = taskButton
+		
+		taskButton.MouseButton1Click:Connect(function()
+			local pos = findTaskPosition()
+			teleportToPosition(pos)
+		end)
 	end
 	
 	-- Tạo button riêng cho TỪNG Supply Pile (nếu có 3 thì tạo 3 button)
