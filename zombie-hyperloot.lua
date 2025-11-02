@@ -1007,18 +1007,40 @@ local function findAllExitDoors()
 			-- Tìm ExitDoor trong EItem này
 			for _, child in ipairs(eItem:GetChildren()) do
 				if string.find(child.Name, "ExitDoor") then
+					-- Thử tìm Body trước
 					local body = child:FindFirstChild("Body")
+					local targetPart = nil
+					
 					if body then
 						-- Nếu Body là BasePart
 						if body:IsA("BasePart") then
-							table.insert(doors, body.Position + Vector3.new(0, 3, 0))
+							targetPart = body
 						else
 							-- Nếu Body là Model hoặc object khác, tìm BasePart bên trong
-							local part = body:FindFirstChildWhichIsA("BasePart")
-							if part then
-								table.insert(doors, part.Position + Vector3.new(0, 3, 0))
-							end
+							targetPart = body:FindFirstChildWhichIsA("BasePart")
 						end
+					end
+					
+					-- Nếu không tìm thấy Body, tìm BasePart trực tiếp trong ExitDoor
+					if not targetPart then
+						targetPart = child:FindFirstChildWhichIsA("BasePart")
+					end
+					
+					-- Nếu vẫn không tìm thấy, thử tìm PrimaryPart
+					if not targetPart and child:IsA("Model") then
+						targetPart = child.PrimaryPart
+					end
+					
+					-- Nếu vẫn không tìm thấy, thử tìm HumanoidRootPart hoặc Head
+					if not targetPart and child:IsA("Model") then
+						targetPart = child:FindFirstChild("HumanoidRootPart") or child:FindFirstChild("Head")
+					end
+					
+					if targetPart and targetPart:IsA("BasePart") then
+						table.insert(doors, targetPart.Position + Vector3.new(0, 3, 0))
+						print("Tìm thấy ExitDoor:", child.Name, "tại", targetPart.Position)
+					else
+						warn("ExitDoor", child.Name, "không có BasePart hợp lệ!")
 					end
 				end
 			end
