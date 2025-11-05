@@ -1117,6 +1117,56 @@ local function findAllSupplyPiles()
 	return uniqueSupplies
 end
 
+-- Tìm tất cả Ammo (đạn)
+local function findAllAmmo()
+	local ammos = {}
+	local map = Workspace:FindFirstChild("Map")
+	if not map then 
+		warn("findAllAmmo: Không tìm thấy Map!")
+		return ammos 
+	end
+	
+	-- Tìm trong tất cả children của Map
+	for _, mapChild in ipairs(map:GetChildren()) do
+		local eItem = mapChild:FindFirstChild("EItem")
+		if eItem then
+			-- Tìm tất cả object có tên là "Ammo" (Model)
+			for _, child in ipairs(eItem:GetChildren()) do
+				if child.Name == "Ammo" and child:IsA("Model") then
+					-- Tìm BasePart trong Ammo Model
+					local part = child:FindFirstChildWhichIsA("BasePart")
+					if part then
+						table.insert(ammos, part.Position + Vector3.new(0, 3, 0))
+					end
+				end
+			end
+		end
+	end
+	
+	-- Loại bỏ duplicate dựa trên khoảng cách
+	local uniqueAmmos = {}
+	for i, pos1 in ipairs(ammos) do
+		local isDuplicate = false
+		for j, pos2 in ipairs(uniqueAmmos) do
+			if (pos1 - pos2).Magnitude < 5 then -- Nếu cách nhau < 5 studs thì coi như duplicate
+				isDuplicate = true
+				break
+			end
+		end
+		if not isDuplicate then
+			table.insert(uniqueAmmos, pos1)
+		end
+	end
+	
+	if #uniqueAmmos > 0 then
+		print("findAllAmmo: Đã tìm thấy", #uniqueAmmos, "Ammo(s)")
+	else
+		warn("findAllAmmo: Không tìm thấy Ammo nào trong bất kỳ Map child nào!")
+	end
+	
+	return uniqueAmmos
+end
+
 -- Hàm teleport
 local function teleportToPosition(position)
 	if not position then
@@ -1281,6 +1331,26 @@ local function refreshButtons()
 		end)
 	end
 	
+	-- Tạo button riêng cho TỪNG Ammo (nếu có 3 thì tạo 3 button)
+	local ammos = findAllAmmo()
+	for i, ammoPos in ipairs(ammos) do
+		local ammoButton = createTeleportButton("AmmoButton" .. i, "💣 Ammo " .. i, Color3.fromRGB(230, 126, 34))
+		ammoButton.LayoutOrder = buttonLayoutOrder
+		buttonLayoutOrder = buttonLayoutOrder + 1
+		createdButtons["Ammo" .. i] = ammoButton
+		
+		-- Mỗi lần click sẽ tìm lại tất cả ammo và teleport tới đúng thứ tự
+		ammoButton.MouseButton1Click:Connect(function()
+			local allAmmos = findAllAmmo()
+			if allAmmos[i] then
+				teleportToPosition(allAmmos[i])
+				print("Teleport tới Ammo", i)
+			else
+				print("Ammo", i, "không còn tồn tại!")
+			end
+		end)
+	end
+	
 	currentButtonCount = buttonLayoutOrder - 1
 	
 	-- Cập nhật kích thước container dựa trên số button
@@ -1298,9 +1368,9 @@ end
 -- Tạo buttons lần đầu
 refreshButtons()
 
--- Tự động refresh buttons mỗi 10 giây để cập nhật khi qua map mới
+-- Tự động refresh buttons mỗi 15 giây để cập nhật khi qua map mới
 task.spawn(function()
-	while task.wait(10) do
+	while task.wait(15) do
 		refreshButtons()
 	end
 end)
