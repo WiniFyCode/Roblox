@@ -534,7 +534,45 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             return nil
         end
         
-        -- Tìm zombie máu hiện tại thấp nhất (ưu tiên gần nếu trùng máu)
+        -- Tìm zombie trong phạm vi 20m (ưu tiên máu thấp nhất)
+        local function findZombieInRange(range)
+            range = range or 20
+            local char = localPlayer.Character
+            local playerHRP = char and char:FindFirstChild("HumanoidRootPart")
+            if not playerHRP then return nil end
+        
+            local playerPosition = playerHRP.Position
+            local lowestZombie = nil
+            local lowestHealth = math.huge
+            local nearestDistance = math.huge
+        
+            for _, zombie in ipairs(entityFolder:GetChildren()) do
+                if zombie:IsA("Model") then
+                    local humanoid = zombie:FindFirstChild("Humanoid")
+                    if humanoid and humanoid.Health > 0 then -- chỉ lấy zombie còn sống
+                        local head = zombie:FindFirstChild("Head")
+                        local hrp = zombie:FindFirstChild("HumanoidRootPart")
+                        local targetPart = head or hrp
+                        if targetPart and targetPart:IsA("BasePart") then
+                            local distance = (playerPosition - targetPart.Position).Magnitude
+                            -- Chỉ lấy zombie trong phạm vi range
+                            if distance <= range then
+                                local currentHealth = humanoid.Health
+                                -- Ưu tiên máu thấp nhất, nếu trùng máu thì lấy con gần nhất
+                                if currentHealth < lowestHealth or (currentHealth == lowestHealth and distance < nearestDistance) then
+                                    lowestHealth = currentHealth
+                                    nearestDistance = distance
+                                    lowestZombie = {part = targetPart, zombie = zombie}
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+            return lowestZombie
+        end
+        
+        -- Tìm zombie máu hiện tại thấp nhất (ưu tiên gần nếu trùng máu) - bất kể khoảng cách
         local function findLowestHealthZombie()
             local char = localPlayer.Character
             local playerHRP = char and char:FindFirstChild("HumanoidRootPart")
@@ -575,7 +613,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
             
             -- Kiểm tra xem có zombie không trước khi bắt đầu
-            local initialZombie = findLowestHealthZombie()
+            local initialZombie = findZombieInRange(20) or findLowestHealthZombie()
             if not initialZombie then
                 print("Không tìm thấy zombie nào!")
                 cameraTeleportActive = false
@@ -596,6 +634,12 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                     end
                 end
                 
+                -- Ưu tiên zombie trong phạm vi 20m trước
+                if not newTarget then
+                    newTarget = findZombieInRange(20)
+                end
+                
+                -- Nếu không có zombie trong 20m, tìm zombie máu thấp nhất (bất kể khoảng cách)
                 if not newTarget then
                     newTarget = findLowestHealthZombie()
                 end
@@ -640,6 +684,30 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                             local lowerMaxZombie = findLowestMaxHealthZombie(currentTarget.zombie)
                             if lowerMaxZombie then
                                 break
+                            end
+                            
+                            -- Kiểm tra nếu có zombie mới trong 20m (ưu tiên hơn zombie ngoài 20m)
+                            local char = localPlayer.Character
+                            local playerHRP = char and char:FindFirstChild("HumanoidRootPart")
+                            if playerHRP then
+                                local currentDistance = (playerHRP.Position - targetPosition).Magnitude
+                                -- Nếu zombie hiện tại ngoài 20m, kiểm tra xem có zombie nào trong 20m không
+                                if currentDistance > 20 then
+                                    local zombieInRange = findZombieInRange(20)
+                                    if zombieInRange and zombieInRange.zombie ~= currentTarget.zombie then
+                                        break -- Chuyển sang zombie trong 20m
+                                    end
+                                else
+                                    -- Nếu zombie hiện tại trong 20m, kiểm tra xem có zombie nào trong 20m có máu thấp hơn không
+                                    local zombieInRange = findZombieInRange(20)
+                                    if zombieInRange and zombieInRange.zombie ~= currentTarget.zombie then
+                                        local currentHealth = humanoid.Health
+                                        local newZombieHumanoid = zombieInRange.zombie:FindFirstChild("Humanoid")
+                                        if newZombieHumanoid and newZombieHumanoid.Health < currentHealth then
+                                            break -- Chuyển sang zombie có máu thấp hơn trong 20m
+                                        end
+                                    end
+                                end
                             end
                             
                             -- Safety: nếu quá lâu không có thay đổi, break để tìm zombie mới
