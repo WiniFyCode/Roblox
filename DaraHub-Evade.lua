@@ -583,7 +583,7 @@ local featureStates = {
     },
     FlySpeed = 5,
     TpwalkValue = 1,
-    CFrameSpeedValue = 1,
+    CFrameSpeedValue = 3,
     JumpPower = 5,
     JumpMethod = "Hold",
     SelectedMap = 1,
@@ -2928,7 +2928,7 @@ Tabs.Main:Button({
     local CFrameSpeedSlider = Tabs.Player:Slider({
         Title = "CFrame Speed Value",
         Desc = "Adjust CFrame speed (drag to change)",
-        Value = { Min = 0.5, Max = 30, Default = 3, Step = 0.5 },
+        Value = { Min = 0.5, Max = 50, Default = 3, Step = 0.5 },
         Callback = function(value)
             featureStates.CFrameSpeedValue = value
         end
@@ -3934,7 +3934,7 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                     },
                     FlySpeed = 5,
                     TpwalkValue = 1,
-                    CFrameSpeedValue = 1,
+                    CFrameSpeedValue = 3,
                     JumpPower = 5,
                     JumpMethod = "Hold",
                     SelectedMap = 1,
@@ -3950,7 +3950,7 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 if SpeedHackToggle then SpeedHackToggle:Set(false) end
                 if SpeedHackSlider then SpeedHackSlider:Set(1) end
                 if CFrameSpeedToggle then CFrameSpeedToggle:Set(false) end
-                if CFrameSpeedSlider then CFrameSpeedSlider:Set(1) end
+                if CFrameSpeedSlider then CFrameSpeedSlider:Set(3) end
                 if JumpBoostToggle then JumpBoostToggle:Set(false) end
                 if JumpBoostSlider then JumpBoostSlider:Set(5) end
                 if AntiAFKToggle then AntiAFKToggle:Set(false) end

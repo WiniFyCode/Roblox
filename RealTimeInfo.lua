@@ -609,6 +609,9 @@ local ping = 0
 local lastTimeUpdate = 0
 local timeString = "00:00:00"
 
+-- Biến để tính SPEED (tốc độ của player)
+local speed = 0
+
 -- Biến để lưu thông tin game
 local GAME_NAME = "Unknown Game"
 local PLACE_NAME = "Unknown Place"
@@ -682,7 +685,7 @@ InfoLabel.Parent = MainFrame
 InfoLabel.Size = UDim2.new(0, 0, 1, 0) -- Tự động co giãn theo nội dung
 InfoLabel.Position = UDim2.new(0, 5, 0, 0)
 InfoLabel.BackgroundTransparency = 1
-InfoLabel.Text = DISPLAY_NAME .. " | FPS: 60 | PING: 50ms | TIME: 12:34:56 | PLAYER: 15/20"
+InfoLabel.Text = DISPLAY_NAME .. " | FPS: 60 | PING: 50ms | TIME: 12:34:56 | SPEED: 0 stud/s | PLAYER: 15/20"
 InfoLabel.TextColor3 = Color3.fromRGB(200, 200, 200) -- Màu xám nhạt
 InfoLabel.TextSize = 12
 InfoLabel.Font = Enum.Font.Gotham
@@ -736,8 +739,19 @@ local function updateDynamicInfo()
     -- Cập nhật Player Count
     local playerCount = #Players:GetPlayers()
     
+    -- Cập nhật Speed (tốc độ của player)
+    local character = LocalPlayer.Character
+    if character and character:FindFirstChild("HumanoidRootPart") then
+        local hrp = character.HumanoidRootPart
+        local velocity = hrp.Velocity
+        -- Tính tốc độ bằng magnitude của velocity (studs/giây)
+        speed = math.floor(velocity.Magnitude)
+    else
+        speed = 0
+    end
+    
     -- Cập nhật InfoLabel với thông tin tĩnh + động
-    InfoLabel.Text = staticInfo.displayName .. " | FPS: " .. fps .. " | PING: " .. ping .. "ms | TIME: " .. timeString .. " | PLAYER: " .. playerCount .. "/" .. staticInfo.maxPlayers
+    InfoLabel.Text = staticInfo.displayName .. " | FPS: " .. fps .. " | PING: " .. ping .. "ms | TIME: " .. timeString .. " | SPEED: " .. speed .. " stud/s | PLAYER: " .. playerCount .. "/" .. staticInfo.maxPlayers
     
     -- Tự động điều chỉnh kích thước MainFrame theo nội dung
     local textBounds = InfoLabel.TextBounds
