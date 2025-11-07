@@ -645,11 +645,13 @@ sizeInput.Size = UDim2.new(1, 0, 0, 30)
 sizeInput.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 sizeInput.BorderSizePixel = 0
 sizeInput.Text = tostring(hitBoxSize)
-sizeInput.TextColor3 = Color3.fromRGB(200, 200, 200)
-sizeInput.TextSize = 12
+sizeInput.TextColor3 = Color3.fromRGB(255, 255, 255) -- Màu trắng để dễ thấy
+sizeInput.TextSize = 14 -- Tăng size để dễ đọc
 sizeInput.Font = Enum.Font.Gotham
+sizeInput.ClearTextOnFocus = false
+sizeInput.TextXAlignment = Enum.TextXAlignment.Left
 sizeInput.PlaceholderText = "Enter size (1-50)"
-sizeInput.PlaceholderColor3 = Color3.fromRGB(100, 100, 100)
+sizeInput.PlaceholderColor3 = Color3.fromRGB(150, 150, 150) -- Sáng hơn để dễ thấy
 
 local sizeInputCorner = Instance.new("UICorner")
 sizeInputCorner.Parent = sizeInput
