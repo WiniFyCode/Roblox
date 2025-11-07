@@ -248,6 +248,17 @@ local function createHitBox(player)
 end
 
 
+local function updateAllHitBoxes()
+    -- Cập nhật kích thước cho tất cả hit boxes hiện có
+    if hitBoxEnabled then
+        for player, hitBoxData in pairs(hitBoxObjects) do
+            if hitBoxData.box and hitBoxData.box.Parent then
+                hitBoxData.box.Size = Vector3.new(hitBoxSize, hitBoxSize, hitBoxSize)
+            end
+        end
+    end
+end
+
 local function enableHitBox()
     -- Tạo hit box cho tất cả người chơi hiện tại
     for _, player in pairs(Players:GetPlayers()) do
@@ -580,6 +591,99 @@ local hiddenScriptButton = createMenuButton("Hidden Script", function()
     end
 end)
 
+-- Tạo Hit Box Settings Menu
+local HitBoxSettingsMenu = Instance.new("Frame")
+HitBoxSettingsMenu.Name = "HitBoxSettingsMenu"
+HitBoxSettingsMenu.Parent = ScreenGui
+HitBoxSettingsMenu.Size = UDim2.new(0, 200, 0, 0)
+HitBoxSettingsMenu.Position = UDim2.new(0, 0, 0, 0)
+HitBoxSettingsMenu.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+HitBoxSettingsMenu.BorderSizePixel = 0
+HitBoxSettingsMenu.Visible = false
+HitBoxSettingsMenu.ZIndex = 15
+HitBoxSettingsMenu.AutomaticSize = Enum.AutomaticSize.Y
+
+local HitBoxSettingsPadding = Instance.new("UIPadding")
+HitBoxSettingsPadding.Parent = HitBoxSettingsMenu
+HitBoxSettingsPadding.PaddingTop = UDim.new(0, 6)
+HitBoxSettingsPadding.PaddingBottom = UDim.new(0, 6)
+HitBoxSettingsPadding.PaddingLeft = UDim.new(0, 6)
+HitBoxSettingsPadding.PaddingRight = UDim.new(0, 6)
+
+local HitBoxSettingsLayout = Instance.new("UIListLayout")
+HitBoxSettingsLayout.Parent = HitBoxSettingsMenu
+HitBoxSettingsLayout.FillDirection = Enum.FillDirection.Vertical
+HitBoxSettingsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+HitBoxSettingsLayout.Padding = UDim.new(0, 4)
+
+local HitBoxSettingsBorder = Instance.new("UIStroke")
+HitBoxSettingsBorder.Parent = HitBoxSettingsMenu
+HitBoxSettingsBorder.Color = Color3.fromRGB(60, 60, 60)
+HitBoxSettingsBorder.Thickness = 1
+
+local HitBoxSettingsCorner = Instance.new("UICorner")
+HitBoxSettingsCorner.Parent = HitBoxSettingsMenu
+HitBoxSettingsCorner.CornerRadius = UDim.new(0, 0)
+
+-- Tạo label cho size
+local sizeLabel = Instance.new("TextLabel")
+sizeLabel.Name = "SizeLabel"
+sizeLabel.Parent = HitBoxSettingsMenu
+sizeLabel.Size = UDim2.new(1, 0, 0, 20)
+sizeLabel.BackgroundTransparency = 1
+sizeLabel.Text = "Hit Box Size: " .. hitBoxSize
+sizeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+sizeLabel.TextSize = 12
+sizeLabel.Font = Enum.Font.Gotham
+sizeLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Tạo input cho size
+local sizeInput = Instance.new("TextBox")
+sizeInput.Name = "SizeInput"
+sizeInput.Parent = HitBoxSettingsMenu
+sizeInput.Size = UDim2.new(1, 0, 0, 30)
+sizeInput.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+sizeInput.BorderSizePixel = 0
+sizeInput.Text = tostring(hitBoxSize)
+sizeInput.TextColor3 = Color3.fromRGB(200, 200, 200)
+sizeInput.TextSize = 12
+sizeInput.Font = Enum.Font.Gotham
+sizeInput.PlaceholderText = "Enter size (1-50)"
+sizeInput.PlaceholderColor3 = Color3.fromRGB(100, 100, 100)
+
+local sizeInputCorner = Instance.new("UICorner")
+sizeInputCorner.Parent = sizeInput
+sizeInputCorner.CornerRadius = UDim.new(0, 0)
+
+local sizeInputBorder = Instance.new("UIStroke")
+sizeInputBorder.Parent = sizeInput
+sizeInputBorder.Color = Color3.fromRGB(60, 60, 60)
+sizeInputBorder.Thickness = 1
+
+local sizeInputPadding = Instance.new("UIPadding")
+sizeInputPadding.Parent = sizeInput
+sizeInputPadding.PaddingLeft = UDim.new(0, 10)
+sizeInputPadding.PaddingRight = UDim.new(0, 10)
+
+-- Xử lý khi nhập size
+sizeInput.FocusLost:Connect(function(enterPressed)
+    local newSize = tonumber(sizeInput.Text)
+    if newSize and newSize >= 1 and newSize <= 50 then
+        hitBoxSize = newSize
+        sizeLabel.Text = "Hit Box Size: " .. hitBoxSize
+        updateAllHitBoxes()
+    else
+        sizeInput.Text = tostring(hitBoxSize)
+        warn("[HitBox] Size must be between 1 and 50")
+    end
+end)
+
+-- Tạo button đóng
+local closeButton = createMenuButton("Close", function()
+    HitBoxSettingsMenu.Visible = false
+end)
+closeButton.Parent = HitBoxSettingsMenu
+
 -- Tạo Hit Box Button
 local toggleHitBoxButton
 toggleHitBoxButton = createMenuButton("Hit Box: OFF", function()
@@ -593,6 +697,17 @@ toggleHitBoxButton = createMenuButton("Hit Box: OFF", function()
     
     -- Cập nhật text button
     toggleHitBoxButton.Text = "Hit Box: " .. (hitBoxEnabled and "ON" or "OFF")
+end)
+
+-- Tạo Hit Box Settings Button
+local hitBoxSettingsButton = createMenuButton("Hit Box Settings", function()
+    -- Hiển thị menu settings ở vị trí chuột
+    local mouse = LocalPlayer:GetMouse()
+    HitBoxSettingsMenu.Position = UDim2.new(0, mouse.X, 0, mouse.Y)
+    HitBoxSettingsMenu.Visible = not HitBoxSettingsMenu.Visible
+    -- Cập nhật text input với giá trị hiện tại
+    sizeInput.Text = tostring(hitBoxSize)
+    sizeLabel.Text = "Hit Box Size: " .. hitBoxSize
 end)
 
 
@@ -801,12 +916,15 @@ InvisibleFrame.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
--- Đóng context menu khi click ra ngoài
+-- Đóng context menu và hitbox settings menu khi click ra ngoài
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.MouseButton2 then
         ContextMenu.Visible = false
+        if HitBoxSettingsMenu then
+            HitBoxSettingsMenu.Visible = false
+        end
     end
 end)
 
