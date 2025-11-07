@@ -532,6 +532,7 @@ local featureStates = {
     AutoJump = false,
     Fly = false,
     SpeedHack = false,
+    CFrameSpeed = false,
     JumpBoost = false,
     AntiAFK = false,             -- Bật sẵn Anti AFK
     AutoCarry = false,
@@ -582,6 +583,7 @@ local featureStates = {
     },
     FlySpeed = 5,
     TpwalkValue = 1,
+    CFrameSpeedValue = 1,
     JumpPower = 5,
     JumpMethod = "Hold",
     SelectedMap = 1,
@@ -599,6 +601,10 @@ local bodyVelocity, bodyGyro
 -- Speed Hack Variables
 local ToggleTpwalk = false
 local TpwalkConnection
+
+-- CFrame Speed Hack Variables
+local ToggleCFrameSpeed = false
+local CFrameSpeedConnection
 
 -- Jump Boost Variables
 local jumpCount = 0
@@ -1685,6 +1691,35 @@ local function stopTpwalk()
     end
 end
 
+-- CFrame Speed Hack Functions
+local function CFrameSpeedWalking()
+    if ToggleCFrameSpeed and character and humanoid and rootPart then
+        local moveDirection = humanoid.MoveDirection
+        if moveDirection.Magnitude > 0 then
+            local speedMultiplier = featureStates.CFrameSpeedValue
+            local moveVector = moveDirection * speedMultiplier
+            local newCFrame = rootPart.CFrame + moveVector
+            rootPart.CFrame = newCFrame
+        end
+    end
+end
+
+local function startCFrameSpeed()
+    ToggleCFrameSpeed = true
+    if CFrameSpeedConnection then
+        CFrameSpeedConnection:Disconnect()
+    end
+    CFrameSpeedConnection = RunService.Heartbeat:Connect(CFrameSpeedWalking)
+end
+
+local function stopCFrameSpeed()
+    ToggleCFrameSpeed = false
+    if CFrameSpeedConnection then
+        CFrameSpeedConnection:Disconnect()
+        CFrameSpeedConnection = nil
+    end
+end
+
 -- Jump Boost Functions
 -- Define critical functions at the top
 local function setupJumpBoost()
@@ -1703,13 +1738,6 @@ local function setupJumpBoost()
             end
         end
     end)
-end
-
-local function reapplyFeatures()
-    if featureStates.Fly then
-        if flying then stopFlying() end
-        startFlying()
-    end
 end
 
 local function startJumpBoost()
@@ -2233,10 +2261,33 @@ local function startDownedNameESP()
                             local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
                             if onScreen then
                                 local distance = getDistanceFromPlayer(hrp.Position)
-                                local displayText = char.Name
+                                
+                                -- Use same name logic as Player ESP
+                                local plr = Players:GetPlayerFromCharacter(char)
+                                local username = char.Name
+                                local displayName = plr and plr.DisplayName or username
+                                local nameText = ""
+                                
+                                -- Apply Player ESP name mode
+                                local nameMode = featureStates.PlayerESP.nameMode or "Username"
+                                if nameMode == "Display Name" then
+                                    nameText = displayName
+                                elseif nameMode == "Username + Display" then
+                                    if displayName ~= username then
+                                        nameText = string.format("%s (%s)", displayName, username)
+                                    else
+                                        nameText = username
+                                    end
+                                else
+                                    nameText = username
+                                end
+                                
+                                -- Add distance if enabled
+                                local displayText = nameText
                                 if featureStates.DownedDistanceESP then
                                     displayText = displayText .. "\n" .. math.floor(distance) .. " studs"
                                 end
+                                
                                 local label = Drawing.new("Text")
                                 label.Text = displayText
                                 label.Size = 16
@@ -2300,6 +2351,10 @@ local function reapplyFeatures()
     if featureStates.SpeedHack then
         if ToggleTpwalk then stopTpwalk() end
         startTpwalk()
+    end
+    if featureStates.CFrameSpeed then
+        if ToggleCFrameSpeed then stopCFrameSpeed() end
+        startCFrameSpeed()
     end
     if featureStates.JumpBoost then
         startJumpBoost()
@@ -2617,24 +2672,29 @@ local function hopToServerWithPlayerCount(targetCount)
         local targetServer = servers[1]
         TeleportService:TeleportToPlaceInstance(placeId, targetServer.serverId, player)
     else
-        Window:Notify({
+        WindUI:Notify({
             Title = "Error",
-            Desc = "No servers found with approximately " .. targetCount .. " players.",
+            Content = "No servers found with approximately " .. targetCount .. " players.",
             Duration = 4
         })
     end
 end
--- Function to hop to a server with a specific player count (or closest)
-local function hopToServerWithPlayerCount(targetCount)
+
+-- Function to hop to the smallest available server
+local function hopToSmallServer()
     local servers = getServers()
-    if #servers > 0 then
+    if servers and #servers > 0 then
         table.sort(servers, function(a, b)
-            return math.abs(a.playing - targetCount) < math.abs(b.playing - targetCount)
+            return a.players < b.players
         end)
         local targetServer = servers[1]
-        TeleportService:TeleportToPlaceInstance(placeId, targetServer.id)
+        TeleportService:TeleportToPlaceInstance(placeId, targetServer.serverId, player)
     else
-        warn("No servers found with approximately " .. targetCount .. " players.")
+        WindUI:Notify({
+            Title = "Error",
+            Content = "No servers found",
+            Duration = 4
+        })
     end
 end
 
@@ -2834,6 +2894,29 @@ Tabs.Main:Button({
         Value = { Min = 1, Max = 200, Default = 1, Step = 1 },
         Callback = function(value)
             featureStates.TpwalkValue = value
+        end
+    })
+
+    local CFrameSpeedToggle = Tabs.Player:Toggle({
+        Title = "CFrame Speed",
+        Desc = "Speed hack using CFrame (smooth movement)",
+        Value = featureStates.CFrameSpeed,
+        Callback = function(state)
+            featureStates.CFrameSpeed = state
+            if state then
+                startCFrameSpeed()
+            else
+                stopCFrameSpeed()
+            end
+        end
+    })
+
+    local CFrameSpeedSlider = Tabs.Player:Slider({
+        Title = "CFrame Speed Value",
+        Desc = "Adjust CFrame speed (drag to change)",
+        Value = { Min = 0.5, Max = 50, Default = 1, Step = 0.5 },
+        Callback = function(value)
+            featureStates.CFrameSpeedValue = value
         end
     })
 
@@ -3053,7 +3136,7 @@ local PlayerNameModeDropdown = Tabs.ESP:Dropdown({
 
     local PlayerBoxESPToggle = Tabs.ESP:Toggle({
         Title = "loc:PLAYER_BOX_ESP",
-        Value = featureStates.PlayerESP.distance,
+        Value = featureStates.PlayerESP.boxes,
         Callback = function(state)
             featureStates.PlayerESP.boxes = state
             if state or featureStates.PlayerESP.tracers or featureStates.PlayerESP.names or featureStates.PlayerESP.distance or featureStates.PlayerESP.highlight then
@@ -3408,7 +3491,7 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
 
     local AutoReviveToggle = Tabs.Auto:Toggle({
         Title = "loc:AUTO_REVIVE",
-        Value = featureStates.PlayerESP.distance,
+        Value = featureStates.AutoRevive,
         Callback = function(state)
             featureStates.AutoRevive = state
             if state then
@@ -3470,7 +3553,7 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
 
     local AutoVoteToggle = Tabs.Auto:Toggle({
         Title = "loc:AUTO_VOTE",
-        Value = featureStates.PlayerESP.distance,
+        Value = featureStates.AutoVote,
         Callback = function(state)
             featureStates.AutoVote = state
             if state then
@@ -3483,7 +3566,7 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
 
     local AutoSelfReviveToggle = Tabs.Auto:Toggle({
         Title = "loc:AUTO_SELF_REVIVE",
-        Value = featureStates.PlayerESP.distance,
+        Value = featureStates.AutoSelfRevive,
         Callback = function(state)
             featureStates.AutoSelfRevive = state
             if state then
@@ -3523,7 +3606,7 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
 
     local AutoWinToggle = Tabs.Auto:Toggle({
         Title = "loc:AUTO_WIN",
-        Value = featureStates.PlayerESP.distance,
+        Value = featureStates.AutoWin,
         Callback = function(state)
             featureStates.AutoWin = state
             if state then
@@ -3536,7 +3619,7 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
 
     local AutoMoneyFarmToggle = Tabs.Auto:Toggle({
         Title = "loc:AUTO_MONEY_FARM",
-        Value = featureStates.PlayerESP.distance,
+        Value = featureStates.AutoMoneyFarm,
         Callback = function(state)
             featureStates.AutoMoneyFarm = state
             if state then
@@ -3674,6 +3757,8 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 configFile:Register("FlySpeedSlider", FlySpeedSlider)
                 configFile:Register("SpeedHackToggle", SpeedHackToggle)
                 configFile:Register("SpeedHackSlider", SpeedHackSlider)
+                configFile:Register("CFrameSpeedToggle", CFrameSpeedToggle)
+                configFile:Register("CFrameSpeedSlider", CFrameSpeedSlider)
                 configFile:Register("JumpBoostToggle", JumpBoostToggle)
                 configFile:Register("JumpBoostSlider", JumpBoostSlider)
                 configFile:Register("AntiAFKToggle", AntiAFKToggle)
@@ -3784,6 +3869,7 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                     AutoJump = false,
                     Fly = false,
                     SpeedHack = false,
+                    CFrameSpeed = false,
                     JumpBoost = false,
                     AntiAFK = false,
                     AutoCarry = false,
@@ -3834,6 +3920,7 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                     },
                     FlySpeed = 5,
                     TpwalkValue = 1,
+                    CFrameSpeedValue = 1,
                     JumpPower = 5,
                     JumpMethod = "Hold",
                     SelectedMap = 1,
@@ -3848,6 +3935,8 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 if FlySpeedSlider then FlySpeedSlider:Set(5) end
                 if SpeedHackToggle then SpeedHackToggle:Set(false) end
                 if SpeedHackSlider then SpeedHackSlider:Set(1) end
+                if CFrameSpeedToggle then CFrameSpeedToggle:Set(false) end
+                if CFrameSpeedSlider then CFrameSpeedSlider:Set(0.5) end
                 if JumpBoostToggle then JumpBoostToggle:Set(false) end
                 if JumpBoostSlider then JumpBoostSlider:Set(5) end
                 if AntiAFKToggle then AntiAFKToggle:Set(false) end
@@ -3927,6 +4016,7 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 stopAutoJump()
                 stopFlying()
                 stopTpwalk()
+                stopCFrameSpeed()
                 stopJumpBoost()
                 stopAntiAFK()
                 stopAutoCarry()
