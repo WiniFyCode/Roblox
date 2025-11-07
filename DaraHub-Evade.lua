@@ -1291,22 +1291,32 @@ local function updateNextbotESP()
         local vector, onScreen = camera:WorldToViewportPoint(hrp.Position)
 
         if onScreen then
-            -- Show name ESP
-            esp.name.Visible = true
-            esp.name.Text = model.Name
-            esp.name.Position = Vector2.new(vector.X, vector.Y - 40) -- Position above head
-            
-            -- Add distance if wanted
+            local toggles = featureStates.NextbotESP
             local distance = (player.Character and player.Character:FindFirstChild("HumanoidRootPart") and 
                 (player.Character.HumanoidRootPart.Position - hrp.Position).Magnitude) or 0
-            esp.name.Text = model.Name .. " (" .. math.floor(distance) .. ")"
-            esp.distance.Visible = featureStates.NextbotESP.distance
-            if esp.distance.Visible then
+            
+            -- Show name ESP (only if enabled)
+            if toggles.names then
+                esp.name.Visible = true
+                local nameText = model.Name
+                -- Add distance to name if distance ESP is enabled
+                if toggles.distance then
+                    nameText = nameText .. " (" .. math.floor(distance) .. ")"
+                end
+                esp.name.Text = nameText
+                esp.name.Position = Vector2.new(vector.X, vector.Y - 40) -- Position above head
+            else
+                esp.name.Visible = false
+            end
+            
+            -- Show distance ESP separately (if enabled)
+            if toggles.distance then
+                esp.distance.Visible = true
                 esp.distance.Text = string.format("%.1f", distance)
                 esp.distance.Position = Vector2.new(vector.X, vector.Y + 35)
+            else
+                esp.distance.Visible = false
             end
-
-            local toggles = featureStates.NextbotESP
             if toggles.boxes then
                 local boxColor
                 if toggles.rainbowBoxes then
@@ -1692,12 +1702,14 @@ local function stopTpwalk()
 end
 
 -- CFrame Speed Hack Functions
-local function CFrameSpeedWalking()
+local function CFrameSpeedWalking(deltaTime)
     if ToggleCFrameSpeed and character and humanoid and rootPart then
         local moveDirection = humanoid.MoveDirection
         if moveDirection.Magnitude > 0 then
             local speedMultiplier = featureStates.CFrameSpeedValue
-            local moveVector = moveDirection * speedMultiplier
+            -- Use deltaTime for smooth movement
+            -- Speed is in studs per second, so multiply by deltaTime
+            local moveVector = moveDirection.Unit * speedMultiplier * deltaTime
             local newCFrame = rootPart.CFrame + moveVector
             rootPart.CFrame = newCFrame
         end
@@ -1709,7 +1721,9 @@ local function startCFrameSpeed()
     if CFrameSpeedConnection then
         CFrameSpeedConnection:Disconnect()
     end
-    CFrameSpeedConnection = RunService.Heartbeat:Connect(CFrameSpeedWalking)
+    CFrameSpeedConnection = RunService.Heartbeat:Connect(function(deltaTime)
+        CFrameSpeedWalking(deltaTime)
+    end)
 end
 
 local function stopCFrameSpeed()
@@ -2914,7 +2928,7 @@ Tabs.Main:Button({
     local CFrameSpeedSlider = Tabs.Player:Slider({
         Title = "CFrame Speed Value",
         Desc = "Adjust CFrame speed (drag to change)",
-        Value = { Min = 0.5, Max = 50, Default = 1, Step = 0.5 },
+        Value = { Min = 0.5, Max = 30, Default = 3, Step = 0.5 },
         Callback = function(value)
             featureStates.CFrameSpeedValue = value
         end
@@ -3936,7 +3950,7 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 if SpeedHackToggle then SpeedHackToggle:Set(false) end
                 if SpeedHackSlider then SpeedHackSlider:Set(1) end
                 if CFrameSpeedToggle then CFrameSpeedToggle:Set(false) end
-                if CFrameSpeedSlider then CFrameSpeedSlider:Set(0.5) end
+                if CFrameSpeedSlider then CFrameSpeedSlider:Set(1) end
                 if JumpBoostToggle then JumpBoostToggle:Set(false) end
                 if JumpBoostSlider then JumpBoostSlider:Set(5) end
                 if AntiAFKToggle then AntiAFKToggle:Set(false) end
