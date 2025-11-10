@@ -39,7 +39,7 @@ local teleportToLastZombie = false -- Teleport tới zombie cuối cùng hay kh�
 local cameraTeleportKey = Enum.KeyCode.X -- ấn X để tele camera tới zombie
 local cameraTeleportActive = false -- Biến kiểm tra đang chạy camera teleport loop
 local cameraTeleportStartPosition = nil -- Vị trí ban đầu của nhân vật
-local cameraTeleportMode = "Zombie Ít Máu Nhất" -- Chế độ tìm zombie: "Zombie Ít Máu Nhất", "Zombie Gần Nhất", "Zombie Trong 20m"
+local cameraTeleportMode = "Lowest Health" -- Zombie targeting mode: "Lowest Health", "Nearest", "In 20m Range"
 
 -- Cache system for teleport locations
 local locationCache = {
@@ -562,9 +562,9 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             
             -- Chọn mode tìm zombie dựa vào dropdown
             local findMode = "lowestHealth" -- Default
-            if cameraTeleportMode == "Zombie Gần Nhất" then
+            if cameraTeleportMode == "Nearest" then
                 findMode = "nearest"
-            elseif cameraTeleportMode == "Zombie Trong 20m" then
+            elseif cameraTeleportMode == "In 20m Range" then
                 findMode = "nearestInRange"
             end
             
@@ -598,15 +598,15 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                 
                 -- Tìm zombie dựa theo mode đã chọn
                 if not newTarget then
-                    if cameraTeleportMode == "Zombie Gần Nhất" then
+                    if cameraTeleportMode == "Nearest" then
                         newTarget = findZombie("nearest")
-                    elseif cameraTeleportMode == "Zombie Trong 20m" then
+                    elseif cameraTeleportMode == "In 20m Range" then
                         newTarget = findZombie("nearestInRange", 20)
                         -- Fallback: nếu không có zombie trong 20m thì tìm zombie máu thấp nhất
                         if not newTarget then
                             newTarget = findZombie("lowestHealth")
                         end
-                    else -- "Zombie Ít Máu Nhất"
+                    else -- "Lowest Health"
                         newTarget = findZombie("lowestHealth")
                     end
                 end
@@ -654,7 +654,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                             end
                             
                             -- Kiểm tra zombie mới dựa theo mode
-                            if cameraTeleportMode == "Zombie Trong 20m" then
+                            if cameraTeleportMode == "In 20m Range" then
                                 -- Chỉ kiểm tra zombie trong 20m nếu đang dùng mode này
                                 local char = localPlayer.Character
                                 local playerHRP = char and char:FindFirstChild("HumanoidRootPart")
@@ -794,16 +794,16 @@ MainTab:AddToggle("AutoMove", {
 
 -- Dropdown chọn chế độ Camera Teleport
 local ZombieModeDropdown = MainTab:AddDropdown("ZombieModeDropdown", {
-    Title = "🎯 Chế độ Camera Teleport (X Key)",
-    Description = "Chọn zombie mục tiêu khi bật Camera Teleport",
-    Values = {"Zombie Ít Máu Nhất", "Zombie Gần Nhất", "Zombie Trong 20m"},
+    Title = "🎯 Camera Teleport Mode (X Key)",
+    Description = "Select target zombie when Camera Teleport is active",
+    Values = {"Lowest Health", "Nearest", "In 20m Range"},
     Multi = false,
-    Default = 1, -- Zombie Ít Máu Nhất
+    Default = 1, -- Lowest Health
 })
 
 ZombieModeDropdown:OnChanged(function(Value)
     cameraTeleportMode = Value
-    print("🎯 Chế độ Camera Teleport:", Value)
+    print("🎯 Camera Teleport Mode:", Value)
 end)
 
 -- Settings Tab
