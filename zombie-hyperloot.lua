@@ -702,7 +702,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 			end
 			
 			cameraTeleportActive = false
-			print("Camera Teleport đã dừng")
+			print("Camera Teleport stopped")
 		end)
 	end
 end)
@@ -886,16 +886,16 @@ SettingsTab:AddSlider("CameraOffsetZ", {
 -- Sử dụng Dropdown thay vì 2 toggle để tránh conflict
 SettingsTab:AddDropdown("CameraTeleportMode", {
     Title = "Camera Teleport Mode",
-    Description = "Chọn chế độ teleport camera",
-    Values = {"Gần nhất -> Xa nhất", "Ít máu nhất -> Nhiều máu nhất"},
-    Default = cameraTeleportMode == "nearest" and "Gần nhất -> Xa nhất" or "Ít máu nhất -> Nhiều máu nhất",
+    Description = "Select camera teleport mode",
+    Values = {"Nearest -> Farthest", "Lowest Health -> Highest Health"},
+    Default = cameraTeleportMode == "nearest" and "Nearest -> Farthest" or "Lowest Health -> Highest Health",
     Callback = function(Value)
-        if Value == "Gần nhất -> Xa nhất" then
+        if Value == "Nearest -> Farthest" then
             cameraTeleportMode = "nearest"
-            print("Camera Teleport Mode: Gần nhất -> Xa nhất")
+            print("Camera Teleport Mode: Nearest -> Farthest")
         else
             cameraTeleportMode = "lowest_health"
-            print("Camera Teleport Mode: Ít máu nhất -> Nhiều máu nhất")
+            print("Camera Teleport Mode: Lowest Health -> Highest Health")
         end
     end
 })
@@ -962,7 +962,7 @@ end
 local function findTaskPosition()
 	local map = Workspace:FindFirstChild("Map")
 	if not map then 
-		warn("findTaskPosition: Không tìm thấy Map!")
+		warn("findTaskPosition: Map not found!")
 		return nil 
 	end
 	
@@ -976,7 +976,7 @@ local function findTaskPosition()
 				if default then
 					local part = default:FindFirstChildWhichIsA("BasePart")
 					if part then
-						print("findTaskPosition: Đã tìm thấy Task tại", part.Position)
+						print("findTaskPosition: Task found at", part.Position)
 						return part.Position + Vector3.new(0, 3, 0)
 					end
 				end
@@ -984,7 +984,7 @@ local function findTaskPosition()
 		end
 	end
 	
-	warn("findTaskPosition: Không tìm thấy Task trong bất kỳ Map child nào!")
+	warn("findTaskPosition: Task not found in any Map child!")
 	return nil
 end
 
@@ -992,40 +992,40 @@ end
 local function findSafeZonePosition()
 	local map = Workspace:FindFirstChild("Map")
 	if not map then 
-		warn("findSafeZonePosition: Không tìm thấy Map!")
+		warn("findSafeZonePosition: Map not found!")
 		return nil 
 	end
 	
 	local model = map:FindFirstChild("Model")
 	if not model then 
-		warn("findSafeZonePosition: Không tìm thấy Map.Model!")
+		warn("findSafeZonePosition: Map.Model not found!")
 		return nil 
 	end
 	
 	local decoration = model:FindFirstChild("Decoration")
 	if not decoration then 
-		warn("findSafeZonePosition: Không tìm thấy Decoration!")
+		warn("findSafeZonePosition: Decoration not found!")
 		return nil 
 	end
 	
 	local crane = decoration:FindFirstChild("Crane")
 	if not crane then 
-		warn("findSafeZonePosition: Không tìm thấy Decoration.Crane!")
+		warn("findSafeZonePosition: Decoration.Crane not found!")
 		return nil 
 	end
 	
 	local craneModel = crane:FindFirstChild("Model")
 	if not craneModel then 
-		warn("findSafeZonePosition: Không tìm thấy Decoration.Crane.Model!")
+		warn("findSafeZonePosition: Decoration.Crane.Model not found!")
 		return nil 
 	end
 	
 	local part = craneModel:FindFirstChild("Part")
 	if part and part:IsA("BasePart") then
-		print("findSafeZonePosition: Đã tìm thấy Safe Zone tại", part.Position)
+		print("findSafeZonePosition: Safe Zone found at", part.Position)
 		return part.Position + Vector3.new(0, 3, 0)
 	else
-		warn("findSafeZonePosition: Không tìm thấy Part trong Crane.Model!")
+		warn("findSafeZonePosition: Part not found in Crane.Model!")
 	end
 	
 	return nil
@@ -1036,7 +1036,7 @@ local function findAllExitDoors()
 	local doors = {}
 	local map = Workspace:FindFirstChild("Map")
 	if not map then 
-		warn("Không tìm thấy Map!")
+		warn("Map not found!")
 		return doors 
 	end
 	
@@ -1078,9 +1078,9 @@ local function findAllExitDoors()
 					
 					if targetPart and targetPart:IsA("BasePart") then
 						table.insert(doors, targetPart.Position + Vector3.new(0, 3, 0))
-						print("Tìm thấy ExitDoor:", child.Name, "tại", targetPart.Position)
+						print("ExitDoor found:", child.Name, "at", targetPart.Position)
 					else
-						warn("ExitDoor", child.Name, "không có BasePart hợp lệ!")
+						warn("ExitDoor", child.Name, "has no valid BasePart!")
 					end
 				end
 			end
@@ -1089,9 +1089,9 @@ local function findAllExitDoors()
 	
 	-- Debug: In ra số lượng door tìm được
 	if #doors > 0 then
-		print("Đã tìm thấy", #doors, "Exit Door(s)")
+		print("Found", #doors, "Exit Door(s)")
 	else
-		warn("Không tìm thấy Exit Door nào!")
+		warn("No Exit Door found!")
 	end
 	
 	return doors
@@ -1102,7 +1102,7 @@ local function findAllSupplyPiles()
 	local supplies = {}
 	local map = Workspace:FindFirstChild("Map")
 	if not map then 
-		warn("findAllSupplyPiles: Không tìm thấy Map!")
+		warn("findAllSupplyPiles: Map not found!")
 		return supplies 
 	end
 	
@@ -1149,9 +1149,9 @@ local function findAllSupplyPiles()
 	end
 	
 	if #uniqueSupplies > 0 then
-		print("findAllSupplyPiles: Đã tìm thấy", #uniqueSupplies, "Supply Pile(s)")
+		print("findAllSupplyPiles: Found", #uniqueSupplies, "Supply Pile(s)")
 	else
-		warn("findAllSupplyPiles: Không tìm thấy Supply Pile nào trong bất kỳ Map child nào!")
+		warn("findAllSupplyPiles: No Supply Pile found in any Map child!")
 	end
 	
 	return uniqueSupplies
@@ -1162,7 +1162,7 @@ local function findAllAmmo()
 	local ammos = {}
 	local map = Workspace:FindFirstChild("Map")
 	if not map then 
-		warn("findAllAmmo: Không tìm thấy Map!")
+		warn("findAllAmmo: Map not found!")
 		return ammos 
 	end
 	
@@ -1199,9 +1199,9 @@ local function findAllAmmo()
 	end
 	
 	if #uniqueAmmos > 0 then
-		print("findAllAmmo: Đã tìm thấy", #uniqueAmmos, "Ammo(s)")
+		print("findAllAmmo: Found", #uniqueAmmos, "Ammo(s)")
 	else
-		warn("findAllAmmo: Không tìm thấy Ammo nào trong bất kỳ Map child nào!")
+		warn("findAllAmmo: No Ammo found in any Map child!")
 	end
 	
 	return uniqueAmmos
@@ -1210,19 +1210,19 @@ end
 -- Hàm teleport
 local function teleportToPosition(position)
 	if not position then
-		print("Không tìm thấy vị trí!")
+		print("Position not found!")
 		return
 	end
 	
 	local char = localPlayer.Character
 	local hrp = char and char:FindFirstChild("HumanoidRootPart")
 	if not hrp then
-		print("Không tìm thấy nhân vật!")
+		print("Character not found!")
 		return
 	end
 	
 	hrp.CFrame = CFrame.new(position)
-	print("Đã teleport tới vị trí:", position)
+	print("Teleported to position:", position)
 end
 
 -- Đợi game load hoàn toàn trước khi kiểm tra (tăng thời gian và retry)
@@ -1241,7 +1241,7 @@ local function waitForMapLoad(maxWait)
 				end
 			end
 			if foundEItem then
-				print("Map đã load hoàn toàn!")
+				print("Map fully loaded!")
 				task.wait(0.5) -- Đợi thêm một chút để chắc chắn
 				break
 			end
@@ -1256,23 +1256,23 @@ waitForMapLoad(10) -- Đợi tối đa 10 giây
 -- Debug: In ra cấu trúc Map để kiểm tra
 local map = Workspace:FindFirstChild("Map")
 if map then
-	print("=== DEBUG: Cấu trúc Map ===")
-	print("Số lượng children của Map:", #map:GetChildren())
+	print("=== DEBUG: Map Structure ===")
+	print("Map children count:", #map:GetChildren())
 	for i, mapChild in ipairs(map:GetChildren()) do
 		print("Map[" .. i .. "]:", mapChild.Name, "(" .. mapChild.ClassName .. ")")
 		local eItem = mapChild:FindFirstChild("EItem")
 		if eItem then
-			print("  └─ EItem tìm thấy trong", mapChild.Name)
+			print("  └─ EItem found in", mapChild.Name)
 			-- In ra một vài children của EItem để debug
 			local eItemChildren = eItem:GetChildren()
-			print("  └─ EItem có", #eItemChildren, "children")
+			print("  └─ EItem has", #eItemChildren, "children")
 			for j, child in ipairs(eItemChildren) do
 				if j <= 5 then -- Chỉ in 5 children đầu tiên
 					print("    └─", child.Name, "(" .. child.ClassName .. ")")
 				end
 			end
 			if #eItemChildren > 5 then
-				print("    ... và", #eItemChildren - 5, "children khác")
+				print("    ... and", #eItemChildren - 5, "more children")
 			end
 		end
 	end
@@ -1329,10 +1329,10 @@ local function refreshButtons()
 					end
 					
 					teleportToPosition(nearestDoor)
-					print("Tìm thấy", #doors, "door(s), teleport tới door gần nhất")
+					print("Found", #doors, "door(s), teleported to nearest door")
 				end
 			else
-				print("Không tìm thấy Exit Door!")
+				print("Exit Door not found!")
 			end
 		end)
 	end
@@ -1340,7 +1340,7 @@ local function refreshButtons()
 	-- Task button (hiển thị riêng, độc lập với Exit Door)
 	local taskPos = findTaskPosition()
 	if taskPos then
-		local taskButton = createTeleportButton("TaskButton", "📋 Task Cuối Map", Color3.fromRGB(52, 152, 219))
+		local taskButton = createTeleportButton("TaskButton", "📋 End Map Task", Color3.fromRGB(52, 152, 219))
 		taskButton.LayoutOrder = buttonLayoutOrder
 		buttonLayoutOrder = buttonLayoutOrder + 1
 		createdButtons["Task"] = taskButton
@@ -1368,7 +1368,7 @@ local function refreshButtons()
 	-- Tạo button riêng cho TỪNG Supply Pile (nếu có 3 thì tạo 3 button)
 	local supplies = findAllSupplyPiles()
 	for i, supplyPos in ipairs(supplies) do
-		local supplyButton = createTeleportButton("SupplyButton" .. i, "🔫 Đạn " .. i, Color3.fromRGB(241, 196, 15))
+		local supplyButton = createTeleportButton("SupplyButton" .. i, "🔫 Ammo " .. i, Color3.fromRGB(241, 196, 15))
 		supplyButton.LayoutOrder = buttonLayoutOrder
 		buttonLayoutOrder = buttonLayoutOrder + 1
 		createdButtons["Supply" .. i] = supplyButton
@@ -1378,9 +1378,9 @@ local function refreshButtons()
 			local allSupplies = findAllSupplyPiles()
 			if allSupplies[i] then
 				teleportToPosition(allSupplies[i])
-				print("Teleport tới Supply Pile", i)
+				print("Teleported to Supply Pile", i)
 			else
-				print("Supply Pile", i, "không còn tồn tại!")
+				print("Supply Pile", i, "no longer exists!")
 			end
 		end)
 	end
@@ -1398,9 +1398,9 @@ local function refreshButtons()
 			local allAmmos = findAllAmmo()
 			if allAmmos[i] then
 				teleportToPosition(allAmmos[i])
-				print("Teleport tới Ammo", i)
+				print("Teleported to Ammo", i)
 			else
-				print("Ammo", i, "không còn tồn tại!")
+				print("Ammo", i, "no longer exists!")
 			end
 		end)
 	end
@@ -1412,10 +1412,10 @@ local function refreshButtons()
 		Container.Size = UDim2.new(0, 160, 0, currentButtonCount * 40 + 20)
 		Container.Position = UDim2.new(1, -180, 0.5, -(currentButtonCount * 40 + 20) / 2)
 		Container.Visible = true
-		print("Quick Teleport Buttons đã được cập nhật! (" .. currentButtonCount .. " button(s))")
+		print("Quick Teleport Buttons updated! (" .. currentButtonCount .. " button(s))")
 	else
 		Container.Visible = false
-		print("Không tìm thấy vị trí teleport nào!")
+		print("No teleport locations found!")
 	end
 end
 
