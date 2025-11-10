@@ -883,62 +883,19 @@ SettingsTab:AddSlider("CameraOffsetZ", {
 })
 
 -- Camera Teleport Mode Selection (mutually exclusive toggles)
-local modeNearestToggle
-local modeLowestHealthToggle
-local isSyncingToggles = false -- Flag để tránh recursive calls
-
-modeNearestToggle = SettingsTab:AddToggle("CameraModeNearest", {
-    Title = "Mode: Gần nhất -> Xa nhất",
-    Description = "Teleport camera từ zombie gần nhất đến xa nhất",
-    Default = cameraTeleportMode == "nearest",
+-- Sử dụng Dropdown thay vì 2 toggle để tránh conflict
+SettingsTab:AddDropdown("CameraTeleportMode", {
+    Title = "Camera Teleport Mode",
+    Description = "Chọn chế độ teleport camera",
+    Values = {"Gần nhất -> Xa nhất", "Ít máu nhất -> Nhiều máu nhất"},
+    Default = cameraTeleportMode == "nearest" and "Gần nhất -> Xa nhất" or "Ít máu nhất -> Nhiều máu nhất",
     Callback = function(Value)
-        if isSyncingToggles then return end -- Tránh recursive calls
-        
-        if Value then
+        if Value == "Gần nhất -> Xa nhất" then
             cameraTeleportMode = "nearest"
-            -- Tắt toggle kia nếu nó đang bật
-            if modeLowestHealthToggle then
-                isSyncingToggles = true
-                modeLowestHealthToggle:Set(false)
-                isSyncingToggles = false
-            end
             print("Camera Teleport Mode: Gần nhất -> Xa nhất")
         else
-            -- Nếu đang tắt toggle này, tự động bật toggle kia
             cameraTeleportMode = "lowest_health"
-            if modeLowestHealthToggle then
-                isSyncingToggles = true
-                modeLowestHealthToggle:Set(true)
-                isSyncingToggles = false
-            end
-        end
-    end
-})
-
-modeLowestHealthToggle = SettingsTab:AddToggle("CameraModeLowestHealth", {
-    Title = "Mode: Ít máu nhất -> Nhiều máu nhất",
-    Description = "Teleport camera từ zombie ít máu nhất đến nhiều máu nhất",
-    Default = cameraTeleportMode == "lowest_health",
-    Callback = function(Value)
-        if isSyncingToggles then return end -- Tránh recursive calls
-        
-        if Value then
-            cameraTeleportMode = "lowest_health"
-            -- Tắt toggle kia nếu nó đang bật
-            if modeNearestToggle then
-                isSyncingToggles = true
-                modeNearestToggle:Set(false)
-                isSyncingToggles = false
-            end
             print("Camera Teleport Mode: Ít máu nhất -> Nhiều máu nhất")
-        else
-            -- Nếu đang tắt toggle này, tự động bật toggle kia
-            cameraTeleportMode = "nearest"
-            if modeNearestToggle then
-                isSyncingToggles = true
-                modeNearestToggle:Set(true)
-                isSyncingToggles = false
-            end
         end
     end
 })
