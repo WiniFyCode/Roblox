@@ -16,6 +16,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local localPlayer = Players.LocalPlayer
 local entityFolder = Workspace:WaitForChild("Entity")
@@ -49,6 +50,9 @@ local autoMoveEnabled = false -- Tự động duy trì khoảng cách với zomb
 local autoMoveDistance = 100 -- Khoảng cách cần duy trì với zombie (studs)
 local autoMoveKey = Enum.KeyCode.M -- ấn M để bật/tắt auto move
 local lastTargetZombie = nil -- Zombie được theo dõi lần trước
+
+-- Remove Bullet Effects Configuration
+local removeBulletEffectsEnabled = true -- Xóa hiệu ứng đạn tự động
 
 
 ----------------------------------------------------------
@@ -191,6 +195,50 @@ task.spawn(function()
 					task.wait(0.5) -- Đợi ngắn hơn để phản ứng nhanh hơn
 				end
 			end
+		end
+	end
+end)
+
+----------------------------------------------------------
+-- 🔹 Xóa hiệu ứng đạn (Remove Bullet Effects)
+local function removeBulletEffect()
+	local char = localPlayer.Character
+	if not char then return end
+	
+	local tool = char:FindFirstChild("Tool")
+	if not tool then return end
+	
+	local mod = tool:FindFirstChild("_mod")
+	if not mod then return end
+	
+	local handle = mod:FindFirstChild("Handle")
+	if not handle then return end
+	
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+	
+	local remoteFolder = ReplicatedStorage:FindFirstChild("Remote")
+	if not remoteFolder then return end
+	
+	local effectRemote = remoteFolder:FindFirstChild("EffectReplicated")
+	if not effectRemote then return end
+	
+	-- Fire remote để xóa hiệu ứng đạn
+	local args = {
+		"GunFireEffect",
+		handle,
+		hrp.Position,
+		char
+	}
+	
+	effectRemote:FireServer(unpack(args))
+end
+
+-- Auto Remove Bullet Effects Loop
+task.spawn(function()
+	while task.wait(0.1) do -- Kiểm tra mỗi 0.1 giây
+		if removeBulletEffectsEnabled then
+			removeBulletEffect()
 		end
 	end
 end)
@@ -896,6 +944,16 @@ MainTab:AddToggle("AutoMove", {
     Callback = function(Value)
         autoMoveEnabled = Value
         print("Auto Move:", Value and "ON" or "OFF")
+    end
+})
+
+MainTab:AddToggle("RemoveBulletEffects", {
+    Title = "Remove Bullet Effects",
+    Description = "Tự động xóa hiệu ứng đạn",
+    Default = true,
+    Callback = function(Value)
+        removeBulletEffectsEnabled = Value
+        print("Remove Bullet Effects:", Value and "ON" or "OFF")
     end
 })
 
