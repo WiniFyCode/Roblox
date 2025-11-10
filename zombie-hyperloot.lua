@@ -1,6 +1,13 @@
 --// Zombie + Chest ESP + Hitbox + Teleport Collector
 -- Load Fluent UI (working library)
-local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local success, Fluent = pcall(function()
+    return loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+end)
+
+if not success or not Fluent then
+    error("Không thể load Fluent UI library! Vui lòng kiểm tra kết nối internet.")
+    return
+end
 
 local Window = Fluent:CreateWindow({
     Title = "Zombie Hyperloot",
@@ -884,19 +891,31 @@ SettingsTab:AddSlider("CameraOffsetZ", {
     end
 })
 
-SettingsTab:AddDropdown("CameraTeleportMode", {
-    Title = "Camera Teleport Mode",
-    Description = "Chọn cách sắp xếp zombie: Gần nhất -> Xa nhất hoặc Ít máu nhất -> Nhiều máu nhất",
-    Values = {"Gần nhất -> Xa nhất", "Ít máu nhất -> Nhiều máu nhất"},
-    Multi = false,
-    Default = "Gần nhất -> Xa nhất",
+-- Camera Teleport Mode Selection (using 2 Toggle buttons)
+SettingsTab:AddToggle("CameraModeNearest", {
+    Title = "Mode: Nearest -> Farthest",
+    Description = "Enable to teleport camera from nearest to farthest zombie",
+    Default = true,
     Callback = function(Value)
-        if Value == "Gần nhất -> Xa nhất" then
+        if Value then
             cameraTeleportMode = "nearest"
-            print("Camera Teleport Mode: Gần nhất -> Xa nhất")
-        elseif Value == "Ít máu nhất -> Nhiều máu nhất" then
+            print("Camera Teleport Mode: Nearest -> Farthest (ON)")
+        else
+            print("Camera Teleport Mode: Nearest -> Farthest (OFF)")
+        end
+    end
+})
+
+SettingsTab:AddToggle("CameraModeLowestHealth", {
+    Title = "Mode: Lowest Health -> Highest Health",
+    Description = "Enable to teleport camera from lowest health to highest health zombie",
+    Default = false,
+    Callback = function(Value)
+        if Value then
             cameraTeleportMode = "lowest_health"
-            print("Camera Teleport Mode: Ít máu nhất -> Nhiều máu nhất")
+            print("Camera Teleport Mode: Lowest Health -> Highest Health (ON)")
+        else
+            print("Camera Teleport Mode: Lowest Health -> Highest Health (OFF)")
         end
     end
 })
@@ -1341,7 +1360,7 @@ local function refreshButtons()
 	-- Task button (hiển thị riêng, độc lập với Exit Door)
 	local taskPos = findTaskPosition()
 	if taskPos then
-		local taskButton = createTeleportButton("TaskButton", "📋 Task Cuối Map", Color3.fromRGB(52, 152, 219))
+		local taskButton = createTeleportButton("TaskButton", "📋 End Map Task", Color3.fromRGB(52, 152, 219))
 		taskButton.LayoutOrder = buttonLayoutOrder
 		buttonLayoutOrder = buttonLayoutOrder + 1
 		createdButtons["Task"] = taskButton
