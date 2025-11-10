@@ -1702,32 +1702,88 @@ local function stopTpwalk()
 end
 
 -- CFrame Speed Hack Functions
+-- Hàm di chuyển bằng CFrame (được tối ưu hóa để giảm tụt FPS)
 local function CFrameSpeedWalking(deltaTime)
-    if ToggleCFrameSpeed and character and humanoid and rootPart then
-        local moveDirection = humanoid.MoveDirection
-        if moveDirection.Magnitude > 0 then
-            local speedMultiplier = featureStates.CFrameSpeedValue
-            -- Use deltaTime for smooth movement
-            -- Speed is in studs per second, so multiply by deltaTime
-            local moveVector = moveDirection.Unit * speedMultiplier * deltaTime
-            local newCFrame = rootPart.CFrame + moveVector
-            rootPart.CFrame = newCFrame
-        end
+    -- Kiểm tra điều kiện: chỉ chạy khi bật tính năng và có character
+    if not ToggleCFrameSpeed or not character or not humanoid or not rootPart then
+        return
     end
+    
+    -- Kiểm tra xem humanoid có đang di chuyển không (tránh tính toán không cần thiết)
+    local moveDirection = humanoid.MoveDirection
+    local moveMagnitude = moveDirection.Magnitude
+    
+    -- Chỉ xử lý khi người chơi đang di chuyển (Magnitude > 0)
+    -- Ngưỡng 0.01 để tránh các di chuyển rất nhỏ không cần thiết
+    if moveMagnitude < 0.01 then
+        return
+    end
+    
+    -- Kiểm tra xem humanoid có đang chết không (tránh set CFrame khi đã chết)
+    if humanoid.Health <= 0 or humanoid:GetState() == Enum.HumanoidStateType.Dead then
+        return
+    end
+    
+    -- Lấy tốc độ từ settings (cache để tránh truy cập nhiều lần)
+    local speedMultiplier = featureStates.CFrameSpeedValue
+    
+    -- Kiểm tra tốc độ hợp lệ (tránh giá trị không hợp lệ)
+    if speedMultiplier <= 0 or speedMultiplier > 100 then
+        return
+    end
+    
+    -- Kiểm tra deltaTime hợp lệ (tránh tính toán khi deltaTime quá nhỏ hoặc không hợp lệ)
+    if deltaTime <= 0 or deltaTime > 1 then
+        return
+    end
+    
+    -- Tính toán khoảng cách di chuyển dự kiến (tránh set CFrame khi di chuyển quá nhỏ)
+    -- Kiểm tra trước khi tính toán vector để tối ưu hiệu suất
+    local expectedDistance = speedMultiplier * deltaTime
+    if expectedDistance < 0.001 then
+        return
+    end
+    
+    -- Tính toán vector di chuyển
+    -- Normalize moveDirection bằng cách chia cho magnitude (tối ưu hơn moveDirection.Unit)
+    -- deltaTime để đảm bảo tốc độ ổn định trên mọi FPS
+    local normalizedDirection = moveDirection / moveMagnitude
+    local moveVector = normalizedDirection * speedMultiplier * deltaTime
+    
+    -- Tính toán CFrame mới và set (chỉ thực hiện khi đã qua tất cả các kiểm tra)
+    local newCFrame = rootPart.CFrame + moveVector
+    
+    -- Set CFrame (đây là thao tác tốn tài nguyên nhất)
+    -- Chỉ set khi thực sự cần thiết
+    rootPart.CFrame = newCFrame
 end
 
+-- Hàm bật CFrame Speed Hack
 local function startCFrameSpeed()
+    -- Đặt flag để bật tính năng
     ToggleCFrameSpeed = true
+    
+    -- Ngắt kết nối cũ nếu đang có (tránh duplicate connections)
     if CFrameSpeedConnection then
         CFrameSpeedConnection:Disconnect()
+        CFrameSpeedConnection = nil
     end
-    CFrameSpeedConnection = RunService.Heartbeat:Connect(function(deltaTime)
+    
+    -- SỬA LỖI TỤT FPS: Sử dụng RenderStepped thay vì Heartbeat
+    -- RenderStepped chỉ chạy khi có frame mới (tương ứng với FPS)
+    -- Heartbeat chạy liên tục với tần suất cao hơn (>60fps) gây tụt FPS
+    -- RenderStepped giúp đồng bộ với render loop, mượt mà hơn và ít tốn tài nguyên hơn
+    CFrameSpeedConnection = RunService.RenderStepped:Connect(function(deltaTime)
         CFrameSpeedWalking(deltaTime)
     end)
 end
 
+-- Hàm tắt CFrame Speed Hack
 local function stopCFrameSpeed()
+    -- Đặt flag để tắt tính năng
     ToggleCFrameSpeed = false
+    
+    -- Ngắt kết nối và giải phóng bộ nhớ
     if CFrameSpeedConnection then
         CFrameSpeedConnection:Disconnect()
         CFrameSpeedConnection = nil
