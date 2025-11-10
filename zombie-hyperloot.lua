@@ -41,15 +41,13 @@ local cameraTeleportActive = false -- Biến kiểm tra đang chạy camera tele
 local cameraTeleportStartPosition = nil -- Vị trí ban đầu của nhân vật
 local cameraOffsetX = 0 -- Camera offset X
 local cameraOffsetY = 10 -- Camera offset Y
-local cameraOffsetZ = -2 -- Camera offset Z
+local cameraOffsetZ = -10 -- Camera offset Z
+local cameraTeleportMode = "nearest" -- Mode: "nearest" (gần nhất -> xa nhất) hoặc "lowest_health" (ít máu nhất -> nhiều máu nhất). Giá trị này được cập nhật từ dropdown.
 
 -- Auto Move Configuration
 local autoMoveEnabled = false -- Tự động duy trì khoảng cách với zombie
 local autoMoveDistance = 100 -- Khoảng cách cần duy trì với zombie (studs)
-local autoMoveSpeed = 16 -- Tốc độ di chuyển (studs/second)
 local autoMoveKey = Enum.KeyCode.M -- ấn M để bật/tắt auto move
-local isAutoMoving = false -- Trạng thái đang auto move
-local autoMoveTarget = nil -- Zombie đang theo dõi
 local lastTargetZombie = nil -- Zombie được theo dõi lần trước
 
 
@@ -59,10 +57,13 @@ local lastTargetZombie = nil -- Zombie được theo dõi lần trước
 local function checkObstacle(startPos, endPos)
 	local raycastParams = RaycastParams.new()
 	raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-	raycastParams.FilterDescendantsInstances = {localPlayer.Character}
+	local char = localPlayer.Character
+	if char then
+		raycastParams.FilterDescendantsInstances = {char}
+	end
 	
 	local direction = (endPos - startPos)
-	local raycastResult = Workspace:Raycast(startPos, direction)
+	local raycastResult = Workspace:Raycast(startPos, direction, raycastParams)
 	
 	if raycastResult then
 		local distance = (raycastResult.Position - startPos).Magnitude
@@ -214,6 +215,7 @@ local function createESP(part, color, name, zombie)
 		local healthText = string.format("[%d/%d]", math.floor(humanoid.Health), math.floor(humanoid.MaxHealth))
 		
 		local healthLabel = Instance.new("TextLabel")
+		healthLabel.Name = "HealthLabel"
 		healthLabel.Size = UDim2.new(1, 0, 0, 20)
 		healthLabel.Position = UDim2.new(0, 0, 0, 0) -- Đặt ở vị trí đầu tiên
 		healthLabel.BackgroundTransparency = 1
@@ -225,30 +227,54 @@ local function createESP(part, color, name, zombie)
 		healthLabel.TextSize = 16 -- Tăng kích thước chữ
 		healthLabel.Parent = billboard
 		
-		-- Cập nhật máu theo thời gian thực
-		task.spawn(function()
-			while part and part.Parent and billboard and billboard.Parent do
-				if humanoid and humanoid.Parent then
-					local currentHealth = math.floor(humanoid.Health)
-					local maxHealth = math.floor(humanoid.MaxHealth)
-					healthText = string.format("[%d/%d]", currentHealth, maxHealth)
-					healthLabel.Text = healthText
-					
-					-- Đổi màu theo mức máu với màu nổi bật
-					if currentHealth <= maxHealth * 0.25 then
-						healthLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Đỏ đậm khi ít máu
-						healthLabel.TextStrokeColor3 = Color3.fromRGB(255, 255, 255) -- Viền trắng
-					elseif currentHealth <= maxHealth * 0.5 then
-						healthLabel.TextColor3 = Color3.fromRGB(255, 255, 0) -- Vàng khi máu trung bình
-						healthLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0) -- Viền đen
-					else
-						healthLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- Xanh lá khi nhiều máu
-						healthLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0) -- Viền đen
-					end
+		-- Cập nhật máu theo thời gian thực với cleanup
+		local function updateHealth()
+			if not part or not part.Parent or not billboard or not billboard.Parent or not healthLabel or not healthLabel.Parent then
+				return
+			end
+			
+			if humanoid and humanoid.Parent and humanoid.Health > 0 then
+				local currentHealth = math.floor(humanoid.Health)
+				local maxHealth = math.floor(humanoid.MaxHealth)
+				local newHealthText = string.format("[%d/%d]", currentHealth, maxHealth)
+				
+				healthLabel.Text = newHealthText
+				
+				-- Đổi màu theo mức máu với màu nổi bật
+				if currentHealth <= maxHealth * 0.25 then
+					healthLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Đỏ đậm khi ít máu
+					healthLabel.TextStrokeColor3 = Color3.fromRGB(255, 255, 255) -- Viền trắng
+				elseif currentHealth <= maxHealth * 0.5 then
+					healthLabel.TextColor3 = Color3.fromRGB(255, 255, 0) -- Vàng khi máu trung bình
+					healthLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0) -- Viền đen
 				else
-					break
+					healthLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- Xanh lá khi nhiều máu
+					healthLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0) -- Viền đen
 				end
-				task.wait(0.1) -- Cập nhật mỗi 0.1 giây
+			end
+		end
+		
+		-- Sử dụng HealthChanged event để chỉ update khi máu thay đổi (hiệu quả hơn)
+		local healthChangedConnection
+		healthChangedConnection = humanoid.HealthChanged:Connect(function()
+			updateHealth()
+			-- Nếu zombie chết, cleanup
+			if humanoid.Health <= 0 then
+				if healthChangedConnection then
+					healthChangedConnection:Disconnect()
+				end
+			end
+		end)
+		
+		-- Cập nhật lần đầu
+		updateHealth()
+		
+		-- Cleanup khi zombie bị xóa
+		zombie.AncestryChanged:Connect(function()
+			if not zombie.Parent then
+				if healthChangedConnection then
+					healthChangedConnection:Disconnect()
+				end
 			end
 		end)
 	end
@@ -349,17 +375,18 @@ local function setupChestESP()
 end
 
 ----------------------------------------------------------
--- 🔹 Tự động làm mới ESP mỗi vài giây
+-- 🔹 Tự động làm mới ESP mỗi vài giây (chỉ tạo lại nếu chưa có)
 task.spawn(function()
 	while task.wait(refreshRate) do
-		for _, zombie in ipairs(entityFolder:GetChildren()) do
-			if zombie:IsA("Model") and zombie:FindFirstChild("Head") then
-				local head = zombie:FindFirstChild("Head")
-				if head then
-					if espZombieEnabled then
+		if espZombieEnabled then
+			for _, zombie in ipairs(entityFolder:GetChildren()) do
+				if zombie:IsA("Model") then
+					local head = zombie:FindFirstChild("Head")
+					local humanoid = zombie:FindFirstChild("Humanoid")
+					-- Chỉ tạo ESP cho zombie còn sống và chưa có ESP
+					if head and humanoid and humanoid.Health > 0 and not head:FindFirstChild("ESPTag") then
 						createESP(head, espColorZombie, zombie.Name, zombie)
 					end
-					-- Không gọi expandHitbox ở đây nữa vì đã xử lý trong ChildAdded
 				end
 			end
 		end
@@ -498,162 +525,89 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		-- Bắt đầu camera teleport
 		cameraTeleportActive = true
 		
-		-- Tìm zombie còn sống máu ít nhất từ vị trí người chơi
-        -- Tìm zombie còn sống có MaxHealth nhỏ nhất. Nếu hiện tại đã tele vào 1 zombie mà có zombie mới MaxHealth thấp hơn, chuyển sang tele tới con đó.
-        local function findLowestMaxHealthZombie(currentZombie)
-            local char = localPlayer.Character
-            local playerHRP = char and char:FindFirstChild("HumanoidRootPart")
-            if not playerHRP then return nil end
-            local playerPosition = playerHRP.Position
-            local lowestMaxHealth = math.huge
-            local nearestDistance = math.huge
-            local result = nil
-            for _, zombie in ipairs(entityFolder:GetChildren()) do
-                if zombie:IsA("Model") then
-                    local humanoid = zombie:FindFirstChild("Humanoid")
-                    if humanoid and humanoid.Health > 0 then
-                        local head = zombie:FindFirstChild("Head")
-                        local hrp = zombie:FindFirstChild("HumanoidRootPart")
-                        local targetPart = head or hrp
-                        if targetPart and targetPart:IsA("BasePart") then
-                            local maxHealth = humanoid.MaxHealth
-                            local distance = (playerPosition - targetPart.Position).Magnitude
-                            if maxHealth < lowestMaxHealth or (maxHealth == lowestMaxHealth and distance < nearestDistance) then
-                                lowestMaxHealth = maxHealth
-                                nearestDistance = distance
-                                result = {part = targetPart, zombie = zombie, maxHealth = maxHealth}
-                            end
-                        end
-                    end
-                end
-            end
-            -- Nếu truyền vào zombie hiện tại mà vẫn là con này/là nil thì trả về nil, ngược lại trả về zombie mới
-            if currentZombie == nil or (result and result.zombie ~= currentZombie) then
-                return result
-            end
-            return nil
-        end
-        
-        -- Tìm zombie trong phạm vi 20m (ưu tiên máu thấp nhất)
-        local function findZombieInRange(range)
-            range = range or 20
-            local char = localPlayer.Character
-            local playerHRP = char and char:FindFirstChild("HumanoidRootPart")
-            if not playerHRP then return nil end
-        
-            local playerPosition = playerHRP.Position
-            local lowestZombie = nil
-            local lowestHealth = math.huge
-            local nearestDistance = math.huge
-        
-            for _, zombie in ipairs(entityFolder:GetChildren()) do
-                if zombie:IsA("Model") then
-                    local humanoid = zombie:FindFirstChild("Humanoid")
-                    if humanoid and humanoid.Health > 0 then -- chỉ lấy zombie còn sống
-                        local head = zombie:FindFirstChild("Head")
-                        local hrp = zombie:FindFirstChild("HumanoidRootPart")
-                        local targetPart = head or hrp
-                        if targetPart and targetPart:IsA("BasePart") then
-                            local distance = (playerPosition - targetPart.Position).Magnitude
-                            -- Chỉ lấy zombie trong phạm vi range
-                            if distance <= range then
-                                local currentHealth = humanoid.Health
-                                -- Ưu tiên máu thấp nhất, nếu trùng máu thì lấy con gần nhất
-                                if currentHealth < lowestHealth or (currentHealth == lowestHealth and distance < nearestDistance) then
-                                    lowestHealth = currentHealth
-                                    nearestDistance = distance
-                                    lowestZombie = {part = targetPart, zombie = zombie}
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-            return lowestZombie
-        end
-        
-        -- Tìm zombie máu hiện tại thấp nhất (ưu tiên gần nếu trùng máu) - bất kể khoảng cách
-        local function findLowestHealthZombie()
-            local char = localPlayer.Character
-            local playerHRP = char and char:FindFirstChild("HumanoidRootPart")
-            if not playerHRP then return nil end
-        
-            local playerPosition = playerHRP.Position
-            local lowestZombie = nil
-            local lowestHealth = math.huge
-            local nearestDistance = math.huge
-        
-            for _, zombie in ipairs(entityFolder:GetChildren()) do
-                if zombie:IsA("Model") then
-                    local humanoid = zombie:FindFirstChild("Humanoid")
-                    if humanoid and humanoid.Health > 0 then -- chỉ lấy zombie còn sống
-                        local head = zombie:FindFirstChild("Head")
-                        local hrp = zombie:FindFirstChild("HumanoidRootPart")
-                        local targetPart = head or hrp
-                        if targetPart and targetPart:IsA("BasePart") then
-                            local currentHealth = humanoid.Health
-                            local distance = (playerPosition - targetPart.Position).Magnitude
-                            -- Ưu tiên máu thấp nhất, nếu trùng máu thì lấy con gần nhất
-                            if currentHealth < lowestHealth or (currentHealth == lowestHealth and distance < nearestDistance) then
-                                lowestHealth = currentHealth
-                                nearestDistance = distance
-                                lowestZombie = {part = targetPart, zombie = zombie}
-                            end
-                        end
-                    end
-                end
-            end
-            return lowestZombie
-        end
-        
-        -- Loop teleport tới zombie máu thấp nhất hoặc zombie MaxHealth thấp hơn
+		-- Hàm lấy và sắp xếp tất cả zombie theo mode
+		local function getSortedZombies(mode)
+			local char = localPlayer.Character
+			local playerHRP = char and char:FindFirstChild("HumanoidRootPart")
+			if not playerHRP then return {} end
+			
+			local playerPosition = playerHRP.Position
+			local zombies = {}
+			
+			-- Lấy tất cả zombie còn sống
+			for _, zombie in ipairs(entityFolder:GetChildren()) do
+				if zombie:IsA("Model") then
+					local humanoid = zombie:FindFirstChild("Humanoid")
+					if humanoid and humanoid.Health > 0 then
+						local head = zombie:FindFirstChild("Head")
+						local hrp = zombie:FindFirstChild("HumanoidRootPart")
+						local targetPart = head or hrp
+						if targetPart and targetPart:IsA("BasePart") then
+							local distance = (playerPosition - targetPart.Position).Magnitude
+							local currentHealth = humanoid.Health
+							table.insert(zombies, {
+								part = targetPart,
+								zombie = zombie,
+								distance = distance,
+								health = currentHealth
+							})
+						end
+					end
+				end
+			end
+			
+			-- Sắp xếp theo mode
+			if mode == "nearest" then
+				-- Sắp xếp theo khoảng cách: gần nhất -> xa nhất
+				table.sort(zombies, function(a, b)
+					return a.distance < b.distance
+				end)
+			elseif mode == "lowest_health" then
+				-- Sắp xếp theo máu: ít máu nhất -> nhiều máu nhất
+				-- Nếu máu bằng nhau, ưu tiên con gần hơn
+				table.sort(zombies, function(a, b)
+					if a.health == b.health then
+						return a.distance < b.distance
+					end
+					return a.health < b.health
+				end)
+			end
+			
+			return zombies
+		end
+		
+		-- Loop teleport tới zombie theo mode đã chọn
         task.spawn(function()
             local camera = Workspace.CurrentCamera
             local char = localPlayer.Character
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
             
-            -- Kiểm tra xem có zombie không trước khi bắt đầu
-            local initialZombie = findZombieInRange(20) or findLowestHealthZombie()
-            if not initialZombie then
-                print("Không tìm thấy zombie nào!")
-                cameraTeleportActive = false
-                return
-            end
-            
             local lastZombiePosition = nil
-            local currentTarget = nil
+            local currentIndex = 1 -- Index hiện tại trong danh sách zombie
             
             while cameraTeleportActive do
-                local newTarget = nil
+                -- Lấy danh sách zombie đã sắp xếp theo mode hiện tại
+                local sortedZombies = getSortedZombies(cameraTeleportMode)
                 
-                -- Nếu đã có target, luôn kiểm tra nếu xuất hiện zombie mới có MaxHealth nhỏ hơn
-                if currentTarget then
-                    local lowerMaxZombie = findLowestMaxHealthZombie(currentTarget.zombie)
-                    if lowerMaxZombie then
-                        newTarget = lowerMaxZombie
-                    end
+                -- Nếu không có zombie nào, đợi một chút rồi thử lại
+                if #sortedZombies == 0 then
+                    task.wait(0.5)
+                    currentIndex = 1 -- Reset index
+                    goto continue
                 end
                 
-                -- Ưu tiên zombie trong phạm vi 20m trước
-                if not newTarget then
-                    newTarget = findZombieInRange(20)
+                -- Nếu index vượt quá danh sách, reset về 1
+                if currentIndex > #sortedZombies then
+                    currentIndex = 1
                 end
                 
-                -- Nếu không có zombie trong 20m, tìm zombie máu thấp nhất (bất kể khoảng cách)
-                if not newTarget then
-                    newTarget = findLowestHealthZombie()
-                end
-                
-                -- Nếu không tìm thấy zombie nào, thoát khỏi loop
-                if not newTarget then
-                    print("Không còn zombie nào!")
-                    break
-                end
-                
-                currentTarget = newTarget
+                -- Lấy zombie hiện tại
+                local currentTarget = sortedZombies[currentIndex]
                 
                 if currentTarget and currentTarget.zombie then
                     local humanoid = currentTarget.zombie:FindFirstChild("Humanoid")
+                    
+                    -- Kiểm tra xem zombie có còn sống và hợp lệ không
                     if humanoid and humanoid.Health > 0 and humanoid.Parent then
                         local targetPosition = currentTarget.part.Position
                         lastZombiePosition = targetPosition
@@ -664,7 +618,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                         local cameraOffset = Vector3.new(cameraOffsetX, cameraOffsetY, cameraOffsetZ)
                         camera.CFrame = CFrame.lookAt(targetPosition + cameraOffset, targetPosition)
                         
-                        -- Đợi zombie chết/thay đổi mục tiêu
+                        -- Đợi zombie chết hoặc có zombie mới xuất hiện
                         local checkCount = 0
                         repeat
                             task.wait(0.1)
@@ -675,54 +629,62 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                                 break
                             end
                             
-                            -- Nếu zombie đã chết hoặc đổi sang target maxHealth thấp hơn thì break ngay
+                            -- Kiểm tra zombie có còn sống không
                             if not humanoid or humanoid.Parent == nil or humanoid.Health <= 0 then
+                                -- Zombie đã chết, chuyển sang zombie tiếp theo
+                                currentIndex = currentIndex + 1
                                 break
                             end
                             
-                            -- Kiểm tra zombie mới có MaxHealth thấp hơn
-                            local lowerMaxZombie = findLowestMaxHealthZombie(currentTarget.zombie)
-                            if lowerMaxZombie then
-                                break
-                            end
-                            
-                            -- Kiểm tra nếu có zombie mới trong 20m (ưu tiên hơn zombie ngoài 20m)
-                            local char = localPlayer.Character
-                            local playerHRP = char and char:FindFirstChild("HumanoidRootPart")
-                            if playerHRP then
-                                local currentDistance = (playerHRP.Position - targetPosition).Magnitude
-                                -- Nếu zombie hiện tại ngoài 20m, kiểm tra xem có zombie nào trong 20m không
-                                if currentDistance > 20 then
-                                    local zombieInRange = findZombieInRange(20)
-                                    if zombieInRange and zombieInRange.zombie ~= currentTarget.zombie then
-                                        break -- Chuyển sang zombie trong 20m
-                                    end
-                                else
-                                    -- Nếu zombie hiện tại trong 20m, kiểm tra xem có zombie nào trong 20m có máu thấp hơn không
-                                    local zombieInRange = findZombieInRange(20)
-                                    if zombieInRange and zombieInRange.zombie ~= currentTarget.zombie then
-                                        local currentHealth = humanoid.Health
-                                        local newZombieHumanoid = zombieInRange.zombie:FindFirstChild("Humanoid")
-                                        if newZombieHumanoid and newZombieHumanoid.Health < currentHealth then
-                                            break -- Chuyển sang zombie có máu thấp hơn trong 20m
+                            -- Mỗi 2 giây, cập nhật lại danh sách để bao gồm zombie mới
+                            if checkCount % 20 == 0 then
+                                local newSortedZombies = getSortedZombies(cameraTeleportMode)
+                                -- Nếu có zombie mới hoặc thứ tự thay đổi, cập nhật lại
+                                if #newSortedZombies ~= #sortedZombies then
+                                    sortedZombies = newSortedZombies
+                                    currentIndex = 1 -- Reset về đầu để duyệt lại từ đầu
+                                    break
+                                end
+                                
+                                -- Kiểm tra xem zombie hiện tại có còn trong danh sách không
+                                local stillInList = false
+                                for i, z in ipairs(newSortedZombies) do
+                                    if z.zombie == currentTarget.zombie then
+                                        stillInList = true
+                                        -- Cập nhật index nếu thứ tự thay đổi
+                                        if i ~= currentIndex then
+                                            currentIndex = i
                                         end
+                                        break
                                     end
+                                end
+                                
+                                if not stillInList then
+                                    -- Zombie không còn trong danh sách, chuyển sang zombie tiếp theo
+                                    sortedZombies = newSortedZombies
+                                    currentIndex = 1
+                                    break
                                 end
                             end
                             
-                            -- Safety: nếu quá lâu không có thay đổi, break để tìm zombie mới
+                            -- Safety: nếu quá lâu không có thay đổi, chuyển sang zombie tiếp theo
                             if checkCount > 300 then -- 30 giây
+                                currentIndex = currentIndex + 1
                                 break
                             end
                         until false
                     else
-                        -- Zombie đã chết hoặc không hợp lệ, tìm zombie mới
+                        -- Zombie đã chết hoặc không hợp lệ, chuyển sang zombie tiếp theo
+                        currentIndex = currentIndex + 1
                         task.wait(0.2)
                     end
                 else
-                    -- Không tìm thấy target, đợi một chút rồi tìm lại
+                    -- Không tìm thấy target, reset index
+                    currentIndex = 1
                     task.wait(0.5)
                 end
+                
+                ::continue::
             end
             
             -- Reset camera và nhân vật
@@ -770,13 +732,19 @@ MainTab:AddToggle("Hitbox", {
             if zombie:IsA("Model") then
                 local head = zombie:FindFirstChild("Head")
                 if head and head:IsA("BasePart") then
-                    if Value then
-                        -- Bật hitbox
-                        head.Size = hitboxSize
-                        head.Transparency = 0.5
-                        head.Color = Color3.fromRGB(255, 0, 0)
-                        head.CanCollide = false
-                    else
+					if Value then
+						-- Lưu size gốc nếu chưa lưu
+						if not head:GetAttribute("OriginalSizeX") then
+							head:SetAttribute("OriginalSizeX", head.Size.X)
+							head:SetAttribute("OriginalSizeY", head.Size.Y)
+							head:SetAttribute("OriginalSizeZ", head.Size.Z)
+						end
+						-- Bật hitbox
+						head.Size = hitboxSize
+						head.Transparency = 0.5
+						head.Color = Color3.fromRGB(255, 0, 0)
+						head.CanCollide = false
+					else
                         -- Tắt hitbox - khôi phục size gốc
                         local origX = head:GetAttribute("OriginalSizeX")
                         local origY = head:GetAttribute("OriginalSizeY")
@@ -866,18 +834,6 @@ SettingsTab:AddSlider("AutoMoveDistance", {
     end
 })
 
-SettingsTab:AddSlider("AutoMoveSpeed", {
-    Title = "Auto Move Speed",
-    Description = "Speed of auto movement (studs/second)",
-    Default = 16,
-    Min = 5,
-    Max = 50,
-    Rounding = 1,
-    Callback = function(Value)
-        autoMoveSpeed = Value
-        print("Auto Move Speed:", Value)
-    end
-})
 
 SettingsTab:AddToggle("TeleportToLastZombie", {
     Title = "Teleport to Last Zombie",
@@ -925,6 +881,23 @@ SettingsTab:AddSlider("CameraOffsetZ", {
     Callback = function(Value)
         cameraOffsetZ = Value
         print("Camera Offset Z:", Value)
+    end
+})
+
+SettingsTab:AddDropdown("CameraTeleportMode", {
+    Title = "Camera Teleport Mode",
+    Description = "Chọn cách sắp xếp zombie: Gần nhất -> Xa nhất hoặc Ít máu nhất -> Nhiều máu nhất",
+    Values = {"Gần nhất -> Xa nhất", "Ít máu nhất -> Nhiều máu nhất"},
+    Multi = false,
+    Default = "Gần nhất -> Xa nhất",
+    Callback = function(Value)
+        if Value == "Gần nhất -> Xa nhất" then
+            cameraTeleportMode = "nearest"
+            print("Camera Teleport Mode: Gần nhất -> Xa nhất")
+        elseif Value == "Ít máu nhất -> Nhiều máu nhất" then
+            cameraTeleportMode = "lowest_health"
+            print("Camera Teleport Mode: Ít máu nhất -> Nhiều máu nhất")
+        end
     end
 })
 
@@ -1375,6 +1348,20 @@ local function refreshButtons()
 		
 		taskButton.MouseButton1Click:Connect(function()
 			local pos = findTaskPosition()
+			teleportToPosition(pos)
+		end)
+	end
+	
+	-- Safe Zone button
+	local safeZonePos = findSafeZonePosition()
+	if safeZonePos then
+		local safeZoneButton = createTeleportButton("SafeZoneButton", "🛡️ Safe Zone", Color3.fromRGB(46, 204, 113))
+		safeZoneButton.LayoutOrder = buttonLayoutOrder
+		buttonLayoutOrder = buttonLayoutOrder + 1
+		createdButtons["SafeZone"] = safeZoneButton
+		
+		safeZoneButton.MouseButton1Click:Connect(function()
+			local pos = findSafeZonePosition()
 			teleportToPosition(pos)
 		end)
 	end
