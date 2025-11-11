@@ -50,6 +50,7 @@ local Localization = WindUI:Localization({
             ["MANUAL_REVIVE"] = "Manual Revive",
             ["AUTO_WIN"] = "Auto Win",
             ["AUTO_MONEY_FARM"] = "Auto Money Farm",
+            ["AUTO_WHISTLE"] = "Auto Whistle",
             ["SAVE_CONFIG"] = "Save Configuration",
             ["LOAD_CONFIG"] = "Load Configuration",
             ["THEME_SELECT"] = "Select Theme",
@@ -546,6 +547,7 @@ local featureStates = {
     AutoMoneyFarm = false,
     AutoRevive = false,
     AutoTicketFarm = false,
+    AutoWhistle = false,
     PlayerESP = {
         boxes = false,
         tracers = false,
@@ -632,6 +634,10 @@ local carryDelay = 0.1
 -- Auto Ticket Farm Variables
 local ticketFarmDelay = 0.5
 local autoTicketFarmConnection = nil
+
+-- Auto Whistle Variables
+local autoWhistleConnection = nil
+local whistleDelay = 5 -- 5 seconds delay between whistles
 
 -- Click TP Variables
 local clickTPConnection
@@ -2112,6 +2118,28 @@ local function stopAutoTicketFarm()
     end
 end
 
+-- Auto Whistle Functions
+local function startAutoWhistle()
+    if autoWhistleConnection then return end
+    autoWhistleConnection = task.spawn(function()
+        while featureStates.AutoWhistle do
+            pcall(function()
+                interactEvent:FireServer("Whistle")
+            end)
+            task.wait(whistleDelay)
+        end
+        autoWhistleConnection = nil
+    end)
+end
+
+local function stopAutoWhistle()
+    featureStates.AutoWhistle = false
+    if autoWhistleConnection then
+        task.cancel(autoWhistleConnection)
+        autoWhistleConnection = nil
+    end
+end
+
 -- Manual Revive Function
 local function manualRevive()
     pcall(function()
@@ -2418,6 +2446,10 @@ end
     if featureStates.AutoTicketFarm then
         if autoTicketFarmConnection then stopAutoTicketFarm() end
         startAutoTicketFarm()
+    end
+    if featureStates.AutoWhistle then
+        if autoWhistleConnection then stopAutoWhistle() end
+        startAutoWhistle()
     end
     if featureStates.PlayerESP.boxes or featureStates.PlayerESP.tracers or featureStates.PlayerESP.names or featureStates.PlayerESP.distance or featureStates.PlayerESP.highlight then
         stopPlayerESP()
@@ -3673,6 +3705,20 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
         end
     })
 
+    local AutoWhistleToggle = Tabs.Auto:Toggle({
+        Title = "loc:AUTO_WHISTLE",
+        Desc = "Automatically whistle every 5 seconds",
+        Value = featureStates.AutoWhistle,
+        Callback = function(state)
+            featureStates.AutoWhistle = state
+            if state then
+                startAutoWhistle()
+            else
+                stopAutoWhistle()
+            end
+        end
+    })
+
 
     -- Settings Tab
     Tabs.Settings:Section({ Title = "Settings", TextSize = 40 })
@@ -3817,6 +3863,7 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 configFile:Register("AutoMoneyFarmToggle", AutoMoneyFarmToggle)
                 configFile:Register("AutoTicketFarmToggle", AutoTicketFarmToggle)
                 configFile:Register("TicketFarmDelayInput", TicketFarmDelayInput)
+                configFile:Register("AutoWhistleToggle", AutoWhistleToggle)
                 configFile:Register("TimerDisplayToggle", TimerDisplayToggle)
                 configFile:Register("ThemeDropdown", ThemeDropdown)
                 configFile:Register("TransparencySlider", TransparencySlider)
@@ -3897,6 +3944,7 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                     AutoMoneyFarm = false,
                     AutoRevive = false,
                     AutoTicketFarm = false,
+                    AutoWhistle = false,
                     PlayerESP = {
                         boxes = false,
                         tracers = false,
@@ -4008,6 +4056,7 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 if AutoMoneyFarmToggle then AutoMoneyFarmToggle:Set(false) end
                 if AutoTicketFarmToggle then AutoTicketFarmToggle:Set(false) end
                 if TicketFarmDelayInput then TicketFarmDelayInput:Set("0.5") end
+                if AutoWhistleToggle then AutoWhistleToggle:Set(false) end
                 
                 -- Reset Settings
                 if ThemeDropdown then ThemeDropdown:Select("Dark") end
@@ -4040,6 +4089,7 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 stopAutoWin()
                 stopAutoMoneyFarm()
                 stopAutoTicketFarm()
+                stopAutoWhistle()
                 stopClickTP()
                 stopFullBright()
                 stopNoFog()
