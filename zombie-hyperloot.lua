@@ -52,6 +52,11 @@ local isAutoMoving = false -- Trạng thái đang auto move
 local autoMoveTarget = nil -- Zombie đang theo dõi
 local lastTargetZombie = nil -- Zombie được theo dõi lần trước
 
+-- Anti-Zombie Configuration (HipHeight)
+local antiZombieEnabled = false -- Bật/tắt Anti-Zombie (tăng HipHeight)
+local hipHeightValue = 20 -- Giá trị HipHeight mặc định (studs)
+local originalHipHeight = nil -- Lưu HipHeight gốc để khôi phục
+
 
 ----------------------------------------------------------
 -- 🔹 Auto Move Functions - Duy trì khoảng cách cố định với zombie
@@ -193,6 +198,124 @@ task.spawn(function()
 		end
 	end
 end)
+
+----------------------------------------------------------
+-- 🔹 Anti-Zombie Functions - Giữ nhân vật ở độ cao cố định bằng BodyPosition
+local bodyPosition = nil -- Lưu BodyPosition để có thể xóa khi tắt
+local heartbeatConnection = nil -- Connection để cập nhật vị trí
+
+-- Hàm tạo BodyPosition để giữ nhân vật ở độ cao cố định
+local function createBodyPosition(hrp, targetY)
+	if not hrp then return end
+	
+	-- Xóa BodyPosition cũ nếu có
+	if bodyPosition then
+		bodyPosition:Destroy()
+		bodyPosition = nil
+	end
+	
+	-- Tạo BodyPosition mới - chỉ giữ Y, cho phép X, Z di chuyển tự do
+	bodyPosition = Instance.new("BodyPosition")
+	bodyPosition.Name = "AntiZombieBodyPosition"
+	-- Chỉ dùng lực mạnh cho Y, X và Z dùng lực nhỏ hơn để không chặn di chuyển
+	bodyPosition.MaxForce = Vector3.new(0, 4000, 0) -- Chỉ giữ Y
+	bodyPosition.Position = Vector3.new(hrp.Position.X, targetY, hrp.Position.Z)
+	bodyPosition.Parent = hrp
+end
+
+-- Hàm xóa BodyPosition và khôi phục bình thường
+local function removeBodyPosition()
+	if bodyPosition then
+		bodyPosition:Destroy()
+		bodyPosition = nil
+	end
+	-- Ngắt connection nếu có
+	if heartbeatConnection then
+		heartbeatConnection:Disconnect()
+		heartbeatConnection = nil
+	end
+end
+
+-- Lưu độ cao mục tiêu và vị trí Y ban đầu
+local targetHeightY = nil
+local baseYPosition = nil -- Vị trí Y ban đầu khi bật Anti-Zombie
+
+-- Hàm áp dụng Anti-Zombie
+local function applyAntiZombie()
+	local char = localPlayer.Character
+	if not char then 
+		removeBodyPosition()
+		targetHeightY = nil
+		baseYPosition = nil
+		return 
+	end
+	
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not hrp then 
+		removeBodyPosition()
+		targetHeightY = nil
+		baseYPosition = nil
+		return 
+	end
+	
+	if antiZombieEnabled then
+		-- Nếu chưa có baseYPosition (lần đầu bật), lưu vị trí Y hiện tại
+		if baseYPosition == nil then
+			baseYPosition = hrp.Position.Y
+		end
+		
+		-- Tính độ cao mục tiêu dựa trên vị trí Y ban đầu + HipHeight
+		targetHeightY = baseYPosition + (tonumber(hipHeightValue) or 20)
+		createBodyPosition(hrp, targetHeightY)
+		
+		-- Tạo connection để cập nhật vị trí liên tục (cho phép di chuyển X, Z)
+		if not heartbeatConnection then
+			heartbeatConnection = RunService.Heartbeat:Connect(function()
+				if antiZombieEnabled and bodyPosition and targetHeightY then
+					local char = localPlayer.Character
+					if char then
+						local hrp = char:FindFirstChild("HumanoidRootPart")
+						if hrp and bodyPosition and bodyPosition.Parent then
+							-- Cập nhật Position liên tục từ vị trí hiện tại, chỉ thay đổi Y
+							local currentPos = hrp.Position
+							-- Luôn cập nhật X, Z từ vị trí hiện tại để cho phép di chuyển tự do
+							bodyPosition.Position = Vector3.new(currentPos.X, targetHeightY, currentPos.Z)
+						else
+							-- HRP hoặc BodyPosition không tồn tại, tạo lại
+							if hrp then
+								applyAntiZombie()
+							end
+						end
+					else
+						removeBodyPosition()
+						targetHeightY = nil
+						baseYPosition = nil
+					end
+				end
+			end)
+		end
+	else
+		-- Tắt Anti-Zombie
+		removeBodyPosition()
+		targetHeightY = nil
+		baseYPosition = nil -- Reset để lần sau bật lại sẽ lấy vị trí mới
+	end
+end
+
+-- Tự động áp dụng khi nhân vật spawn/respawn
+local function onCharacterAdded(character)
+	removeBodyPosition() -- Xóa BodyPosition cũ
+	targetHeightY = nil
+	baseYPosition = nil -- Reset để lấy vị trí mới khi character spawn
+	task.wait(0.5) -- Đợi character load xong
+	applyAntiZombie()
+end
+
+if localPlayer.Character then
+	onCharacterAdded(localPlayer.Character)
+end
+
+localPlayer.CharacterAdded:Connect(onCharacterAdded)
 
 ----------------------------------------------------------
 -- 🔹 Hàm tạo ESP Billboard
@@ -755,6 +878,16 @@ MainTab:AddToggle("AutoMove", {
     end
 })
 
+MainTab:AddToggle("AntiZombie", {
+    Title = "Anti-Zombie (HipHeight)",
+    Default = antiZombieEnabled,
+    Callback = function(Value)
+        antiZombieEnabled = Value
+        applyAntiZombie() -- Áp dụng ngay lập tức
+        print("Anti-Zombie:", Value and "ON" or "OFF")
+    end
+})
+
 
 -- Settings Tab
 local SettingsTab = Window:AddTab({ Title = "Settings", Icon = "" })
@@ -857,6 +990,22 @@ SettingsTab:AddSlider("CameraOffsetZ", {
     Callback = function(Value)
         cameraOffsetZ = Value
         print("Camera Offset Z:", Value)
+    end
+})
+
+SettingsTab:AddSlider("HipHeight", {
+    Title = "HipHeight",
+    Description = "Điều chỉnh HipHeight để tránh zombie (studs)",
+    Default = 20,
+    Min = 0,
+    Max = 200,
+    Rounding = 1,
+    Callback = function(Value)
+        hipHeightValue = Value
+        if antiZombieEnabled then
+            applyAntiZombie() -- Áp dụng ngay nếu đang bật
+        end
+        print("HipHeight:", Value)
     end
 })
 
