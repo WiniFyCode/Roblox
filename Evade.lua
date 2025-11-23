@@ -546,8 +546,6 @@ local featureStates = {
     AutoWin = false,
     AutoMoneyFarm = false,
     AutoRevive = false,
-    AutoTicketFarm = false,
-    AutoWhistle = false,
     PlayerESP = {
         boxes = false,
         tracers = false,
@@ -574,15 +572,6 @@ local featureStates = {
     DownedDistanceESP = false,
     DownedBoxType = "3D",
     DownedHighlight = false,
-    TicketESP = {
-        enabled = false,
-        showTracers = true,
-        showNames = true,
-        showHighlight = true,
-        tracerColor = Color3.fromRGB(255, 0, 0),
-        nameColor = Color3.fromRGB(255, 100, 100), -- Màu đỏ nhạt
-        highlightColor = Color3.fromRGB(255, 255, 0)
-    },
     FlySpeed = 5,
     TpwalkValue = 1,
     CFrameSpeedValue = 3,
@@ -631,14 +620,6 @@ local interactEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Cha
 local carryRange = 10
 local carryDelay = 0.1
 
--- Auto Ticket Farm Variables
-local ticketFarmDelay = 0.5
-local autoTicketFarmConnection = nil
-
--- Auto Whistle Variables
-local autoWhistleConnection = nil
-local whistleDelay = 5 -- 5 seconds delay between whistles
-
 -- Click TP Variables
 local clickTPConnection
 
@@ -657,11 +638,6 @@ local downedNameESPLabels = {}
 -- Highlight Variables
 local playerHighlights = {}
 local downedHighlights = {}
-
--- Ticket ESP Variables
-local ticketEspObjects = {}
-local ticketEspConnection = nil
-local ticketConnections = {}
 
 -- Utility to safely clean up Drawing or Instance objects
 local function safeCleanupObject(obj)
@@ -743,238 +719,6 @@ local function cleanupHighlight(highlight)
     if highlight and highlight.Parent then
         highlight:Destroy()
     end
-end
-
--- Ticket ESP Functions
--- Get object position helper function for tickets
-local function getTicketPosition(object)
-    if object:IsA("BasePart") then
-        return object.Position
-    elseif object:IsA("Model") then
-        local primaryPart = object.PrimaryPart
-        if primaryPart then
-            return primaryPart.Position
-        else
-            local humanoidRoot = object:FindFirstChild("HumanoidRootPart")
-            if humanoidRoot then
-                return humanoidRoot.Position
-            else
-                for _, child in pairs(object:GetChildren()) do
-                    if child:IsA("BasePart") then
-                        return child.Position
-                    end
-                end
-            end
-        end
-    end
-    return nil
-end
-
--- Create ESP for a ticket
-local function createTicketESP(object)
-    if not object or not object.Parent then return end
-    
-    local character = player.Character
-    if not character then return end
-    
-    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-    if not humanoidRootPart then return end
-    
-    -- Get object position
-    local objectPosition = getTicketPosition(object)
-    if not objectPosition then return end
-    
-    -- Calculate distance
-    local distance = (humanoidRootPart.Position - objectPosition).Magnitude
-    
-    -- Create GUI for name
-    local nameGui = nil
-    if featureStates.TicketESP.showNames then
-        nameGui = Instance.new("BillboardGui")
-        nameGui.Name = "TicketESP_Name"
-        nameGui.Size = UDim2.new(0, 200, 0, 50)
-        nameGui.StudsOffset = Vector3.new(0, 2, 0)
-        nameGui.AlwaysOnTop = true
-        nameGui.Parent = object
-        
-        local nameLabel = Instance.new("TextLabel")
-        nameLabel.Name = "NameLabel"
-        nameLabel.Size = UDim2.new(1, 0, 1, 0)
-        nameLabel.BackgroundTransparency = 1
-        nameLabel.Text = "Ticket [" .. math.floor(distance) .. " m]"
-        nameLabel.TextColor3 = Color3.fromRGB(255, 100, 100) -- Màu đỏ nhạt
-        nameLabel.TextStrokeTransparency = 0
-        nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-        nameLabel.TextScaled = false
-        nameLabel.TextSize = 14 -- Cỡ chữ nhỏ như ESP player
-        nameLabel.Font = Enum.Font.SourceSansBold
-        nameLabel.Parent = nameGui
-    end
-    
-    -- Create tracer
-    local tracer = nil
-    if featureStates.TicketESP.showTracers then
-        tracer = Drawing.new("Line")
-        tracer.Visible = true
-        tracer.Color = featureStates.TicketESP.tracerColor
-        tracer.Thickness = 2
-        tracer.Transparency = 0.8
-    end
-    
-    -- Create highlight
-    local highlight = nil
-    if featureStates.TicketESP.showHighlight then
-        highlight = Instance.new("Highlight")
-        highlight.Name = "TicketESP_Highlight"
-        highlight.FillColor = featureStates.TicketESP.highlightColor
-        highlight.OutlineColor = featureStates.TicketESP.highlightColor
-        highlight.FillTransparency = 0.3
-        highlight.OutlineTransparency = 0
-        highlight.Parent = object
-    end
-    
-    -- Store ESP objects
-    ticketEspObjects[object] = {
-        nameGui = nameGui,
-        tracer = tracer,
-        highlight = highlight,
-        object = object
-    }
-end
-
--- Remove ESP from a ticket
-local function removeTicketESP(object)
-    local espData = ticketEspObjects[object]
-    if espData then
-        if espData.nameGui then
-            espData.nameGui:Destroy()
-        end
-        if espData.tracer then
-            espData.tracer:Remove()
-        end
-        if espData.highlight then
-            espData.highlight:Destroy()
-        end
-        ticketEspObjects[object] = nil
-    end
-end
-
--- Update Ticket ESP
-local function updateTicketESP()
-    if not featureStates.TicketESP.enabled then return end
-    
-    local character = player.Character
-    if not character then return end
-    
-    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-    if not humanoidRootPart then return end
-    
-    for object, espData in pairs(ticketEspObjects) do
-        if object and object.Parent then
-            local objectPosition = getTicketPosition(object)
-            if not objectPosition then
-                removeTicketESP(object)
-            else
-            
-            -- Update tracer
-            if espData.tracer and featureStates.TicketESP.showTracers then
-                local screenPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(objectPosition)
-                if onScreen then
-                    local screenCenter = workspace.CurrentCamera.ViewportSize / 2
-                    espData.tracer.From = Vector2.new(screenCenter.X, screenCenter.Y)
-                    espData.tracer.To = Vector2.new(screenPos.X, screenPos.Y)
-                    espData.tracer.Visible = true
-                else
-                    espData.tracer.Visible = false
-                end
-            end
-            
-            -- Update name (no distance)
-            if espData.nameGui and espData.nameGui.Parent then
-                local distance = (humanoidRootPart.Position - objectPosition).Magnitude
-                local nameLabel = espData.nameGui:FindFirstChild("NameLabel")
-                if nameLabel then
-                    nameLabel.Text = "Ticket [" .. math.floor(distance) .. "m ]"
-                end
-            end
-            end
-        else
-            -- Object no longer exists, remove ESP
-            removeTicketESP(object)
-        end
-    end
-end
-
--- Find and create ESP for all tickets
-local function findTickets()
-    local ticketsFolder = workspace:FindFirstChild("Game")
-    if ticketsFolder then
-        ticketsFolder = ticketsFolder:FindFirstChild("Effects")
-        if ticketsFolder then
-            ticketsFolder = ticketsFolder:FindFirstChild("Tickets")
-            if ticketsFolder then
-                for _, ticket in pairs(ticketsFolder:GetChildren()) do
-                    if ticket:IsA("BasePart") or ticket:IsA("Model") then
-                        createTicketESP(ticket)
-                    end
-                end
-            end
-        end
-    end
-end
-
--- Monitor for new tickets
-local function monitorTickets()
-    local ticketsFolder = workspace:FindFirstChild("Game")
-    if ticketsFolder then
-        ticketsFolder = ticketsFolder:FindFirstChild("Effects")
-        if ticketsFolder then
-            ticketsFolder = ticketsFolder:FindFirstChild("Tickets")
-            if ticketsFolder then
-                -- Connect to child added
-                local connection = ticketsFolder.ChildAdded:Connect(function(child)
-                    task.wait(0.1) -- Small delay to ensure object is fully loaded
-                    if child:IsA("BasePart") or child:IsA("Model") then
-                        createTicketESP(child)
-                    end
-                end)
-                
-                -- Connect to child removed
-                local connection2 = ticketsFolder.ChildRemoved:Connect(function(child)
-                    removeTicketESP(child)
-                end)
-                
-                table.insert(ticketConnections, connection)
-                table.insert(ticketConnections, connection2)
-            end
-        end
-    end
-end
-
--- Start Ticket ESP
-local function startTicketESP()
-    if ticketEspConnection then return end
-    findTickets()
-    monitorTickets()
-    ticketEspConnection = RunService.Heartbeat:Connect(updateTicketESP)
-end
-
--- Stop Ticket ESP
-local function stopTicketESP()
-    if ticketEspConnection then
-        ticketEspConnection:Disconnect()
-        ticketEspConnection = nil
-    end
-    
-    for _, connection in pairs(ticketConnections) do
-        connection:Disconnect()
-    end
-    ticketConnections = {}
-    
-    for object, espData in pairs(ticketEspObjects) do
-        removeTicketESP(object)
-    end
-    ticketEspObjects = {}
 end
 
 -- Function to draw 3D box
@@ -2053,93 +1797,6 @@ local function stopAutoMoneyFarm()
     end
 end
 
--- Auto Ticket Farm Functions
-local function startAutoTicketFarm()
-    if autoTicketFarmConnection then return end
-    autoTicketFarmConnection = task.spawn(function()
-        while featureStates.AutoTicketFarm do
-            local char = player.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            
-            if hrp then
-                -- Find tickets in workspace.Game.Effects.Tickets
-                local ticketsFolder = workspace:FindFirstChild("Game")
-                if ticketsFolder then
-                    ticketsFolder = ticketsFolder:FindFirstChild("Effects")
-                    if ticketsFolder then
-                        ticketsFolder = ticketsFolder:FindFirstChild("Tickets")
-                        if ticketsFolder then
-                            local nearestTicket = nil
-                            local nearestDistance = math.huge
-                            
-                            -- Find nearest ticket
-                            for _, ticket in pairs(ticketsFolder:GetChildren()) do
-                                if ticket:IsA("BasePart") or ticket:IsA("Model") then
-                                    local ticketPosition = getTicketPosition(ticket)
-                                    if ticketPosition then
-                                        local distance = (hrp.Position - ticketPosition).Magnitude
-                                        if distance < nearestDistance then
-                                            nearestTicket = ticket
-                                            nearestDistance = distance
-                                        end
-                                    end
-                                end
-                            end
-                            
-                            -- Teleport to nearest ticket if found
-                            if nearestTicket then
-                                local ticketPosition = getTicketPosition(nearestTicket)
-                                if ticketPosition then
-                                    -- Teleport to ticket
-                                    hrp.CFrame = CFrame.new(ticketPosition)
-                                    
-                                    WindUI:Notify({
-                                        Title = "Auto Ticket Farm",
-                                        Content = "Teleported to ticket: " .. nearestTicket.Name,
-                                        Duration = 2
-                                    })
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-            task.wait(ticketFarmDelay)
-        end
-        autoTicketFarmConnection = nil
-    end)
-end
-
-local function stopAutoTicketFarm()
-    featureStates.AutoTicketFarm = false
-    if autoTicketFarmConnection then
-        task.cancel(autoTicketFarmConnection)
-        autoTicketFarmConnection = nil
-    end
-end
-
--- Auto Whistle Functions
-local function startAutoWhistle()
-    if autoWhistleConnection then return end
-    autoWhistleConnection = task.spawn(function()
-        while featureStates.AutoWhistle do
-            pcall(function()
-                interactEvent:FireServer("Whistle")
-            end)
-            task.wait(whistleDelay)
-        end
-        autoWhistleConnection = nil
-    end)
-end
-
-local function stopAutoWhistle()
-    featureStates.AutoWhistle = false
-    if autoWhistleConnection then
-        task.cancel(autoWhistleConnection)
-        autoWhistleConnection = nil
-    end
-end
-
 -- Manual Revive Function
 local function manualRevive()
     pcall(function()
@@ -2443,14 +2100,6 @@ end
         if AutoMoneyFarmConnection then stopAutoMoneyFarm() end
         startAutoMoneyFarm()
     end
-    if featureStates.AutoTicketFarm then
-        if autoTicketFarmConnection then stopAutoTicketFarm() end
-        startAutoTicketFarm()
-    end
-    if featureStates.AutoWhistle then
-        if autoWhistleConnection then stopAutoWhistle() end
-        startAutoWhistle()
-    end
     if featureStates.PlayerESP.boxes or featureStates.PlayerESP.tracers or featureStates.PlayerESP.names or featureStates.PlayerESP.distance or featureStates.PlayerESP.highlight then
         stopPlayerESP()
         startPlayerESP()
@@ -2466,10 +2115,6 @@ end
     if featureStates.DownedNameESP then
         if downedNameESPConnection then stopDownedNameESP() end
         startDownedNameESP()
-    end
-    if featureStates.TicketESP.enabled then
-        if ticketEspConnection then stopTicketESP() end
-        startTicketESP()
     end
     if featureStates.DesiredFOV and workspace.CurrentCamera then
         workspace.CurrentCamera.FieldOfView = featureStates.DesiredFOV
@@ -3352,7 +2997,7 @@ local NextbotDistanceESPToggle = Tabs.ESP:Toggle({
 
     Tabs.ESP:Section({ Title = "Downed Player ESP" })
 
-local DownedBoxESPToggle = Tabs.ESP:Toggle({
+    local DownedBoxESPToggle = Tabs.ESP:Toggle({
         Title = "loc:DOWNED_BOX_ESP",
         Value = featureStates.DownedBoxESP,
         Callback = function(state)
@@ -3428,62 +3073,6 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
             end
         end
     })
-
-    Tabs.ESP:Section({ Title = "Ticket ESP" })
-
-    local TicketESPToggle = Tabs.ESP:Toggle({
-        Title = "Ticket ESP",
-        Desc = "ESP for tickets in workspace.Game.Effects.Tickets",
-        Value = featureStates.TicketESP.enabled,
-        Callback = function(state)
-            featureStates.TicketESP.enabled = state
-            if state then
-                startTicketESP()
-            else
-                stopTicketESP()
-            end
-        end
-    })
-
-    local TicketTracerToggle = Tabs.ESP:Toggle({
-        Title = "Ticket Tracer",
-        Desc = "Show tracer lines to tickets",
-        Value = featureStates.TicketESP.showTracers,
-        Callback = function(state)
-            featureStates.TicketESP.showTracers = state
-            if featureStates.TicketESP.enabled then
-                stopTicketESP()
-                startTicketESP()
-            end
-        end
-    })
-
-    local TicketNameToggle = Tabs.ESP:Toggle({
-        Title = "Ticket Name ESP",
-        Desc = "Show ticket names and distance",
-        Value = featureStates.TicketESP.showNames,
-        Callback = function(state)
-            featureStates.TicketESP.showNames = state
-            if featureStates.TicketESP.enabled then
-                stopTicketESP()
-                startTicketESP()
-            end
-        end
-    })
-
-    local TicketHighlightToggle = Tabs.ESP:Toggle({
-        Title = "Ticket Highlight",
-        Desc = "Highlight tickets with colored outline",
-        Value = featureStates.TicketESP.showHighlight,
-        Callback = function(state)
-            featureStates.TicketESP.showHighlight = state
-            if featureStates.TicketESP.enabled then
-                stopTicketESP()
-                startTicketESP()
-            end
-        end
-    })
-
 
     -- Auto Tab
     Tabs.Auto:Section({ Title = "Auto", TextSize = 40 })
@@ -3679,47 +3268,6 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
         end
     })
 
-    local AutoTicketFarmToggle = Tabs.Auto:Toggle({
-        Title = "Auto Ticket Farm",
-        Desc = "Automatically teleport to nearest tickets",
-        Value = featureStates.AutoTicketFarm,
-        Callback = function(state)
-            featureStates.AutoTicketFarm = state
-            if state then
-                startAutoTicketFarm()
-            else
-                stopAutoTicketFarm()
-            end
-        end
-    })
-
-    local TicketFarmRangeInput = Tabs.Auto:Input({
-        Title = "Ticket Farm Delay (seconds)",
-        Placeholder = "0.5",
-        Value = tostring(ticketFarmDelay),
-        Callback = function(value)
-            local num = tonumber(value)
-            if num and num >= 0 then
-                ticketFarmDelay = num
-            end
-        end
-    })
-
-    local AutoWhistleToggle = Tabs.Auto:Toggle({
-        Title = "loc:AUTO_WHISTLE",
-        Desc = "Automatically whistle every 5 seconds",
-        Value = featureStates.AutoWhistle,
-        Callback = function(state)
-            featureStates.AutoWhistle = state
-            if state then
-                startAutoWhistle()
-            else
-                stopAutoWhistle()
-            end
-        end
-    })
-
-
     -- Settings Tab
     Tabs.Settings:Section({ Title = "Settings", TextSize = 40 })
     Tabs.Settings:Section({ Title = "Personalize", TextSize = 20 })
@@ -3845,10 +3393,6 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 configFile:Register("DownedTracerToggle", DownedTracerToggle)
                 configFile:Register("DownedNameESPToggle", DownedNameESPToggle)
                 configFile:Register("DownedDistanceESPToggle", DownedDistanceESPToggle)
-                configFile:Register("TicketESPToggle", TicketESPToggle)
-                configFile:Register("TicketTracerToggle", TicketTracerToggle)
-                configFile:Register("TicketNameToggle", TicketNameToggle)
-                configFile:Register("TicketHighlightToggle", TicketHighlightToggle)
                 configFile:Register("AutoCarryToggle", AutoCarryToggle)
                 configFile:Register("CarryRangeInput", CarryRangeInput)
                 configFile:Register("CarryDelayInput", CarryDelayInput)
@@ -3861,9 +3405,6 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 configFile:Register("AutoSelfReviveToggle", AutoSelfReviveToggle)
                 configFile:Register("AutoWinToggle", AutoWinToggle)
                 configFile:Register("AutoMoneyFarmToggle", AutoMoneyFarmToggle)
-                configFile:Register("AutoTicketFarmToggle", AutoTicketFarmToggle)
-                configFile:Register("TicketFarmDelayInput", TicketFarmDelayInput)
-                configFile:Register("AutoWhistleToggle", AutoWhistleToggle)
                 configFile:Register("TimerDisplayToggle", TimerDisplayToggle)
                 configFile:Register("ThemeDropdown", ThemeDropdown)
                 configFile:Register("TransparencySlider", TransparencySlider)
@@ -3943,8 +3484,6 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                     AutoWin = false,
                     AutoMoneyFarm = false,
                     AutoRevive = false,
-                    AutoTicketFarm = false,
-                    AutoWhistle = false,
                     PlayerESP = {
                         boxes = false,
                         tracers = false,
@@ -3971,15 +3510,6 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                     DownedDistanceESP = false,
                     DownedBoxType = "3D",
                     DownedHighlight = false,
-                    TicketESP = {
-                        enabled = false,
-                        showTracers = true,
-                        showNames = true,
-                        showHighlight = true,
-                        tracerColor = Color3.fromRGB(255, 0, 0),
-                        nameColor = Color3.fromRGB(255, 100, 100), -- Màu đỏ nhạt
-                        highlightColor = Color3.fromRGB(255, 255, 0)
-                    },
                     FlySpeed = 5,
                     TpwalkValue = 1,
                     CFrameSpeedValue = 3,
@@ -4036,12 +3566,6 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 if DownedDistanceESPToggle then DownedDistanceESPToggle:Set(false) end
                 if DownedHighlightToggle then DownedHighlightToggle:Set(false) end
                 
-                -- Reset Ticket ESP
-                if TicketESPToggle then TicketESPToggle:Set(false) end
-                if TicketTracerToggle then TicketTracerToggle:Set(true) end
-                if TicketNameToggle then TicketNameToggle:Set(true) end
-                if TicketHighlightToggle then TicketHighlightToggle:Set(true) end
-                
                 -- Reset Auto features
                 if AutoCarryToggle then AutoCarryToggle:Set(false) end
                 if CarryRangeInput then CarryRangeInput:Set("10") end
@@ -4054,9 +3578,6 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 if AutoSelfReviveToggle then AutoSelfReviveToggle:Set(false) end
                 if AutoWinToggle then AutoWinToggle:Set(false) end
                 if AutoMoneyFarmToggle then AutoMoneyFarmToggle:Set(false) end
-                if AutoTicketFarmToggle then AutoTicketFarmToggle:Set(false) end
-                if TicketFarmDelayInput then TicketFarmDelayInput:Set("0.5") end
-                if AutoWhistleToggle then AutoWhistleToggle:Set(false) end
                 
                 -- Reset Settings
                 if ThemeDropdown then ThemeDropdown:Select("Dark") end
@@ -4068,14 +3589,12 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 carryDelay = 0.05
                 reviveRange = 5
                 reviveDelay = 0.5
-                ticketFarmDelay = 0.5
                 
                 -- Stop all active features
                 stopPlayerESP()
                 stopNextbotNameESP()
                 stopDownedTracer()
                 stopDownedNameESP()
-                stopTicketESP()
                 stopAutoJump()
                 stopFlying()
                 stopTpwalk()
@@ -4088,8 +3607,6 @@ local DownedTracerToggle = Tabs.ESP:Toggle({
                 stopAutoSelfRevive()
                 stopAutoWin()
                 stopAutoMoneyFarm()
-                stopAutoTicketFarm()
-                stopAutoWhistle()
                 stopClickTP()
                 stopFullBright()
                 stopNoFog()
