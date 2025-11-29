@@ -504,11 +504,12 @@ task.spawn(function()
 	if autoSkillEnabled then
 		task.wait(1) -- Đợi 1 giây để character load xong
 		activateSkill1010()
+		activateSkill1002()
 	end
 	
 	-- Track timing cho từng skill
-	local lastSkill1010Time = 0
-	local lastSkill1002Time = 0
+	local lastSkill1010Time = tick()
+	local lastSkill1002Time = tick()
 	
 	while task.wait(1) do -- Check mỗi 1 giây
 		if autoSkillEnabled then
