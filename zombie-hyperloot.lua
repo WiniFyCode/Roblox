@@ -909,6 +909,17 @@ SettingsTab:AddSlider("HipHeight", {
     end
 })
 
+-- Thêm toggle để bật/tắt teleport đến zombie cuối cùng
+SettingsTab:AddToggle("TeleportToLastZombie", {
+    Title = "Teleport to Last Zombie",
+    Description = "Teleport đến vị trí zombie cuối cùng sau khi camera teleport kết thúc",
+    Default = teleportToLastZombie,
+    Callback = function(Value)
+        teleportToLastZombie = Value
+        print("Teleport to Last Zombie:", Value and "ON" or "OFF")
+    end
+})
+
 -- Thêm dropdown để chọn chế độ nhắm mục tiêu camera
 SettingsTab:AddDropdown("CameraTargetMode", {
     Title = "Camera Target Mode",
