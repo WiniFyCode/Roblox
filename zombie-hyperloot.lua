@@ -4,7 +4,7 @@ local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/
 
 local Window = Fluent:CreateWindow({
     Title = "Zombie Hyperloot",
-    SubTitle = "by TNG",
+    SubTitle = "by TDT",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 460),
     Acrylic = false,
@@ -156,6 +156,17 @@ localPlayer.CharacterAdded:Connect(onCharacterAdded)
 local function createESP(part, color, name, zombie)
 	if not part or part:FindFirstChild("ESPTag") then return end
 
+	-- Tạo Highlight để làm nổi bật zombie
+	local highlight = Instance.new("Highlight")
+	highlight.Name = "ESP_Highlight"
+	highlight.Adornee = part.Parent -- Áp dụng highlight cho toàn bộ zombie model
+	highlight.FillColor = Color3.fromRGB(0, 255, 0) -- Màu xanh lá cây
+	highlight.OutlineColor = Color3.fromRGB(255, 255, 0) -- Viền vàng
+	highlight.FillTransparency = 0.7 -- Độ trong suốt của phần fill
+	highlight.OutlineTransparency = 0 -- Viền không trong suốt
+	highlight.Enabled = true
+	highlight.Parent = part.Parent -- Gắn highlight vào model của zombie
+
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "ESPTag"
 	billboard.AlwaysOnTop = true
@@ -206,6 +217,11 @@ local function createESP(part, color, name, zombie)
 					break
 				end
 				task.wait(0.1) -- Cập nhật mỗi 0.1 giây
+			end
+			
+			-- Xóa highlight khi kết thúc
+			if highlight and highlight.Parent then
+				highlight:Destroy()
 			end
 		end)
 	end
@@ -281,6 +297,12 @@ end)
 
 entityFolder.ChildRemoved:Connect(function(zombie)
 	processedZombies[zombie] = nil
+	
+	-- Xóa highlight nếu có
+	local highlight = zombie:FindFirstChild("ESP_Highlight")
+	if highlight then
+		highlight:Destroy()
+	end
 end)
 
 ----------------------------------------------------------
@@ -364,6 +386,12 @@ local function clearZombieESP()
 			local espTag = head:FindFirstChild("ESPTag")
 			if espTag then
 				espTag:Destroy()
+			end
+			
+			-- Xóa highlight nếu có
+			local highlight = zombie:FindFirstChild("ESP_Highlight")
+			if highlight then
+				highlight:Destroy()
 			end
 		end
 	end
@@ -881,10 +909,11 @@ SettingsTab:AddSlider("HipHeight", {
     end
 })
 
+-- Thêm dropdown để chọn chế độ nhắm mục tiêu camera
 SettingsTab:AddDropdown("CameraTargetMode", {
     Title = "Camera Target Mode",
-    Description = "Chọn chế độ mục tiêu cho Camera Teleport",
-    Options = {"LowestHealth", "Nearest"},
+    Description = "Chọn chế độ nhắm mục tiêu cho camera teleport",
+    Values = {"LowestHealth", "Nearest"},
     Default = cameraTargetMode,
     Callback = function(Value)
         cameraTargetMode = Value
