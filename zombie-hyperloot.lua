@@ -45,11 +45,8 @@ local hipHeightToggleKey = Enum.KeyCode.M -- ấn M để bật/tắt Anti-Zombi
 local autoBulletBoxEnabled = true -- Kéo BulletBox về vị trí người chơi
 local cameraTargetMode = "Nearest" -- Mode chọn mục tiêu camera: "LowestHealth" hoặc "Nearest"
 local autoSkillEnabled = true -- Bật/tắt auto skill loop
-local skillInterval = 10 -- Khoảng thời gian giữa các lần dùng skill (giây)
-local noGunFireEffects = true -- Bật/tắt hiệu ứng bắn súng (mặc định bật)
-local autoAimbotEnabled = false -- Bật/tắt auto aimbot
-local instantKillEnabled = false -- Bật/tắt instant kill
-local autoShootEnabled = false -- Bật/tắt auto shoot
+local skillInterval1010 = 15 -- Khoảng thời gian cho skill 1010 (giây)
+local skillInterval1002 = 20 -- Khoảng thời gian cho skill 1002 (giây)
 
 -- Anti-Zombie Configuration (HipHeight)
 local antiZombieEnabled = false -- Bật/tắt Anti-Zombie (tăng HipHeight)
@@ -476,25 +473,28 @@ end)
 
 ----------------------------------------------------------
 -- 🔹 Infinite Skill Loop
-local function activateSkill()
+local function activateSkill1010()
 	local char = localPlayer.Character
 	if not char then return end
-	
-	local tool = char:FindFirstChild("Tool")
-	if not tool then return end
 	
 	local netMessage = char:FindFirstChild("NetMessage")
 	if not netMessage then return end
 	
-	local replicatedStorage = game:GetService("ReplicatedStorage")
-	local remote = replicatedStorage:FindFirstChild("Remote")
-	if not remote then return end
+	pcall(function()
+		-- Trigger skill 1010
+		netMessage:WaitForChild("TrigerSkill"):FireServer(1010, "Enter")
+	end)
+end
+
+local function activateSkill1002()
+	local char = localPlayer.Character
+	if not char then return end
+	
+	local netMessage = char:FindFirstChild("NetMessage")
+	if not netMessage then return end
 	
 	pcall(function()
-		-- Chỉ trigger skill 1010 mà không ảnh hưởng đến state action
-		netMessage:WaitForChild("TrigerSkill"):FireServer(1010, "Enter")
-		
-		-- Thêm skill hồi máu 1002
+		-- Trigger skill 1002 (hồi máu)
 		netMessage:WaitForChild("TrigerSkill"):FireServer(1002, "Enter")
 	end)
 end
@@ -503,14 +503,28 @@ end
 task.spawn(function()
 	if autoSkillEnabled then
 		task.wait(1) -- Đợi 1 giây để character load xong
-		activateSkill()
+		activateSkill1010()
 	end
 	
-	while task.wait(skillInterval) do
+	-- Track timing cho từng skill
+	local lastSkill1010Time = 0
+	local lastSkill1002Time = 0
+	
+	while task.wait(1) do -- Check mỗi 1 giây
 		if autoSkillEnabled then
-			activateSkill()
-			-- Đợi một chút sau khi dùng skill để không ảnh hưởng combat
-			task.wait(0.5)
+			local currentTime = tick()
+			
+			-- Kiểm tra skill 1010 (15s)
+			if currentTime - lastSkill1010Time >= skillInterval1010 then
+				activateSkill1010()
+				lastSkill1010Time = currentTime
+			end
+			
+			-- Kiểm tra skill 1002 (20s)
+			if currentTime - lastSkill1002Time >= skillInterval1002 then
+				activateSkill1002()
+				lastSkill1002Time = currentTime
+			end
 		end
 	end
 end)
@@ -832,31 +846,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 ----------------------------------------------------------
--- 🔹 No Gun Fire Effects - Block EffectReplicated calls
-local function blockGunFireEffects()
-	if not noGunFireEffects then return end
-	
-	local remote = game:GetService("ReplicatedStorage"):FindFirstChild("Remote")
-	if not remote then return end
-	
-	local effectReplicated = remote:FindFirstChild("EffectReplicated")
-	if effectReplicated then
-		-- Hook the EffectReplicated to block GunFireEffect
-		local originalFireServer = effectReplicated.FireServer
-		effectReplicated.FireServer = function(self, ...)
-			local args = {...}
-			if args[1] == "GunFireEffect" then
-				return -- Block GunFireEffect calls
-			end
-			return originalFireServer(self, ...)
-		end
-	end
-end
-
--- Block gun fire effects immediately
-task.spawn(blockGunFireEffects)
-
-----------------------------------------------------------
 -- 🔹 Auto Aimbot + Instant Kill System
 local function getNearestZombie()
 	local char = localPlayer.Character
@@ -970,26 +959,6 @@ local function performInstantKill(zombie)
 	end)
 end
 
--- Auto Aimbot + Instant Kill Loop
-task.spawn(function()
-	while task.wait(0.1) do -- Check every 100ms for fast response
-		if autoAimbotEnabled and instantKillEnabled then
-			local target = getNearestZombie()
-			if target then
-				performInstantKill(target)
-				task.wait(0.2) -- Small delay between kills to avoid spam
-			end
-		elseif autoAimbotEnabled and autoShootEnabled then
-			local target = getNearestZombie()
-			if target then
-				-- Auto shoot with perfect accuracy
-				performInstantKill(target)
-				task.wait(0.5) -- Normal shooting delay
-			end
-		end
-	end
-end)
-
 ----------------------------------------------------------
 -- 🔹 Fluent UI Controls
 local MainTab = Window:AddTab({ Title = "Main", Icon = "" })
@@ -1083,46 +1052,18 @@ MainTab:AddToggle("AntiZombie", {
 })
 
 MainTab:AddToggle("AutoSkill", {
-    Title = "Auto Skill (Every 10s)",
+    Title = "Auto Skill (1010: 15s, 1002: 20s)",
     Default = autoSkillEnabled,
     Callback = function(Value)
         autoSkillEnabled = Value
         if Value then
             -- Kích hoạt skill ngay lập tức khi bật
             task.wait(1) -- Đợi 1 giây để character load xong
-            activateSkill()
+            activateSkill1010()
         end
         print("Auto Skill:", Value and "ON" or "OFF")
     end
 })
-
-MainTab:AddToggle("AutoAimbot", {
-    Title = "Auto Aimbot (Perfect Accuracy)",
-    Default = autoAimbotEnabled,
-    Callback = function(Value)
-        autoAimbotEnabled = Value
-        print("Auto Aimbot:", Value and "ON" or "OFF")
-    end
-})
-
-MainTab:AddToggle("InstantKill", {
-    Title = "Instant Kill (Rapid Fire)",
-    Default = instantKillEnabled,
-    Callback = function(Value)
-        instantKillEnabled = Value
-        print("Instant Kill:", Value and "ON" or "OFF")
-    end
-})
-
-MainTab:AddToggle("AutoShoot", {
-    Title = "Auto Shoot (Normal Speed)",
-    Default = autoShootEnabled,
-    Callback = function(Value)
-        autoShootEnabled = Value
-        print("Auto Shoot:", Value and "ON" or "OFF")
-    end
-})
-
 
 -- Settings Tab
 local SettingsTab = Window:AddTab({ Title = "Settings", Icon = "" })
@@ -1156,31 +1097,29 @@ SettingsTab:AddSlider("HipHeight", {
     end
 })
 
-SettingsTab:AddSlider("SkillInterval", {
-    Title = "Skill Interval",
-    Description = "Khoảng thời gian giữa các lần dùng skill (giây)",
-    Default = 10,
+SettingsTab:AddSlider("Skill1010Interval", {
+    Title = "Skill 1010 Interval",
+    Description = "Khoảng thời gian cho skill 1010 (giây)",
+    Default = 15,
     Min = 1,
     Max = 60,
     Rounding = 1,
     Callback = function(Value)
-        skillInterval = Value
-        print("Skill Interval:", Value, "seconds")
+        skillInterval1010 = Value
+        print("Skill 1010 Interval:", Value, "seconds")
     end
 })
 
-SettingsTab:AddToggle("NoGunFireEffects", {
-    Title = "No Gun Fire Effects",
-    Description = "Xóa hiệu ứng bắn súng (muzzle flash, sound effect)",
-    Default = noGunFireEffects,
+SettingsTab:AddSlider("Skill1002Interval", {
+    Title = "Skill 1002 Interval",
+    Description = "Khoảng thời gian cho skill 1002 (giây)",
+    Default = 20,
+    Min = 1,
+    Max = 60,
+    Rounding = 1,
     Callback = function(Value)
-        noGunFireEffects = Value
-        if Value then
-			blockGunFireEffects()
-            print("No Gun Fire Effects: ON")
-        else
-			print("No Gun Fire Effects: OFF")
-        end
+        skillInterval1002 = Value
+        print("Skill 1002 Interval:", Value, "seconds")
     end
 })
 
