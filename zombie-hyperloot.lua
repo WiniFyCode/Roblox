@@ -43,6 +43,7 @@ local cameraOffsetX = 0 -- Camera offset X
 local cameraOffsetY = 10 -- Camera offset Y
 local cameraOffsetZ = -2 -- Camera offset Z
 local hipHeightToggleKey = Enum.KeyCode.M -- ấn M để bật/tắt Anti-Zombie nhanh
+local autoBulletBoxEnabled = false -- Kéo BulletBox về vị trí người chơi
 
 -- Anti-Zombie Configuration (HipHeight)
 local antiZombieEnabled = false -- Bật/tắt Anti-Zombie (tăng HipHeight)
@@ -408,6 +409,31 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 ----------------------------------------------------------
+-- 🔹 Auto BulletBox Teleport
+local function getBulletBoxPart()
+	local fx = Workspace:FindFirstChild("FX")
+	local bulletBoxFolder = fx and fx:FindFirstChild("BulletBox")
+	local box = bulletBoxFolder and bulletBoxFolder:FindFirstChild("Box")
+	if box and box:IsA("BasePart") then
+		return box
+	end
+	return nil
+end
+
+task.spawn(function()
+	while task.wait(0.15) do
+		if autoBulletBoxEnabled then
+			local boxPart = getBulletBoxPart()
+			local char = localPlayer.Character
+			local hrp = char and char:FindFirstChild("HumanoidRootPart")
+			if boxPart and hrp then
+				boxPart.CFrame = CFrame.new(hrp.Position + Vector3.new(0, 2, 0))
+			end
+		end
+	end
+end)
+
+----------------------------------------------------------
 -- 🔹 HipHeight Toggle (Press M)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then return end
@@ -687,6 +713,16 @@ MainTab:AddToggle("Teleport", {
     Callback = function(Value)
         teleportEnabled = Value
         print("Auto Collect:", Value and "ON" or "OFF")
+    end
+})
+
+
+MainTab:AddToggle("AutoBulletBox", {
+    Title = "Auto BulletBox",
+    Default = autoBulletBoxEnabled,
+    Callback = function(Value)
+        autoBulletBoxEnabled = Value
+        print("Auto BulletBox:", Value and "ON" or "OFF")
     end
 })
 
