@@ -43,7 +43,7 @@ local cameraOffsetY = 10 -- Camera offset Y
 local cameraOffsetZ = -2 -- Camera offset Z
 local hipHeightToggleKey = Enum.KeyCode.M -- ấn M để bật/tắt Anti-Zombie nhanh
 local autoBulletBoxEnabled = true -- Kéo BulletBox về vị trí người chơi
-local cameraTargetMode = "LowestHealth" -- Mode chọn mục tiêu camera: "LowestHealth" hoặc "Nearest"
+local cameraTargetMode = "Nearest" -- Mode chọn mục tiêu camera: "LowestHealth" hoặc "Nearest"
 
 -- Anti-Zombie Configuration (HipHeight)
 local antiZombieEnabled = false -- Bật/tắt Anti-Zombie (tăng HipHeight)
