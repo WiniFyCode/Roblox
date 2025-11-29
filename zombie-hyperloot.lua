@@ -22,7 +22,7 @@ local entityFolder = Workspace:WaitForChild("Entity")
 local fxFolder = Workspace:WaitForChild("FX")
 local mapModel = Workspace:WaitForChild("Map")
 
--- Cấu hình
+-- Cấu hình esp
 local hitboxSize = Vector3.new(4, 4, 4)
 local espColorZombie = Color3.fromRGB(0, 255, 0)
 local espColorChest = Color3.fromRGB(255, 255, 0)
@@ -42,15 +42,7 @@ local cameraTeleportStartPosition = nil -- Vị trí ban đầu của nhân vậ
 local cameraOffsetX = 0 -- Camera offset X
 local cameraOffsetY = 10 -- Camera offset Y
 local cameraOffsetZ = -2 -- Camera offset Z
-
--- Auto Move Configuration
-local autoMoveEnabled = false -- Tự động duy trì khoảng cách với zombie
-local autoMoveDistance = 100 -- Khoảng cách cần duy trì với zombie (studs)
-local autoMoveSpeed = 16 -- Tốc độ di chuyển (studs/second)
-local autoMoveKey = Enum.KeyCode.M -- ấn M để bật/tắt auto move
-local isAutoMoving = false -- Trạng thái đang auto move
-local autoMoveTarget = nil -- Zombie đang theo dõi
-local lastTargetZombie = nil -- Zombie được theo dõi lần trước
+local hipHeightToggleKey = Enum.KeyCode.M -- ấn M để bật/tắt Anti-Zombie nhanh
 
 -- Anti-Zombie Configuration (HipHeight)
 local antiZombieEnabled = false -- Bật/tắt Anti-Zombie (tăng HipHeight)
@@ -59,255 +51,96 @@ local originalHipHeight = nil -- Lưu HipHeight gốc để khôi phục
 
 
 ----------------------------------------------------------
--- 🔹 Auto Move Functions - Duy trì khoảng cách cố định với zombie
--- Kiểm tra vật cản trên đường đi
-local function checkObstacle(startPos, endPos)
-	local raycastParams = RaycastParams.new()
-	raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-	raycastParams.FilterDescendantsInstances = {localPlayer.Character}
-	
-	local direction = (endPos - startPos)
-	local raycastResult = Workspace:Raycast(startPos, direction)
-	
-	if raycastResult then
-		local distance = (raycastResult.Position - startPos).Magnitude
-		local totalDistance = direction.Magnitude
-		
-		-- Nếu vật cản ở gần (trong 80% đường đi)
-		if distance < totalDistance * 0.8 then
-			return true, raycastResult.Position
-		end
+-- 🔹 Anti-Zombie Functions - Duy trì HipHeight nhưng vẫn cho phép di chuyển
+local humanoidHipHeightConnection = nil
+local noClipConnection = nil
+local originalCollidableParts = {}
+
+local function disconnectHipHeightListener()
+	if humanoidHipHeightConnection then
+		humanoidHipHeightConnection:Disconnect()
+		humanoidHipHeightConnection = nil
 	end
-	
-	return false, nil
 end
 
--- Tìm zombie gần nhất để theo dõi
-local function findNearestZombieToPlayer()
-	local char = localPlayer.Character
-	local hrp = char and char:FindFirstChild("HumanoidRootPart")
-	if not hrp then return nil end
-	
-	local playerPosition = hrp.Position
-	local nearestZombie = nil
-	local nearestDistance = math.huge
-	
-	for _, zombie in ipairs(entityFolder:GetChildren()) do
-		if zombie:IsA("Model") then
-			local humanoid = zombie:FindFirstChild("Humanoid")
-			local zombieHRP = zombie:FindFirstChild("HumanoidRootPart")
-			
-			if humanoid and humanoid.Health > 0 and zombieHRP then
-				local distance = (playerPosition - zombieHRP.Position).Magnitude
-				if distance < nearestDistance then
-					nearestDistance = distance
-					nearestZombie = {zombie = zombie, distance = distance, position = zombieHRP.Position}
-				end
+local function restoreOriginalCollisions()
+	for part in pairs(originalCollidableParts) do
+		if part and part.Parent then
+			part.CanCollide = true
+		end
+		originalCollidableParts[part] = nil
+	end
+end
+
+local function disableNoClip()
+	if noClipConnection then
+		noClipConnection:Disconnect()
+		noClipConnection = nil
+	end
+	restoreOriginalCollisions()
+end
+
+local function enableNoClip()
+	disableNoClip()
+	noClipConnection = RunService.Stepped:Connect(function()
+		local char = localPlayer.Character
+		if not char then return end
+		for _, descendant in ipairs(char:GetDescendants()) do
+			if descendant:IsA("BasePart") and descendant.CanCollide then
+				originalCollidableParts[descendant] = true
+				descendant.CanCollide = false
 			end
 		end
-	end
-	
-	return nearestZombie
+	end)
 end
 
--- Hàm duy trì khoảng cách cố định với zombie gần nhất
-local function maintainDistanceFromZombie()
+local function enforceHipHeight(humanoid)
+	if not humanoid or not humanoid.Parent then return end
+	local desired = math.max(0, tonumber(hipHeightValue) or 20)
+	humanoid.HipHeight = desired
+end
+
+local function disableAntiZombie()
+	disconnectHipHeightListener()
+	disableNoClip()
 	local char = localPlayer.Character
-	local hrp = char and char:FindFirstChild("HumanoidRootPart")
 	local humanoid = char and char:FindFirstChild("Humanoid")
-	
-	if not hrp or not humanoid then 
-		return 
+	if humanoid and originalHipHeight ~= nil then
+		humanoid.HipHeight = originalHipHeight
 	end
-	
-	local playerPosition = hrp.Position
-	local targetDistance = tonumber(autoMoveDistance) or 100
-	
-	-- Tìm zombie gần nhất
-	local nearestZombie = findNearestZombieToPlayer()
-	if not nearestZombie then 
-		lastTargetZombie = nil
-		return 
-	end
-	
-	-- Kiểm tra xem có phải zombie mới không
-	if lastTargetZombie ~= nearestZombie.zombie then
-		lastTargetZombie = nearestZombie.zombie
-	end
-	
-	local zombiePosition = nearestZombie.position
-	local currentDistance = nearestZombie.distance
-	
-	-- Tính toán vị trí cần di chuyển tới để duy trì khoảng cách 100 studs
-	local direction = (playerPosition - zombiePosition).Unit
-	local targetPosition = zombiePosition + (direction * targetDistance)
-	
-	-- Kiểm tra vật cản
-	local hasObstacle, obstaclePos = checkObstacle(playerPosition, targetPosition)
-	if hasObstacle then
-		
-		-- Tìm đường đi thay thế (di chuyển sang trái/phải)
-		local sideDirections = {
-			Vector3.new(1, 0, 0),   -- Phải
-			Vector3.new(-1, 0, 0),  -- Trái
-			Vector3.new(0, 0, 1),   -- Trước
-			Vector3.new(0, 0, -1)   -- Sau
-		}
-		
-		local bestPosition = nil
-		for _, sideDir in ipairs(sideDirections) do
-			local testPos = zombiePosition + (sideDir * targetDistance)
-			local testDir = (testPos - playerPosition).Unit
-			local finalPos = playerPosition + (testDir * targetDistance)
-			
-			local hasTestObstacle = checkObstacle(playerPosition, finalPos)
-			if not hasTestObstacle then
-				bestPosition = finalPos
-				break
-			end
-		end
-		
-		if bestPosition then
-			targetPosition = bestPosition
-		else
-			return
-		end
-	end
-	
-	-- Di chuyển tới vị trí mục tiêu để duy trì khoảng cách 100 studs
-	humanoid:MoveTo(targetPosition)
+	originalHipHeight = nil
 end
 
--- Auto Move Loop - Duy trì khoảng cách 100 studs với zombie gần nhất
-task.spawn(function()
-	while task.wait(0.2) do -- Kiểm tra thường xuyên để theo dõi zombie gần nhất
-		if autoMoveEnabled then
-			local nearestZombie = findNearestZombieToPlayer()
-			
-			if nearestZombie then
-				local currentDistance = tonumber(nearestZombie.distance) or 0
-				local targetDistance = tonumber(autoMoveDistance) or 100
-				local distanceDiff = math.abs(currentDistance - targetDistance)
-				
-				-- Chỉ di chuyển nếu khoảng cách sai lệch > 10 studs (cho khoảng cách 100)
-				if distanceDiff > 10 then
-					maintainDistanceFromZombie()
-					task.wait(0.5) -- Đợi ngắn hơn để phản ứng nhanh hơn
-				end
-			end
-		end
-	end
-end)
-
-----------------------------------------------------------
--- 🔹 Anti-Zombie Functions - Giữ nhân vật ở độ cao cố định bằng BodyPosition
-local bodyPosition = nil -- Lưu BodyPosition để có thể xóa khi tắt
-local heartbeatConnection = nil -- Connection để cập nhật vị trí
-
--- Hàm tạo BodyPosition để giữ nhân vật ở độ cao cố định
-local function createBodyPosition(hrp, targetY)
-	if not hrp then return end
-	
-	-- Xóa BodyPosition cũ nếu có
-	if bodyPosition then
-		bodyPosition:Destroy()
-		bodyPosition = nil
-	end
-	
-	-- Tạo BodyPosition mới - chỉ giữ Y, cho phép X, Z di chuyển tự do
-	bodyPosition = Instance.new("BodyPosition")
-	bodyPosition.Name = "AntiZombieBodyPosition"
-	-- Chỉ dùng lực mạnh cho Y, X và Z dùng lực nhỏ hơn để không chặn di chuyển
-	bodyPosition.MaxForce = Vector3.new(0, 4000, 0) -- Chỉ giữ Y
-	bodyPosition.Position = Vector3.new(hrp.Position.X, targetY, hrp.Position.Z)
-	bodyPosition.Parent = hrp
-end
-
--- Hàm xóa BodyPosition và khôi phục bình thường
-local function removeBodyPosition()
-	if bodyPosition then
-		bodyPosition:Destroy()
-		bodyPosition = nil
-	end
-	-- Ngắt connection nếu có
-	if heartbeatConnection then
-		heartbeatConnection:Disconnect()
-		heartbeatConnection = nil
-	end
-end
-
--- Lưu độ cao mục tiêu và vị trí Y ban đầu
-local targetHeightY = nil
-local baseYPosition = nil -- Vị trí Y ban đầu khi bật Anti-Zombie
-
--- Hàm áp dụng Anti-Zombie
 local function applyAntiZombie()
 	local char = localPlayer.Character
-	if not char then 
-		removeBodyPosition()
-		targetHeightY = nil
-		baseYPosition = nil
-		return 
-	end
-	
-	local hrp = char:FindFirstChild("HumanoidRootPart")
-	if not hrp then 
-		removeBodyPosition()
-		targetHeightY = nil
-		baseYPosition = nil
-		return 
+	local humanoid = char and char:FindFirstChild("Humanoid")
+	if not char or not humanoid then
+		disableAntiZombie()
+		return
 	end
 	
 	if antiZombieEnabled then
-		-- Nếu chưa có baseYPosition (lần đầu bật), lưu vị trí Y hiện tại
-		if baseYPosition == nil then
-			baseYPosition = hrp.Position.Y
+		if originalHipHeight == nil then
+			originalHipHeight = humanoid.HipHeight
 		end
-		
-		-- Tính độ cao mục tiêu dựa trên vị trí Y ban đầu + HipHeight
-		targetHeightY = baseYPosition + (tonumber(hipHeightValue) or 20)
-		createBodyPosition(hrp, targetHeightY)
-		
-		-- Tạo connection để cập nhật vị trí liên tục (cho phép di chuyển X, Z)
-		if not heartbeatConnection then
-			heartbeatConnection = RunService.Heartbeat:Connect(function()
-				if antiZombieEnabled and bodyPosition and targetHeightY then
-					local char = localPlayer.Character
-					if char then
-						local hrp = char:FindFirstChild("HumanoidRootPart")
-						if hrp and bodyPosition and bodyPosition.Parent then
-							-- Cập nhật Position liên tục từ vị trí hiện tại, chỉ thay đổi Y
-							local currentPos = hrp.Position
-							-- Luôn cập nhật X, Z từ vị trí hiện tại để cho phép di chuyển tự do
-							bodyPosition.Position = Vector3.new(currentPos.X, targetHeightY, currentPos.Z)
-						else
-							-- HRP hoặc BodyPosition không tồn tại, tạo lại
-							if hrp then
-								applyAntiZombie()
-							end
-						end
-					else
-						removeBodyPosition()
-						targetHeightY = nil
-						baseYPosition = nil
-					end
-				end
-			end)
-		end
+		enforceHipHeight(humanoid)
+		enableNoClip()
+		disconnectHipHeightListener()
+		humanoidHipHeightConnection = humanoid:GetPropertyChangedSignal("HipHeight"):Connect(function()
+			if antiZombieEnabled then
+				enforceHipHeight(humanoid)
+			end
+		end)
 	else
-		-- Tắt Anti-Zombie
-		removeBodyPosition()
-		targetHeightY = nil
-		baseYPosition = nil -- Reset để lần sau bật lại sẽ lấy vị trí mới
+		disableAntiZombie()
 	end
 end
 
 -- Tự động áp dụng khi nhân vật spawn/respawn
 local function onCharacterAdded(character)
-	removeBodyPosition() -- Xóa BodyPosition cũ
-	targetHeightY = nil
-	baseYPosition = nil -- Reset để lấy vị trí mới khi character spawn
-	task.wait(0.5) -- Đợi character load xong
+	disconnectHipHeightListener()
+	originalHipHeight = nil
+	task.wait(0.5)
 	applyAntiZombie()
 end
 
@@ -574,15 +407,14 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	end
 end)
 
-
-
 ----------------------------------------------------------
--- 🔹 Auto Move Keybind (Press M)
+-- 🔹 HipHeight Toggle (Press M)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then return end
-	if input.KeyCode == autoMoveKey then
-		autoMoveEnabled = not autoMoveEnabled
-		print("Auto Move:", autoMoveEnabled and "ON" or "OFF")
+	if input.KeyCode == hipHeightToggleKey then
+		antiZombieEnabled = not antiZombieEnabled
+		applyAntiZombie()
+		print("Anti-Zombie:", antiZombieEnabled and "ON" or "OFF")
 	end
 end)
 
@@ -869,15 +701,6 @@ MainTab:AddToggle("CameraTeleport", {
 })
 
 
-MainTab:AddToggle("AutoMove", {
-    Title = "Auto Move (M Key) - Maintain Distance",
-    Default = autoMoveEnabled,
-    Callback = function(Value)
-        autoMoveEnabled = Value
-        print("Auto Move:", Value and "ON" or "OFF")
-    end
-})
-
 MainTab:AddToggle("AntiZombie", {
     Title = "Anti-Zombie (HipHeight)",
     Default = antiZombieEnabled,
@@ -915,81 +738,6 @@ SettingsTab:AddSlider("RefreshRate", {
     Callback = function(Value)
         refreshRate = Value
         print("Refresh Rate:", Value)
-    end
-})
-
-SettingsTab:AddSlider("AutoMoveDistance", {
-    Title = "Auto Move Distance",
-    Description = "Distance to maintain from zombie (studs)",
-    Default = 100,
-    Min = 50,
-    Max = 200,
-    Rounding = 10,
-    Callback = function(Value)
-        autoMoveDistance = Value
-        print("Auto Move Distance:", Value)
-    end
-})
-
-SettingsTab:AddSlider("AutoMoveSpeed", {
-    Title = "Auto Move Speed",
-    Description = "Speed of auto movement (studs/second)",
-    Default = 16,
-    Min = 5,
-    Max = 50,
-    Rounding = 1,
-    Callback = function(Value)
-        autoMoveSpeed = Value
-        print("Auto Move Speed:", Value)
-    end
-})
-
-SettingsTab:AddToggle("TeleportToLastZombie", {
-    Title = "Teleport to Last Zombie",
-    Description = "Teleport to last zombie after camera teleport",
-    Default = teleportToLastZombie,
-    Callback = function(Value)
-        teleportToLastZombie = Value
-        print("Teleport to Last Zombie:", Value and "ON" or "OFF")
-    end
-})
-
-SettingsTab:AddSlider("CameraOffsetX", {
-    Title = "Camera Offset X",
-    Description = "Camera X offset position",
-    Default = 0,
-    Min = -50,
-    Max = 50,
-    Rounding = 1,
-    Callback = function(Value)
-        cameraOffsetX = Value
-        print("Camera Offset X:", Value)
-    end
-})
-
-SettingsTab:AddSlider("CameraOffsetY", {
-    Title = "Camera Offset Y",
-    Description = "Camera Y offset position (height)",
-    Default = 10,
-    Min = -50,
-    Max = 50,
-    Rounding = 1,
-    Callback = function(Value)
-        cameraOffsetY = Value
-        print("Camera Offset Y:", Value)
-    end
-})
-
-SettingsTab:AddSlider("CameraOffsetZ", {
-    Title = "Camera Offset Z",
-    Description = "Camera Z offset position (distance)",
-    Default = -10,
-    Min = -50,
-    Max = 50,
-    Rounding = 1,
-    Callback = function(Value)
-        cameraOffsetZ = Value
-        print("Camera Offset Z:", Value)
     end
 })
 
