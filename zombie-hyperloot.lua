@@ -26,8 +26,7 @@ local mapModel = Workspace:WaitForChild("Map")
 local hitboxSize = Vector3.new(4, 4, 4)
 local espColorZombie = Color3.fromRGB(0, 255, 0)
 local espColorChest = Color3.fromRGB(255, 255, 0)
-local refreshRate = 1
-local teleportKey = Enum.KeyCode.T -- ấn T để teleport tới toàn bộ vật phẩm rơi
+local teleportKey = Enum.KeyCode.T -- ấn T để tự mở toàn bộ chest
 
 -- Toggle states
 local espZombieEnabled = true
@@ -43,7 +42,7 @@ local cameraOffsetX = 0 -- Camera offset X
 local cameraOffsetY = 10 -- Camera offset Y
 local cameraOffsetZ = -2 -- Camera offset Z
 local hipHeightToggleKey = Enum.KeyCode.M -- ấn M để bật/tắt Anti-Zombie nhanh
-local autoBulletBoxEnabled = false -- Kéo BulletBox về vị trí người chơi
+local autoBulletBoxEnabled = true -- Kéo BulletBox về vị trí người chơi
 
 -- Anti-Zombie Configuration (HipHeight)
 local antiZombieEnabled = false -- Bật/tắt Anti-Zombie (tăng HipHeight)
@@ -279,55 +278,104 @@ entityFolder.ChildAdded:Connect(function(zombie)
 	end
 end)
 
+entityFolder.ChildRemoved:Connect(function(zombie)
+	processedZombies[zombie] = nil
+end)
+
 ----------------------------------------------------------
--- 🔹 ESP cho chest (chính xác đường dẫn: Map.Model.Chest.Model.Chest)
-local function setupChestESP()
+-- 🔹 ESP cho chest (chính xác đường dẫn: Map.*.Chest.*)
+local chestDescendantConnection = nil
+
+local function forEachChestPart(callback)
 	local map = Workspace:FindFirstChild("Map")
 	if not map then return end
 	
-	local mapModel = map:FindFirstChild("Model")
-	if not mapModel then return end
-	
-	local chest = mapModel:FindFirstChild("Chest")
-	if not chest then return end
-	
-	local chestModel = chest:FindFirstChild("Model")
-	if not chestModel then return end
-	
-	-- ESP cho tất cả chest trong Model
-	for _, chestObj in ipairs(chestModel:GetChildren()) do
-		if chestObj:IsA("Model") then
-			local chestPart = chestObj:FindFirstChild("Chest")
-			if chestPart and chestPart:IsA("BasePart") then
-				createESP(chestPart, espColorChest, "Chest", nil)
+	for _, child in ipairs(map:GetChildren()) do
+		local chestFolder = child:FindFirstChild("Chest")
+		if chestFolder then
+			for _, chestModel in ipairs(chestFolder:GetChildren()) do
+				if chestModel:IsA("Model") and chestModel:FindFirstChild("Chest") then
+					local chestModelFolder = chestModel.Chest
+					for _, chestModelChild in ipairs(chestModelFolder:GetChildren()) do
+						if chestModelChild:IsA("Model") then
+							local chestPart = chestModelChild:FindFirstChildWhichIsA("BasePart")
+							if chestPart then
+								callback(chestPart)
+							end
+						end
+					end
+				end
 			end
 		end
 	end
 end
 
-----------------------------------------------------------
--- 🔹 Tự động làm mới ESP mỗi vài giây
-task.spawn(function()
-	while task.wait(refreshRate) do
-		for _, zombie in ipairs(entityFolder:GetChildren()) do
-			if zombie:IsA("Model") and zombie:FindFirstChild("Head") then
-				local head = zombie:FindFirstChild("Head")
-				if head then
-					if espZombieEnabled then
-						createESP(head, espColorZombie, zombie.Name, zombie)
-					end
-					-- Không gọi expandHitbox ở đây nữa vì đã xử lý trong ChildAdded
-				end
-			end
+local function applyChestESP()
+	if not espChestEnabled then return end
+	forEachChestPart(function(chestPart)
+		if not chestPart:FindFirstChild("ESPTag") then
+			createESP(chestPart, espColorChest, "Chest", nil)
 		end
-		if espChestEnabled then
-			setupChestESP()
+	end)
+end
+
+local function clearChestESP()
+	forEachChestPart(function(chestPart)
+		local tag = chestPart:FindFirstChild("ESPTag")
+		if tag then
+			tag:Destroy()
 		end
+	end)
+end
+
+local function watchChestDescendants()
+	if chestDescendantConnection then
+		chestDescendantConnection:Disconnect()
+		chestDescendantConnection = nil
 	end
-end)
+	local map = Workspace:FindFirstChild("Map")
+	if not map then return end
+	chestDescendantConnection = map.DescendantAdded:Connect(function(desc)
+		if espChestEnabled and desc:IsA("BasePart") then
+			task.defer(applyChestESP)
+		end
+	end)
+end
 
 ----------------------------------------------------------
--- 🔹 Auto Teleport to Chests and Items (Press T)
+-- 🔹 Hàm áp dụng/loại bỏ ESP hiện có
+local function applyZombieESPToAll()
+	if not espZombieEnabled then return end
+	for _, zombie in ipairs(entityFolder:GetChildren()) do
+		if zombie:IsA("Model") then
+			local head = zombie:FindFirstChild("Head")
+			if head then
+				createESP(head, espColorZombie, zombie.Name, zombie)
+			end
+		end
+	end
+end
+
+local function clearZombieESP()
+	for _, zombie in ipairs(entityFolder:GetChildren()) do
+		local head = zombie:FindFirstChild("Head")
+		if head then
+			local espTag = head:FindFirstChild("ESPTag")
+			if espTag then
+				espTag:Destroy()
+			end
+		end
+	end
+end
+
+watchChestDescendants()
+applyZombieESPToAll()
+if espChestEnabled then
+	applyChestESP()
+end
+
+----------------------------------------------------------
+-- 🔹 Auto Teleport Chests (Press T)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then return end
 	if input.KeyCode == teleportKey and teleportEnabled then
@@ -385,28 +433,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 			game:GetService("VirtualInputManager"):SendKeyEvent(false, Enum.KeyCode.E, false, game)
 			task.wait(0.2)
 		end
-	
-		
-		-- Bước 3: Teleport tới tất cả items
-		local items = {}
-		for _, fx in ipairs(fxFolder:GetChildren()) do
-			local part = fx:FindFirstChildWhichIsA("BasePart")
-			if part then
-				table.insert(items, part)
-			end
-		end
-		
-		for _, part in ipairs(items) do
-			if part and part:IsDescendantOf(fxFolder) then
-				part.Anchored = false
-				part.CanCollide = false
-				part.CFrame = CFrame.new(hrp.Position + Vector3.new(0, 2, 0))
-				if part:IsA("BasePart") then
-					part.AssemblyLinearVelocity = Vector3.new()
-				end
-				task.wait(0.1)
-			end
-		end
 		
 		-- Quay về vị trí cũ
 		hrp.CFrame = CFrame.new(oldPos)
@@ -414,7 +440,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 ----------------------------------------------------------
--- 🔹 Auto BulletBox Teleport
+-- 🔹 Auto BulletBox + Item Magnet
 local function getBulletBoxPart()
 	local fx = Workspace:FindFirstChild("FX")
 	local bulletBoxFolder = fx and fx:FindFirstChild("BulletBox")
@@ -425,14 +451,32 @@ local function getBulletBoxPart()
 	return nil
 end
 
+local function pullItemsToPlayer(hrp)
+	for _, fx in ipairs(fxFolder:GetChildren()) do
+		local itemPart = fx:FindFirstChildWhichIsA("BasePart")
+		if itemPart and itemPart:IsDescendantOf(fxFolder) then
+			itemPart.Anchored = false
+			itemPart.CanCollide = false
+			itemPart.CFrame = CFrame.new(hrp.Position + Vector3.new(0, 2, 0))
+			itemPart.AssemblyLinearVelocity = Vector3.new()
+		end
+	end
+end
+
 task.spawn(function()
 	while task.wait(0.15) do
 		if autoBulletBoxEnabled then
-			local boxPart = getBulletBoxPart()
 			local char = localPlayer.Character
 			local hrp = char and char:FindFirstChild("HumanoidRootPart")
-			if boxPart and hrp then
-				boxPart.CFrame = CFrame.new(hrp.Position + Vector3.new(0, 2, 0))
+			if hrp then
+				local boxPart = getBulletBoxPart()
+				if boxPart then
+					boxPart.Anchored = false
+					boxPart.CanCollide = false
+					boxPart.CFrame = CFrame.new(hrp.Position + Vector3.new(0, 2, 0))
+					boxPart.AssemblyLinearVelocity = Vector3.new()
+				end
+				pullItemsToPlayer(hrp)
 			end
 		end
 	end
@@ -674,6 +718,11 @@ MainTab:AddToggle("ESPZombie", {
     Default = espZombieEnabled,
     Callback = function(Value)
         espZombieEnabled = Value
+        if Value then
+            applyZombieESPToAll()
+        else
+            clearZombieESP()
+        end
         print("ESP Zombie:", Value and "ON" or "OFF")
     end
 })
@@ -713,21 +762,21 @@ MainTab:AddToggle("Hitbox", {
 })
 
 MainTab:AddToggle("Teleport", {
-    Title = "Auto Collect (T Key) - Open Chests & Items",
+    Title = "Auto Chest (T Key) - Open All Chests",
     Default = teleportEnabled,
     Callback = function(Value)
         teleportEnabled = Value
-        print("Auto Collect:", Value and "ON" or "OFF")
+        print("Auto Chest:", Value and "ON" or "OFF")
     end
 })
 
 
 MainTab:AddToggle("AutoBulletBox", {
-    Title = "Auto BulletBox",
+    Title = "Auto BulletBox + Items",
     Default = autoBulletBoxEnabled,
     Callback = function(Value)
         autoBulletBoxEnabled = Value
-        print("Auto BulletBox:", Value and "ON" or "OFF")
+        print("Auto BulletBox + Items:", Value and "ON" or "OFF")
     end
 })
 
@@ -766,19 +815,6 @@ SettingsTab:AddSlider("HitboxSize", {
     Callback = function(Value)
         hitboxSize = Vector3.new(Value, Value, Value)
         print("Hitbox Size:", Value)
-    end
-})
-
-SettingsTab:AddSlider("RefreshRate", {
-    Title = "Refresh Rate",
-    Description = "ESP update rate in seconds",
-    Default = 1,
-    Min = 0.1,
-    Max = 5,
-    Rounding = 1,
-    Callback = function(Value)
-        refreshRate = Value
-        print("Refresh Rate:", Value)
     end
 })
 
@@ -1150,6 +1186,10 @@ local function waitForMapLoad(maxWait)
 end
 
 waitForMapLoad(10) -- Đợi tối đa 10 giây
+watchChestDescendants()
+if espChestEnabled then
+	applyChestESP()
+end
 
 -- Debug: In ra cấu trúc Map để kiểm tra
 local map = Workspace:FindFirstChild("Map")
