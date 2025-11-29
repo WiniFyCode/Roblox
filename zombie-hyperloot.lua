@@ -45,8 +45,8 @@ local hipHeightToggleKey = Enum.KeyCode.M -- ấn M để bật/tắt Anti-Zombi
 local autoBulletBoxEnabled = true -- Kéo BulletBox về vị trí người chơi
 local cameraTargetMode = "Nearest" -- Mode chọn mục tiêu camera: "LowestHealth" hoặc "Nearest"
 local autoSkillEnabled = true -- Bật/tắt auto skill loop
-local skillInterval1010 = 15 -- Khoảng thời gian cho skill 1010 (giây)
-local skillInterval1002 = 20 -- Khoảng thời gian cho skill 1002 (giây)
+local skill1010Interval = 15 -- Thời gian giữa các lần dùng skill 1010 (giây)
+local skill1002Interval = 20 -- Thời gian giữa các lần dùng skill 1002 (giây)
 
 -- Anti-Zombie Configuration (HipHeight)
 local antiZombieEnabled = false -- Bật/tắt Anti-Zombie (tăng HipHeight)
@@ -473,62 +473,51 @@ end)
 
 ----------------------------------------------------------
 -- 🔹 Infinite Skill Loop
-local function activateSkill1010()
+local function triggerSkill(skillId)
 	local char = localPlayer.Character
 	if not char then return end
+	
+	local tool = char:FindFirstChild("Tool")
+	if not tool then return end
 	
 	local netMessage = char:FindFirstChild("NetMessage")
 	if not netMessage then return end
 	
 	pcall(function()
-		-- Trigger skill 1010
-		netMessage:WaitForChild("TrigerSkill"):FireServer(1010, "Enter")
+		netMessage:WaitForChild("TrigerSkill"):FireServer(skillId, "Enter")
 	end)
+end
+
+local function activateSkill1010()
+	triggerSkill(1010)
 end
 
 local function activateSkill1002()
-	local char = localPlayer.Character
-	if not char then return end
-	
-	local netMessage = char:FindFirstChild("NetMessage")
-	if not netMessage then return end
-	
-	pcall(function()
-		-- Trigger skill 1002 (hồi máu)
-		netMessage:WaitForChild("TrigerSkill"):FireServer(1002, "Enter")
+	triggerSkill(1002)
+end
+
+local function startSkillLoop(getInterval, action)
+	task.spawn(function()
+		if autoSkillEnabled then
+			task.wait(1) -- Đợi nhân vật load ổn định
+			action()
+		end
+		
+		while task.wait(getInterval()) do
+			if autoSkillEnabled then
+				action()
+			end
+		end
 	end)
 end
 
--- Kích hoạt skill ngay lập tức khi bật
-task.spawn(function()
-	if autoSkillEnabled then
-		task.wait(1) -- Đợi 1 giây để character load xong
-		activateSkill1010()
-		activateSkill1002()
-	end
-	
-	-- Track timing cho từng skill
-	local lastSkill1010Time = tick()
-	local lastSkill1002Time = tick()
-	
-	while task.wait(1) do -- Check mỗi 1 giây
-		if autoSkillEnabled then
-			local currentTime = tick()
-			
-			-- Kiểm tra skill 1010 (15s)
-			if currentTime - lastSkill1010Time >= skillInterval1010 then
-				activateSkill1010()
-				lastSkill1010Time = currentTime
-			end
-			
-			-- Kiểm tra skill 1002 (20s)
-			if currentTime - lastSkill1002Time >= skillInterval1002 then
-				activateSkill1002()
-				lastSkill1002Time = currentTime
-			end
-		end
-	end
-end)
+startSkillLoop(function()
+	return skill1010Interval
+end, activateSkill1010)
+
+startSkillLoop(function()
+	return skill1002Interval
+end, activateSkill1002)
 
 ----------------------------------------------------------
 -- 🔹 Auto BulletBox + Item Magnet
@@ -846,121 +835,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	end
 end)
 
-----------------------------------------------------------
--- 🔹 Auto Aimbot + Instant Kill System
-local function getNearestZombie()
-	local char = localPlayer.Character
-	local hrp = char and char:FindFirstChild("HumanoidRootPart")
-	if not hrp then return nil end
-	
-	local playerPos = hrp.Position
-	local nearestZombie = nil
-	local nearestDistance = math.huge
-	
-	for _, zombie in ipairs(entityFolder:GetChildren()) do
-		if zombie:IsA("Model") then
-			local humanoid = zombie:FindFirstChild("Humanoid")
-			if humanoid and humanoid.Health > 0 then
-				local head = zombie:FindFirstChild("Head")
-				local zombieHrp = zombie:FindFirstChild("HumanoidRootPart")
-				local targetPart = head or zombieHrp
-				
-				if targetPart and targetPart:IsA("BasePart") then
-					local distance = (playerPos - targetPart.Position).Magnitude
-					if distance < nearestDistance then
-						nearestDistance = distance
-						nearestZombie = {
-							zombie = zombie,
-							target = targetPart,
-							humanoid = humanoid,
-							position = targetPart.Position
-						}
-					end
-				end
-			end
-		end
-	end
-	
-	return nearestZombie
-end
-
-local function performInstantKill(zombie)
-	if not zombie then return end
-	
-	local char = localPlayer.Character
-	if not char then return end
-	
-	local netMessage = char:FindFirstChild("NetMessage")
-	if not netMessage then return end
-	
-	local replicatedStorage = game:GetService("ReplicatedStorage")
-	local remote = replicatedStorage:FindFirstChild("Remote")
-	if not remote then return end
-	
-	local tool = char:FindFirstChild("Tool")
-	if not tool then return end
-	
-	pcall(function()
-		-- Set state true để bắt đầu chuỗi bắn
-		netMessage:WaitForChild("SetState"):FireServer("action", true)
-		task.wait(0.05)
-		
-		-- Trigger GunFire OnEnter với target zombie
-		netMessage:WaitForChild("TrigerSkill"):FireServer("GunFire", "OnEnter")
-		task.wait(0.05)
-		
-		-- EffectReplicated với target position chính xác của zombie
-		if not noGunFireEffects then
-			local effectArgs = {
-				"GunFireEffect",
-				tool:WaitForChild("_mod"):WaitForChild("Handle"),
-				zombie.position, -- Target zombie position
-				char,
-				2107
-			}
-			remote:WaitForChild("EffectReplicated"):FireServer(unpack(effectArgs))
-		end
-		task.wait(0.05)
-		
-		-- Get WeaponData
-		remote:WaitForChild("RemoteFunction"):InvokeServer(3949991157, "WeaponData")
-		task.wait(0.05)
-		
-		-- Set state false
-		netMessage:WaitForChild("SetState"):FireServer("action", false)
-		task.wait(0.05)
-		
-		-- Trigger GunFire Atk với perfect accuracy
-		-- Sử dụng vector từ player đến zombie cho perfect accuracy
-		local playerHrp = char:FindFirstChild("HumanoidRootPart")
-		if playerHrp then
-			local direction = (zombie.position - playerHrp.Position).Unit
-			local perfectVector = Vector3.new(
-				direction.X * 1000, -- Tăng force để đảm bảo hit
-				direction.Y * 1000,
-				direction.Z * 1000
-			)
-			
-			local attackArgs = {
-				"GunFire",
-				"Atk",
-				Instance.new("Part", nil),
-				perfectVector
-			}
-			netMessage:WaitForChild("TrigerSkill"):FireServer(unpack(attackArgs))
-		end
-		task.wait(0.05)
-		
-		-- Reset state
-		netMessage:WaitForChild("SetState"):FireServer("action", false)
-		task.wait(0.05)
-		
-		-- Get EntityData để check zombie die
-		remote:WaitForChild("RemoteFunction"):InvokeServer(3949991157, "EntityData")
-	end)
-end
-
-----------------------------------------------------------
 -- 🔹 Fluent UI Controls
 local MainTab = Window:AddTab({ Title = "Main", Icon = "" })
 
@@ -1053,14 +927,18 @@ MainTab:AddToggle("AntiZombie", {
 })
 
 MainTab:AddToggle("AutoSkill", {
-    Title = "Auto Skill (1010: 15s, 1002: 20s)",
+    Title = "Auto Skill (15s/20s)",
     Default = autoSkillEnabled,
     Callback = function(Value)
         autoSkillEnabled = Value
         if Value then
-            -- Kích hoạt skill ngay lập tức khi bật
-            task.wait(1) -- Đợi 1 giây để character load xong
-            activateSkill1010()
+            -- Kích hoạt từng skill ngay lập tức khi bật
+            task.spawn(function()
+                task.wait(1) -- Đợi 1 giây để character load xong
+                activateSkill1010()
+                task.wait(0.5)
+                activateSkill1002()
+            end)
         end
         print("Auto Skill:", Value and "ON" or "OFF")
     end
@@ -1100,26 +978,26 @@ SettingsTab:AddSlider("HipHeight", {
 
 SettingsTab:AddSlider("Skill1010Interval", {
     Title = "Skill 1010 Interval",
-    Description = "Khoảng thời gian cho skill 1010 (giây)",
-    Default = 15,
+    Description = "Khoảng thời gian dùng skill 1010 (giây)",
+    Default = skill1010Interval,
     Min = 1,
     Max = 60,
     Rounding = 1,
     Callback = function(Value)
-        skillInterval1010 = Value
+        skill1010Interval = Value
         print("Skill 1010 Interval:", Value, "seconds")
     end
 })
 
 SettingsTab:AddSlider("Skill1002Interval", {
     Title = "Skill 1002 Interval",
-    Description = "Khoảng thời gian cho skill 1002 (giây)",
-    Default = 20,
+    Description = "Khoảng thời gian dùng skill 1002 (giây)",
+    Default = skill1002Interval,
     Min = 1,
     Max = 60,
     Rounding = 1,
     Callback = function(Value)
-        skillInterval1002 = Value
+        skill1002Interval = Value
         print("Skill 1002 Interval:", Value, "seconds")
     end
 })
