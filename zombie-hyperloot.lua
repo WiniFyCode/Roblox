@@ -398,8 +398,13 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		
 		for _, part in ipairs(items) do
 			if part and part:IsDescendantOf(fxFolder) then
-				hrp.CFrame = CFrame.new(part.Position + Vector3.new(0, 2, 0))
-				task.wait(0.15)
+				part.Anchored = false
+				part.CanCollide = false
+				part.CFrame = CFrame.new(hrp.Position + Vector3.new(0, 2, 0))
+				if part:IsA("BasePart") then
+					part.AssemblyLinearVelocity = Vector3.new()
+				end
+				task.wait(0.1)
 			end
 		end
 		
