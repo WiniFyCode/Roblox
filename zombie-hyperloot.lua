@@ -45,12 +45,6 @@ local hipHeightToggleKey = Enum.KeyCode.M -- ấn M để bật/tắt Anti-Zombi
 local autoBulletBoxEnabled = true -- Kéo BulletBox về vị trí người chơi
 local cameraTargetMode = "Nearest" -- Mode chọn mục tiêu camera: "LowestHealth" hoặc "Nearest"
 
--- Auto Farm Configuration
-local autoFarmEnabled = false -- Bật/tắt Auto Farm
-local autoAttackEnabled = false -- Bật/tắt Auto Attack
-local attackDelay = 0.2 -- Thời gian giữa các lần attack (giây)
-local virtualUser = game:GetService("VirtualUser")
-
 -- Anti-Zombie Configuration (HipHeight)
 local antiZombieEnabled = false -- Bật/tắt Anti-Zombie (tăng HipHeight)
 local hipHeightValue = 20 -- Giá trị HipHeight mặc định (studs)
@@ -475,17 +469,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 ----------------------------------------------------------
--- 🔹 Auto Farm - Auto Attack
-task.spawn(function()
-	while task.wait(attackDelay) do
-		if autoAttackEnabled then
-			virtualUser:CaptureController()
-			virtualUser:ClickButton1(Vector2.new(0, 0))
-		end
-	end
-end)
-
-----------------------------------------------------------
 -- 🔹 Auto BulletBox + Item Magnet
 local function getBulletBoxPart()
 	local fx = Workspace:FindFirstChild("FX")
@@ -736,17 +719,11 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                         local targetPosition = currentTarget.part.Position
                         lastZombiePosition = targetPosition
                         
-                        -- Set camera lock vào zombie
+                        -- Set camera
                         camera.CameraSubject = humanoid
-                        camera.CameraType = Enum.CameraType.LockFirstPerson -- Ghim camera vào zombie
+                        camera.CameraType = Enum.CameraType.Custom
                         local cameraOffset = Vector3.new(cameraOffsetX, cameraOffsetY, cameraOffsetZ)
                         camera.CFrame = CFrame.lookAt(targetPosition + cameraOffset, targetPosition)
-                        
-                        -- Bật auto attack khi có target và auto farm được bật
-                        if autoFarmEnabled then
-                            autoAttackEnabled = true
-                            print("Auto Attack đã bật (mục tiêu: zombie)")
-                        end
                         
                         -- Đợi zombie chết/thay đổi mục tiêu
                         local checkCount = 0
@@ -798,14 +775,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                 local finalHumanoid = finalChar:FindFirstChild("Humanoid")
                 if finalHumanoid then
                     camera.CameraSubject = finalHumanoid
-                    camera.CameraType = Enum.CameraType.Custom
                 end
-            end
-            
-            -- Tắt auto attack khi camera teleport kết thúc
-            if autoFarmEnabled then
-                autoAttackEnabled = false
-                print("Auto Attack đã tắt (Camera Teleport kết thúc)")
             end
             
             cameraTeleportActive = false
@@ -906,20 +876,6 @@ MainTab:AddToggle("AntiZombie", {
     end
 })
 
-MainTab:AddToggle("AutoFarm", {
-    Title = "Auto Farm (Camera + Attack)",
-    Default = autoFarmEnabled,
-    Callback = function(Value)
-        autoFarmEnabled = Value
-        if not Value then
-            autoAttackEnabled = false
-            print("Auto Farm: OFF (Auto Attack đã tắt)")
-        else
-            print("Auto Farm: ON (Sử dụng X key để bắt đầu)")
-        end
-    end
-})
-
 
 -- Settings Tab
 local SettingsTab = Window:AddTab({ Title = "Settings", Icon = "" })
@@ -950,19 +906,6 @@ SettingsTab:AddSlider("HipHeight", {
             applyAntiZombie() -- Áp dụng ngay nếu đang bật
         end
         print("HipHeight:", Value)
-    end
-})
-
-SettingsTab:AddSlider("AttackDelay", {
-    Title = "Attack Delay",
-    Description = "Thời gian giữa các lần auto attack (giây)",
-    Default = 0.2,
-    Min = 0.05,
-    Max = 2,
-    Rounding = 2,
-    Callback = function(Value)
-        attackDelay = Value
-        print("Attack Delay:", Value)
     end
 })
 
