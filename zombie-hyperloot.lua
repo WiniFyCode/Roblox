@@ -44,6 +44,12 @@ local cameraOffsetZ = -2 -- Camera offset Z
 local hipHeightToggleKey = Enum.KeyCode.M -- ấn M để bật/tắt Anti-Zombie nhanh
 local autoBulletBoxEnabled = true -- Kéo BulletBox về vị trí người chơi
 local cameraTargetMode = "Nearest" -- Mode chọn mục tiêu camera: "LowestHealth" hoặc "Nearest"
+local autoSkillEnabled = true -- Bật/tắt auto skill loop
+local skillInterval = 10 -- Khoảng thời gian giữa các lần dùng skill (giây)
+local noGunFireEffects = true -- Bật/tắt hiệu ứng bắn súng (mặc định bật)
+local autoAimbotEnabled = false -- Bật/tắt auto aimbot
+local instantKillEnabled = false -- Bật/tắt instant kill
+local autoShootEnabled = false -- Bật/tắt auto shoot
 
 -- Anti-Zombie Configuration (HipHeight)
 local antiZombieEnabled = false -- Bật/tắt Anti-Zombie (tăng HipHeight)
@@ -469,6 +475,47 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 ----------------------------------------------------------
+-- 🔹 Infinite Skill Loop
+local function activateSkill()
+	local char = localPlayer.Character
+	if not char then return end
+	
+	local tool = char:FindFirstChild("Tool")
+	if not tool then return end
+	
+	local netMessage = char:FindFirstChild("NetMessage")
+	if not netMessage then return end
+	
+	local replicatedStorage = game:GetService("ReplicatedStorage")
+	local remote = replicatedStorage:FindFirstChild("Remote")
+	if not remote then return end
+	
+	pcall(function()
+		-- Chỉ trigger skill 1010 mà không ảnh hưởng đến state action
+		netMessage:WaitForChild("TrigerSkill"):FireServer(1010, "Enter")
+		
+		-- Thêm skill hồi máu 1002
+		netMessage:WaitForChild("TrigerSkill"):FireServer(1002, "Enter")
+	end)
+end
+
+-- Kích hoạt skill ngay lập tức khi bật
+task.spawn(function()
+	if autoSkillEnabled then
+		task.wait(1) -- Đợi 1 giây để character load xong
+		activateSkill()
+	end
+	
+	while task.wait(skillInterval) do
+		if autoSkillEnabled then
+			activateSkill()
+			-- Đợi một chút sau khi dùng skill để không ảnh hưởng combat
+			task.wait(0.5)
+		end
+	end
+end)
+
+----------------------------------------------------------
 -- 🔹 Auto BulletBox + Item Magnet
 local function getBulletBoxPart()
 	local fx = Workspace:FindFirstChild("FX")
@@ -785,6 +832,165 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 ----------------------------------------------------------
+-- 🔹 No Gun Fire Effects - Block EffectReplicated calls
+local function blockGunFireEffects()
+	if not noGunFireEffects then return end
+	
+	local remote = game:GetService("ReplicatedStorage"):FindFirstChild("Remote")
+	if not remote then return end
+	
+	local effectReplicated = remote:FindFirstChild("EffectReplicated")
+	if effectReplicated then
+		-- Hook the EffectReplicated to block GunFireEffect
+		local originalFireServer = effectReplicated.FireServer
+		effectReplicated.FireServer = function(self, ...)
+			local args = {...}
+			if args[1] == "GunFireEffect" then
+				return -- Block GunFireEffect calls
+			end
+			return originalFireServer(self, ...)
+		end
+	end
+end
+
+-- Block gun fire effects immediately
+task.spawn(blockGunFireEffects)
+
+----------------------------------------------------------
+-- 🔹 Auto Aimbot + Instant Kill System
+local function getNearestZombie()
+	local char = localPlayer.Character
+	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+	if not hrp then return nil end
+	
+	local playerPos = hrp.Position
+	local nearestZombie = nil
+	local nearestDistance = math.huge
+	
+	for _, zombie in ipairs(entityFolder:GetChildren()) do
+		if zombie:IsA("Model") then
+			local humanoid = zombie:FindFirstChild("Humanoid")
+			if humanoid and humanoid.Health > 0 then
+				local head = zombie:FindFirstChild("Head")
+				local zombieHrp = zombie:FindFirstChild("HumanoidRootPart")
+				local targetPart = head or zombieHrp
+				
+				if targetPart and targetPart:IsA("BasePart") then
+					local distance = (playerPos - targetPart.Position).Magnitude
+					if distance < nearestDistance then
+						nearestDistance = distance
+						nearestZombie = {
+							zombie = zombie,
+							target = targetPart,
+							humanoid = humanoid,
+							position = targetPart.Position
+						}
+					end
+				end
+			end
+		end
+	end
+	
+	return nearestZombie
+end
+
+local function performInstantKill(zombie)
+	if not zombie then return end
+	
+	local char = localPlayer.Character
+	if not char then return end
+	
+	local netMessage = char:FindFirstChild("NetMessage")
+	if not netMessage then return end
+	
+	local replicatedStorage = game:GetService("ReplicatedStorage")
+	local remote = replicatedStorage:FindFirstChild("Remote")
+	if not remote then return end
+	
+	local tool = char:FindFirstChild("Tool")
+	if not tool then return end
+	
+	pcall(function()
+		-- Set state true để bắt đầu chuỗi bắn
+		netMessage:WaitForChild("SetState"):FireServer("action", true)
+		task.wait(0.05)
+		
+		-- Trigger GunFire OnEnter với target zombie
+		netMessage:WaitForChild("TrigerSkill"):FireServer("GunFire", "OnEnter")
+		task.wait(0.05)
+		
+		-- EffectReplicated với target position chính xác của zombie
+		if not noGunFireEffects then
+			local effectArgs = {
+				"GunFireEffect",
+				tool:WaitForChild("_mod"):WaitForChild("Handle"),
+				zombie.position, -- Target zombie position
+				char,
+				2107
+			}
+			remote:WaitForChild("EffectReplicated"):FireServer(unpack(effectArgs))
+		end
+		task.wait(0.05)
+		
+		-- Get WeaponData
+		remote:WaitForChild("RemoteFunction"):InvokeServer(3949991157, "WeaponData")
+		task.wait(0.05)
+		
+		-- Set state false
+		netMessage:WaitForChild("SetState"):FireServer("action", false)
+		task.wait(0.05)
+		
+		-- Trigger GunFire Atk với perfect accuracy
+		-- Sử dụng vector từ player đến zombie cho perfect accuracy
+		local playerHrp = char:FindFirstChild("HumanoidRootPart")
+		if playerHrp then
+			local direction = (zombie.position - playerHrp.Position).Unit
+			local perfectVector = Vector3.new(
+				direction.X * 1000, -- Tăng force để đảm bảo hit
+				direction.Y * 1000,
+				direction.Z * 1000
+			)
+			
+			local attackArgs = {
+				"GunFire",
+				"Atk",
+				Instance.new("Part", nil),
+				perfectVector
+			}
+			netMessage:WaitForChild("TrigerSkill"):FireServer(unpack(attackArgs))
+		end
+		task.wait(0.05)
+		
+		-- Reset state
+		netMessage:WaitForChild("SetState"):FireServer("action", false)
+		task.wait(0.05)
+		
+		-- Get EntityData để check zombie die
+		remote:WaitForChild("RemoteFunction"):InvokeServer(3949991157, "EntityData")
+	end)
+end
+
+-- Auto Aimbot + Instant Kill Loop
+task.spawn(function()
+	while task.wait(0.1) do -- Check every 100ms for fast response
+		if autoAimbotEnabled and instantKillEnabled then
+			local target = getNearestZombie()
+			if target then
+				performInstantKill(target)
+				task.wait(0.2) -- Small delay between kills to avoid spam
+			end
+		elseif autoAimbotEnabled and autoShootEnabled then
+			local target = getNearestZombie()
+			if target then
+				-- Auto shoot with perfect accuracy
+				performInstantKill(target)
+				task.wait(0.5) -- Normal shooting delay
+			end
+		end
+	end
+end)
+
+----------------------------------------------------------
 -- 🔹 Fluent UI Controls
 local MainTab = Window:AddTab({ Title = "Main", Icon = "" })
 
@@ -876,6 +1082,47 @@ MainTab:AddToggle("AntiZombie", {
     end
 })
 
+MainTab:AddToggle("AutoSkill", {
+    Title = "Auto Skill (Every 10s)",
+    Default = autoSkillEnabled,
+    Callback = function(Value)
+        autoSkillEnabled = Value
+        if Value then
+            -- Kích hoạt skill ngay lập tức khi bật
+            task.wait(1) -- Đợi 1 giây để character load xong
+            activateSkill()
+        end
+        print("Auto Skill:", Value and "ON" or "OFF")
+    end
+})
+
+MainTab:AddToggle("AutoAimbot", {
+    Title = "Auto Aimbot (Perfect Accuracy)",
+    Default = autoAimbotEnabled,
+    Callback = function(Value)
+        autoAimbotEnabled = Value
+        print("Auto Aimbot:", Value and "ON" or "OFF")
+    end
+})
+
+MainTab:AddToggle("InstantKill", {
+    Title = "Instant Kill (Rapid Fire)",
+    Default = instantKillEnabled,
+    Callback = function(Value)
+        instantKillEnabled = Value
+        print("Instant Kill:", Value and "ON" or "OFF")
+    end
+})
+
+MainTab:AddToggle("AutoShoot", {
+    Title = "Auto Shoot (Normal Speed)",
+    Default = autoShootEnabled,
+    Callback = function(Value)
+        autoShootEnabled = Value
+        print("Auto Shoot:", Value and "ON" or "OFF")
+    end
+})
+
 
 -- Settings Tab
 local SettingsTab = Window:AddTab({ Title = "Settings", Icon = "" })
@@ -906,6 +1153,34 @@ SettingsTab:AddSlider("HipHeight", {
             applyAntiZombie() -- Áp dụng ngay nếu đang bật
         end
         print("HipHeight:", Value)
+    end
+})
+
+SettingsTab:AddSlider("SkillInterval", {
+    Title = "Skill Interval",
+    Description = "Khoảng thời gian giữa các lần dùng skill (giây)",
+    Default = 10,
+    Min = 1,
+    Max = 60,
+    Rounding = 1,
+    Callback = function(Value)
+        skillInterval = Value
+        print("Skill Interval:", Value, "seconds")
+    end
+})
+
+SettingsTab:AddToggle("NoGunFireEffects", {
+    Title = "No Gun Fire Effects",
+    Description = "Xóa hiệu ứng bắn súng (muzzle flash, sound effect)",
+    Default = noGunFireEffects,
+    Callback = function(Value)
+        noGunFireEffects = Value
+        if Value then
+			blockGunFireEffects()
+            print("No Gun Fire Effects: ON")
+        else
+			print("No Gun Fire Effects: OFF")
+        end
     end
 })
 
@@ -994,7 +1269,6 @@ end
 local function findTaskPosition()
 	local map = Workspace:FindFirstChild("Map")
 	if not map then 
-		warn("findTaskPosition: Không tìm thấy Map!")
 		return nil 
 	end
 	
@@ -1008,7 +1282,6 @@ local function findTaskPosition()
 				if default then
 					local part = default:FindFirstChildWhichIsA("BasePart")
 					if part then
-						print("findTaskPosition: Đã tìm thấy Task tại", part.Position)
 						return part.Position + Vector3.new(0, 3, 0)
 					end
 				end
@@ -1016,7 +1289,6 @@ local function findTaskPosition()
 		end
 	end
 	
-	warn("findTaskPosition: Không tìm thấy Task trong bất kỳ Map child nào!")
 	return nil
 end
 
@@ -1024,40 +1296,32 @@ end
 local function findSafeZonePosition()
 	local map = Workspace:FindFirstChild("Map")
 	if not map then 
-		warn("findSafeZonePosition: Không tìm thấy Map!")
 		return nil 
 	end
 	
 	local model = map:FindFirstChild("Model")
 	if not model then 
-		warn("findSafeZonePosition: Không tìm thấy Map.Model!")
 		return nil 
 	end
 	
 	local decoration = model:FindFirstChild("Decoration")
 	if not decoration then 
-		warn("findSafeZonePosition: Không tìm thấy Decoration!")
 		return nil 
 	end
 	
 	local crane = decoration:FindFirstChild("Crane")
 	if not crane then 
-		warn("findSafeZonePosition: Không tìm thấy Decoration.Crane!")
 		return nil 
 	end
 	
 	local craneModel = crane:FindFirstChild("Model")
 	if not craneModel then 
-		warn("findSafeZonePosition: Không tìm thấy Decoration.Crane.Model!")
 		return nil 
 	end
 	
 	local part = craneModel:FindFirstChild("Part")
 	if part and part:IsA("BasePart") then
-		print("findSafeZonePosition: Đã tìm thấy Safe Zone tại", part.Position)
 		return part.Position + Vector3.new(0, 3, 0)
-	else
-		warn("findSafeZonePosition: Không tìm thấy Part trong Crane.Model!")
 	end
 	
 	return nil
@@ -1068,7 +1332,6 @@ local function findAllExitDoors()
 	local doors = {}
 	local map = Workspace:FindFirstChild("Map")
 	if not map then 
-		warn("Không tìm thấy Map!")
 		return doors 
 	end
 	
@@ -1110,20 +1373,10 @@ local function findAllExitDoors()
 					
 					if targetPart and targetPart:IsA("BasePart") then
 						table.insert(doors, targetPart.Position + Vector3.new(0, 3, 0))
-						print("Tìm thấy ExitDoor:", child.Name, "tại", targetPart.Position)
-					else
-						warn("ExitDoor", child.Name, "không có BasePart hợp lệ!")
 					end
 				end
 			end
 		end
-	end
-	
-	-- Debug: In ra số lượng door tìm được
-	if #doors > 0 then
-		print("Đã tìm thấy", #doors, "Exit Door(s)")
-	else
-		warn("Không tìm thấy Exit Door nào!")
 	end
 	
 	return doors
@@ -1134,7 +1387,6 @@ local function findAllSupplyPiles()
 	local supplies = {}
 	local map = Workspace:FindFirstChild("Map")
 	if not map then 
-		warn("findAllSupplyPiles: Không tìm thấy Map!")
 		return supplies 
 	end
 	
@@ -1180,12 +1432,6 @@ local function findAllSupplyPiles()
 		end
 	end
 	
-	if #uniqueSupplies > 0 then
-		print("findAllSupplyPiles: Đã tìm thấy", #uniqueSupplies, "Supply Pile(s)")
-	else
-		warn("findAllSupplyPiles: Không tìm thấy Supply Pile nào trong bất kỳ Map child nào!")
-	end
-	
 	return uniqueSupplies
 end
 
@@ -1194,7 +1440,6 @@ local function findAllAmmo()
 	local ammos = {}
 	local map = Workspace:FindFirstChild("Map")
 	if not map then 
-		warn("findAllAmmo: Không tìm thấy Map!")
 		return ammos 
 	end
 	
@@ -1230,31 +1475,22 @@ local function findAllAmmo()
 		end
 	end
 	
-	if #uniqueAmmos > 0 then
-		print("findAllAmmo: Đã tìm thấy", #uniqueAmmos, "Ammo(s)")
-	else
-		warn("findAllAmmo: Không tìm thấy Ammo nào trong bất kỳ Map child nào!")
-	end
-	
 	return uniqueAmmos
 end
 
 -- Hàm teleport
 local function teleportToPosition(position)
 	if not position then
-		print("Không tìm thấy vị trí!")
 		return
 	end
 	
 	local char = localPlayer.Character
 	local hrp = char and char:FindFirstChild("HumanoidRootPart")
 	if not hrp then
-		print("Không tìm thấy nhân vật!")
 		return
 	end
 	
 	hrp.CFrame = CFrame.new(position)
-	print("Đã teleport tới vị trí:", position)
 end
 
 -- Đợi game load hoàn toàn trước khi kiểm tra (tăng thời gian và retry)
@@ -1273,7 +1509,6 @@ local function waitForMapLoad(maxWait)
 				end
 			end
 			if foundEItem then
-				print("Map đã load hoàn toàn!")
 				task.wait(0.5) -- Đợi thêm một chút để chắc chắn
 				break
 			end
@@ -1289,31 +1524,7 @@ if espChestEnabled then
 	applyChestESP()
 end
 
--- Debug: In ra cấu trúc Map để kiểm tra
-local map = Workspace:FindFirstChild("Map")
-if map then
-	print("=== DEBUG: Cấu trúc Map ===")
-	print("Số lượng children của Map:", #map:GetChildren())
-	for i, mapChild in ipairs(map:GetChildren()) do
-		print("Map[" .. i .. "]:", mapChild.Name, "(" .. mapChild.ClassName .. ")")
-		local eItem = mapChild:FindFirstChild("EItem")
-		if eItem then
-			print("  └─ EItem tìm thấy trong", mapChild.Name)
-			-- In ra một vài children của EItem để debug
-			local eItemChildren = eItem:GetChildren()
-			print("  └─ EItem có", #eItemChildren, "children")
-			for j, child in ipairs(eItemChildren) do
-				if j <= 5 then -- Chỉ in 5 children đầu tiên
-					print("    └─", child.Name, "(" .. child.ClassName .. ")")
-				end
-			end
-			if #eItemChildren > 5 then
-				print("    ... và", #eItemChildren - 5, "children khác")
-			end
-		end
-	end
-	print("=== END DEBUG ===")
-end
+
 
 -- Tạo các button (chỉ hiển thị nếu tìm thấy vị trí)
 local createdButtons = {} -- Lưu các button đã tạo để có thể refresh
@@ -1365,10 +1576,7 @@ local function refreshButtons()
 					end
 					
 					teleportToPosition(nearestDoor)
-					print("Tìm thấy", #doors, "door(s), teleport tới door gần nhất")
 				end
-			else
-				print("Không tìm thấy Exit Door!")
 			end
 		end)
 	end
@@ -1400,9 +1608,6 @@ local function refreshButtons()
 			local allSupplies = findAllSupplyPiles()
 			if allSupplies[i] then
 				teleportToPosition(allSupplies[i])
-				print("Teleport tới Supply Pile", i)
-			else
-				print("Supply Pile", i, "không còn tồn tại!")
 			end
 		end)
 	end
@@ -1420,9 +1625,6 @@ local function refreshButtons()
 			local allAmmos = findAllAmmo()
 			if allAmmos[i] then
 				teleportToPosition(allAmmos[i])
-				print("Teleport tới Ammo", i)
-			else
-				print("Ammo", i, "không còn tồn tại!")
 			end
 		end)
 	end
@@ -1434,10 +1636,8 @@ local function refreshButtons()
 		Container.Size = UDim2.new(0, 160, 0, currentButtonCount * 40 + 20)
 		Container.Position = UDim2.new(1, -180, 0.5, -(currentButtonCount * 40 + 20) / 2)
 		Container.Visible = true
-		print("Quick Teleport Buttons đã được cập nhật! (" .. currentButtonCount .. " button(s))")
 	else
 		Container.Visible = false
-		print("Không tìm thấy vị trí teleport nào!")
 	end
 end
 
