@@ -79,6 +79,9 @@ local aimbotFOVRadius = 100
 local aimbotTargetMode = "Zombies" -- Zombies, Players, All
 local aimbotAimPart = "Head" -- Head, UpperTorso, HumanoidRootPart
 
+-- Global unload flag
+local scriptUnloaded = false
+
 -- Anti-Zombie Configuration (HipHeight)
 local antiZombieEnabled = false -- Bật/tắt Anti-Zombie (tăng HipHeight)
 local hipHeightValue = 10 -- Giá trị HipHeight mặc định (studs)
@@ -460,7 +463,7 @@ end
 ----------------------------------------------------------
 -- 🔹 Auto Teleport Chests (Press T)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
+	if gameProcessed or scriptUnloaded then return end
 	if input.KeyCode == teleportKey and teleportEnabled then
 		local char = localPlayer.Character
 		local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -527,12 +530,15 @@ end
 
 local function startSkillLoop(getInterval, action)
 	task.spawn(function()
-		if autoSkillEnabled then
+		if autoSkillEnabled and not scriptUnloaded then
 			task.wait(1) -- Đợi nhân vật load ổn định
 			action()
 		end
 		
 		while task.wait(getInterval()) do
+			if scriptUnloaded then
+				break
+			end
 			if autoSkillEnabled then
 				action()
 			end
@@ -574,6 +580,9 @@ end
 
 task.spawn(function()
 	while task.wait(1) do
+		if scriptUnloaded then
+			break
+		end
 		local char = localPlayer.Character
 		local hrp = char and char:FindFirstChild("HumanoidRootPart")
 		if hrp then
@@ -705,7 +714,7 @@ localPlayer.CharacterAdded:Connect(onCharacterAddedForSpeed)
 ----------------------------------------------------------
 -- 🔹 HipHeight Toggle (Press M)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
+	if gameProcessed or scriptUnloaded then return end
 	if input.KeyCode == hipHeightToggleKey then
 		antiZombieEnabled = not antiZombieEnabled
 		applyAntiZombie()
@@ -716,7 +725,7 @@ end)
 ----------------------------------------------------------
 -- 🔹 Camera Teleport to Nearest Zombie (Auto loop)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
+	if gameProcessed or scriptUnloaded then return end
 	if input.KeyCode == cameraTeleportKey and cameraTeleportEnabled then
 		-- Nếu đang chạy thì hủy
 		if cameraTeleportActive then
@@ -1288,6 +1297,8 @@ do
 end
 
 -- 🔹 Aimbot Functions
+local renderSteppedConnection = nil
+
 local function getAimbotTargets()
     local targets = {}
     
@@ -1354,20 +1365,25 @@ end
 local holdingMouse2 = false
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
+    if gameProcessed or scriptUnloaded then return end
     if input.UserInputType == Enum.UserInputType.MouseButton2 then
         holdingMouse2 = true
     end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
+    if scriptUnloaded then return end
     if input.UserInputType == Enum.UserInputType.MouseButton2 then
         holdingMouse2 = false
     end
 end)
 
 -- Aimbot loop with FOV
-RunService.RenderStepped:Connect(function()
+renderSteppedConnection = RunService.RenderStepped:Connect(function()
+    if scriptUnloaded then
+        return
+    end
+
     local mousePos = UserInputService:GetMouseLocation()
     
     -- Cập nhật FOV Circle
@@ -1978,28 +1994,117 @@ SettingsTab:AddKeybind("MenuKey", {
 
 SettingsTab:AddSection("Reset Script")
 
+local function cleanupScript()
+    if scriptUnloaded then
+        return
+    end
+    scriptUnloaded = true
+
+    -- Tắt các toggle chính
+    aimbotEnabled = false
+    espPlayerEnabled = false
+    espZombieEnabled = false
+    espChestEnabled = false
+    hitboxEnabled = false
+    teleportEnabled = false
+    cameraTeleportEnabled = false
+    cameraTeleportActive = false
+    teleportToLastZombie = false
+    autoBulletBoxEnabled = false
+    autoSkillEnabled = false
+    noClipEnabled = false
+    speedEnabled = false
+    antiZombieEnabled = false
+
+    -- Ngắt aimbot loop + FOV
+    if renderSteppedConnection then
+        renderSteppedConnection:Disconnect()
+        renderSteppedConnection = nil
+    end
+    if FOVCircle then
+        pcall(function()
+            FOVCircle:Remove()
+        end)
+        FOVCircle = nil
+    end
+
+    -- Tắt Anti-Zombie, NoClip, Speed
+    disableAntiZombie()
+    applyNoClip()
+    stopSpeedBoost()
+
+    -- Khôi phục hitbox & clear ESP billboard
+    for _, zombie in ipairs(entityFolder:GetChildren()) do
+        restoreHitbox(zombie)
+    end
+    processedZombies = {}
+
+    clearZombieESP()
+    clearChestESP()
+
+    -- Xóa ESP Drawing cho player và zombie
+    for _, data in pairs(playerESPObjects) do
+        if data.Box and data.Box.Remove then pcall(function() data.Box:Remove() end) end
+        if data.Name and data.Name.Remove then pcall(function() data.Name:Remove() end) end
+        if data.Tracer and data.Tracer.Remove then pcall(function() data.Tracer:Remove() end) end
+        if data.HealthBar and data.HealthBar.Remove then pcall(function() data.HealthBar:Remove() end) end
+    end
+    playerESPObjects = {}
+
+    for _, data in pairs(zombieESPObjects) do
+        if data.Box and data.Box.Remove then pcall(function() data.Box:Remove() end) end
+        if data.Name and data.Name.Remove then pcall(function() data.Name:Remove() end) end
+        if data.Tracer and data.Tracer.Remove then pcall(function() data.Tracer:Remove() end) end
+        if data.HealthBar and data.HealthBar.Remove then pcall(function() data.HealthBar:Remove() end) end
+    end
+    zombieESPObjects = {}
+
+    -- Dừng theo dõi chest mới
+    if chestDescendantConnection and chestDescendantConnection.Disconnect then
+        chestDescendantConnection:Disconnect()
+        chestDescendantConnection = nil
+    end
+
+    -- Reset camera và nhân vật
+    local char = localPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        hrp.Anchored = false
+    end
+
+    local camera = Workspace.CurrentCamera
+    if camera and char then
+        local humanoid = char:FindFirstChild("Humanoid")
+        if humanoid then
+            camera.CameraSubject = humanoid
+            camera.CameraType = Enum.CameraType.Custom
+        end
+    end
+
+    -- Xóa Quick Teleport GUI nếu còn
+    local playerGui = localPlayer:FindFirstChild("PlayerGui")
+    if playerGui then
+        local quickGui = playerGui:FindFirstChild("QuickTeleportButtons")
+        if quickGui then
+            quickGui:Destroy()
+        end
+    end
+
+    -- Destroy Fluent window
+    if Window and Window.Destroy then
+        pcall(function()
+            Window:Destroy()
+        end)
+    end
+
+    print("Script unloaded successfully!")
+end
+
 SettingsTab:AddButton({
     Title = "Unload Script",
     Description = "Unload toàn bộ script và xóa GUI",
     Callback = function()
-        -- Cleanup FOV
-        if FOVCircle then
-            FOVCircle:Remove()
-        end
-        -- Xóa ESP Player objects
-        for _, data in pairs(playerESPObjects) do
-            if data.Box then data.Box:Remove() end
-            if data.Name then data.Name:Remove() end
-            if data.Tracer then data.Tracer:Remove() end
-            if data.HealthBar then data.HealthBar:Remove() end
-        end
-        -- Xóa GUI
-        local ScreenGui = localPlayer:FindFirstChild("PlayerGui"):FindFirstChild("QuickTeleportButtons")
-        if ScreenGui then
-            ScreenGui:Destroy()
-        end
-        Window:Destroy()
-        print("Script unloaded successfully!")
+        cleanupScript()
     end
 })
 
@@ -2065,20 +2170,9 @@ InfoTab:AddParagraph({
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     
-    -- End key - Cleanup
+    -- End key - Cleanup (full unload)
     if input.KeyCode == Enum.KeyCode.End then
-        if FOVCircle then
-            FOVCircle:Remove()
-        end
-        -- Xóa ESP Player objects
-        for _, data in pairs(playerESPObjects) do
-            if data.Box then data.Box:Remove() end
-            if data.Name then data.Name:Remove() end
-            if data.Tracer then data.Tracer:Remove() end
-            if data.HealthBar then data.HealthBar:Remove() end
-        end
-        playerESPObjects = {}
-        print("Script cleanup completed!")
+        cleanupScript()
     end
 end)
 
@@ -2179,41 +2273,6 @@ local function findTaskPosition()
 				end
 			end
 		end
-	end
-	
-	return nil
-end
-
--- Tìm vị trí Safe Zone (Map.Model.Decoration.Crane.Model.Part)
-local function findSafeZonePosition()
-	local map = Workspace:FindFirstChild("Map")
-	if not map then 
-		return nil 
-	end
-	
-	local model = map:FindFirstChild("Model")
-	if not model then 
-		return nil 
-	end
-	
-	local decoration = model:FindFirstChild("Decoration")
-	if not decoration then 
-		return nil 
-	end
-	
-	local crane = decoration:FindFirstChild("Crane")
-	if not crane then 
-		return nil 
-	end
-	
-	local craneModel = crane:FindFirstChild("Model")
-	if not craneModel then 
-		return nil 
-	end
-	
-	local part = craneModel:FindFirstChild("Part")
-	if part and part:IsA("BasePart") then
-		return part.Position + Vector3.new(0, 3, 0)
 	end
 	
 	return nil
@@ -2540,6 +2599,9 @@ refreshButtons()
 -- Tự động refresh buttons mỗi 15 giây để cập nhật khi qua map mới
 task.spawn(function()
 	while task.wait(15) do
+		if scriptUnloaded then
+			break
+		end
 		refreshButtons()
 	end
 end)
