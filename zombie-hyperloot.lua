@@ -45,6 +45,9 @@ local hipHeightToggleKey = Enum.KeyCode.M -- ấn M để bật/tắt Anti-Zombi
 local autoBulletBoxEnabled = true -- Kéo BulletBox về vị trí người chơi
 local cameraTargetMode = "Nearest" -- Mode chọn mục tiêu camera: "LowestHealth" hoặc "Nearest"
 local autoSkillEnabled = true -- Bật/tắt auto skill loop
+local noClipEnabled = false -- Bật/tắt NoClip
+local speedEnabled = false -- Bật/tắt Speed
+local speedValue = 20 -- Giá trị speed mặc định
 local skill1010Interval = 15 -- Thời gian giữa các lần dùng skill 1010 (giây)
 local skill1002Interval = 20 -- Thời gian giữa các lần dùng skill 1002 (giây)
 
@@ -564,6 +567,79 @@ task.spawn(function()
 end)
 
 ----------------------------------------------------------
+-- 🔹 NoClip Functions
+local noClipConnection = nil
+
+local function enableNoClip()
+	if noClipConnection then return end
+	
+	noClipConnection = RunService.Stepped:Connect(function()
+		local char = localPlayer.Character
+		if char and noClipEnabled then
+			for _, descendant in ipairs(char:GetDescendants()) do
+				if descendant:IsA("BasePart") then
+					descendant.CanCollide = false
+				end
+			end
+		end
+	end)
+end
+
+local function disableNoClip()
+	if noClipConnection then
+		noClipConnection:Disconnect()
+		noClipConnection = nil
+		
+		-- Khôi phục collision
+		local char = localPlayer.Character
+		if char then
+			for _, descendant in ipairs(char:GetDescendants()) do
+				if descendant:IsA("BasePart") then
+					descendant.CanCollide = true
+				end
+			end
+		end
+	end
+end
+
+local function applyNoClip()
+	if noClipEnabled then
+		enableNoClip()
+	else
+		disableNoClip()
+	end
+end
+
+----------------------------------------------------------
+-- 🔹 Speed Functions
+local speedConnection = nil
+
+local function applySpeed()
+	local char = localPlayer.Character
+	local humanoid = char and char:FindFirstChild("Humanoid")
+	if humanoid then
+		if speedEnabled then
+			humanoid.WalkSpeed = speedValue
+		else
+			humanoid.WalkSpeed = 16 -- Giá trị mặc định của Roblox
+		end
+	end
+end
+
+-- Tự động áp dụng speed khi character respawn
+local function onCharacterAddedForSpeed(character)
+	task.wait(0.5)
+	if speedEnabled then
+		local humanoid = character:FindFirstChild("Humanoid")
+		if humanoid then
+			humanoid.WalkSpeed = speedValue
+		end
+	end
+end
+
+localPlayer.CharacterAdded:Connect(onCharacterAddedForSpeed)
+
+----------------------------------------------------------
 -- 🔹 HipHeight Toggle (Press M)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then return end
@@ -944,6 +1020,26 @@ MainTab:AddToggle("AutoSkill", {
     end
 })
 
+MainTab:AddToggle("NoClip", {
+    Title = "NoClip",
+    Default = noClipEnabled,
+    Callback = function(Value)
+        noClipEnabled = Value
+        applyNoClip()
+        print("NoClip:", Value and "ON" or "OFF")
+    end
+})
+
+MainTab:AddToggle("Speed", {
+    Title = "Speed",
+    Default = speedEnabled,
+    Callback = function(Value)
+        speedEnabled = Value
+        applySpeed()
+        print("Speed:", Value and "ON" or "OFF")
+    end
+})
+
 -- Settings Tab
 local SettingsTab = Window:AddTab({ Title = "Settings", Icon = "" })
 
@@ -999,6 +1095,22 @@ SettingsTab:AddSlider("Skill1002Interval", {
     Callback = function(Value)
         skill1002Interval = Value
         print("Skill 1002 Interval:", Value, "seconds")
+    end
+})
+
+SettingsTab:AddSlider("Speed", {
+    Title = "Speed Value",
+    Description = "Tốc độ di chuyển (default: 20)",
+    Default = speedValue,
+    Min = 1,
+    Max = 100,
+    Rounding = 1,
+    Callback = function(Value)
+        speedValue = Value
+        if speedEnabled then
+            applySpeed() -- Áp dụng ngay nếu đang bật
+        end
+        print("Speed Value:", Value)
     end
 })
 
