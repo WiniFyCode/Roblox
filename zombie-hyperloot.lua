@@ -30,7 +30,7 @@ local teleportKey = Enum.KeyCode.T -- ấn T để tự mở toàn bộ chest
 
 -- Toggle states
 local espZombieEnabled = true
-local espChestEnabled = false
+local espChestEnabled = true
 local hitboxEnabled = true
 local teleportEnabled = true
 local cameraTeleportEnabled = true
@@ -309,22 +309,26 @@ entityFolder.ChildRemoved:Connect(function(zombie)
 end)
 
 ----------------------------------------------------------
--- 🔹 ESP cho chest (chính xác đường dẫn: Map.*.Chest.*)
+-- 🔹 ESP cho chest (chính xác đường dẫn: Map.Model.Chest.Model.Chest)
 local chestDescendantConnection = nil
 
 local function forEachChestPart(callback)
 	local map = Workspace:FindFirstChild("Map")
 	if not map then return end
 	
-	for _, child in ipairs(map:GetChildren()) do
-		local chestFolder = child:FindFirstChild("Chest")
+	-- Duyệt qua tất cả children của Map để tìm Chest folder
+	for _, mapChild in ipairs(map:GetChildren()) do
+		local chestFolder = mapChild:FindFirstChild("Chest")
 		if chestFolder then
+			-- Duyệt qua tất cả chest models
 			for _, chestModel in ipairs(chestFolder:GetChildren()) do
 				if chestModel:IsA("Model") and chestModel:FindFirstChild("Chest") then
 					local chestModelFolder = chestModel.Chest
-					for _, chestModelChild in ipairs(chestModelFolder:GetChildren()) do
-						if chestModelChild:IsA("Model") then
-							local chestPart = chestModelChild:FindFirstChildWhichIsA("BasePart")
+					
+					-- Duyệt qua tất cả các loại chest (Common Chest, Rare Chest, Epic Chest, Legendary Chest, v.v.)
+					for _, chestType in ipairs(chestModelFolder:GetChildren()) do
+						if chestType:IsA("Model") then
+							local chestPart = chestType:FindFirstChildWhichIsA("BasePart")
 							if chestPart then
 								callback(chestPart)
 							end
@@ -361,11 +365,29 @@ local function watchChestDescendants()
 	end
 	local map = Workspace:FindFirstChild("Map")
 	if not map then return end
-	chestDescendantConnection = map.DescendantAdded:Connect(function(desc)
-		if espChestEnabled and desc:IsA("BasePart") then
-			task.defer(applyChestESP)
+	
+	-- Lắng nghe tất cả các chest folder trong Map
+	local connections = {}
+	for _, mapChild in ipairs(map:GetChildren()) do
+		local chestFolder = mapChild:FindFirstChild("Chest")
+		if chestFolder then
+			local connection = chestFolder.DescendantAdded:Connect(function(desc)
+				if espChestEnabled and desc:IsA("BasePart") then
+					task.defer(applyChestESP)
+				end
+			end)
+			table.insert(connections, connection)
 		end
-	end)
+	end
+	
+	-- Lưu connections để có thể disconnect sau này
+	chestDescendantConnection = {
+		Disconnect = function()
+			for _, conn in ipairs(connections) do
+				conn:Disconnect()
+			end
+		end
+	}
 end
 
 ----------------------------------------------------------
@@ -418,35 +440,13 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		local oldPos = hrp.Position
 		local virtualUser = game:GetService("VirtualUser")
 		
-		-- Bước 1: Tìm tất cả chest (tất cả loại chest: Common, Rare, Epic, Legendary...)
+		-- Bước 1: Tìm tất cả chest (tất cả các loại: Common Chest, Rare Chest, v.v.)
 		local chests = {}
-		local map = Workspace:FindFirstChild("Map")
-		if map then
-			-- Duyệt qua tất cả children của Map
-			for _, child in ipairs(map:GetChildren()) do
-				if child:FindFirstChild("Chest") then
-					local chestFolder = child.Chest
-					
-					-- Duyệt qua TẤT CẢ children (Model, Model1, Model2, Model3...)
-					for _, chestModel in ipairs(chestFolder:GetChildren()) do
-						if chestModel:IsA("Model") and chestModel:FindFirstChild("Chest") then
-							local chestModelFolder = chestModel.Chest
-							
-							-- Tìm tất cả chest types (Common, Rare, Epic, Legendary...)
-							for _, chestModelChild in ipairs(chestModelFolder:GetChildren()) do
-								if chestModelChild:IsA("Model") then
-									-- Lấy BasePart đầu tiên bên trong chest Model
-									local chestPart = chestModelChild:FindFirstChildWhichIsA("BasePart")
-									if chestPart then
-										table.insert(chests, chestPart)
-									end
-								end
-							end
-						end
-					end
-				end
-			end
-		end
+		
+		-- Sử dụng function chung để tìm tất cả chest
+		forEachChestPart(function(chestPart)
+			table.insert(chests, chestPart)
+		end)
 		
 		-- Bước 2: Teleport tới từng chest và mở
 		for _, chestPart in ipairs(chests) do
@@ -545,10 +545,11 @@ end
 
 task.spawn(function()
 	while task.wait(1) do
-		if autoBulletBoxEnabled then
-			local char = localPlayer.Character
-			local hrp = char and char:FindFirstChild("HumanoidRootPart")
-			if hrp then
+		local char = localPlayer.Character
+		local hrp = char and char:FindFirstChild("HumanoidRootPart")
+		if hrp then
+			-- Auto BulletBox
+			if autoBulletBoxEnabled then
 				local boxPart = getBulletBoxPart()
 				if boxPart then
 					boxPart.Anchored = false
@@ -904,7 +905,6 @@ MainTab:AddToggle("AutoBulletBox", {
         print("Auto BulletBox + Items:", Value and "ON" or "OFF")
     end
 })
-
 
 MainTab:AddToggle("CameraTeleport", {
     Title = "Camera Teleport (X Key)",
