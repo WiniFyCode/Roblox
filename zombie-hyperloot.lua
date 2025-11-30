@@ -24,8 +24,8 @@ local mapModel = Workspace:WaitForChild("Map")
 
 -- Cấu hình esp
 local hitboxSize = Vector3.new(4, 4, 4)
-local espColorZombie = Color3.fromRGB(0, 255, 0)
-local espColorChest = Color3.fromRGB(255, 255, 0)
+local espColorZombie = Color3.fromRGB(255, 100, 100) -- Màu đỏ nhạt cho zombie
+local espColorChest = Color3.fromRGB(255, 255, 0) -- Màu vàng cho chest
 local teleportKey = Enum.KeyCode.T -- ấn T để tự mở toàn bộ chest
 
 -- Toggle states
@@ -163,8 +163,8 @@ local function createESP(part, color, name, zombie)
 	local highlight = Instance.new("Highlight")
 	highlight.Name = "ESP_Highlight"
 	highlight.Adornee = part.Parent -- Áp dụng highlight cho toàn bộ zombie model
-	highlight.FillColor = Color3.fromRGB(0, 255, 0) -- Màu xanh lá cây
-	highlight.OutlineColor = Color3.fromRGB(255, 255, 0) -- Viền vàng
+	highlight.FillColor = Color3.fromRGB(255, 100, 100) -- Màu đỏ nhạt
+	highlight.OutlineColor = Color3.fromRGB(255, 255, 255) -- Viền trắng
 	highlight.FillTransparency = 0.7 -- Độ trong suốt của phần fill
 	highlight.OutlineTransparency = 0 -- Viền không trong suốt
 	highlight.Enabled = true
