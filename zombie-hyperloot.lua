@@ -81,7 +81,7 @@ local aimbotAimPart = "Head" -- Head, UpperTorso, HumanoidRootPart
 
 -- Anti-Zombie Configuration (HipHeight)
 local antiZombieEnabled = false -- Bật/tắt Anti-Zombie (tăng HipHeight)
-local hipHeightValue = 20 -- Giá trị HipHeight mặc định (studs)
+local hipHeightValue = 10 -- Giá trị HipHeight mặc định (studs)
 local originalHipHeight = nil -- Lưu HipHeight gốc để khôi phục
 
 
