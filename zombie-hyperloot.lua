@@ -72,7 +72,7 @@ local skill1002Interval = 20 -- Thời gian giữa các lần dùng skill 1002 (
 
 -- Aimbot Configuration
 local aimbotEnabled = true
-local aimbotHoldMouse2 = true -- Giữ chuột phải để aim
+local aimbotHoldMouse2 = false -- Giữ chuột phải để aim
 local aimbotSmoothness = 0.15 -- Mức độ mượt (0 = instantly, 1 = very slow)
 local aimbotPrediction = 0.05 -- Dự đoán chuyển động
 local aimbotFOVEnabled = true
