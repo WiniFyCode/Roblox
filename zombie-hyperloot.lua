@@ -2102,8 +2102,8 @@ ScreenGui.Parent = localPlayer:WaitForChild("PlayerGui")
 local Container = Instance.new("Frame")
 Container.Name = "Container"
 Container.BackgroundTransparency = 1
-Container.Size = UDim2.new(0, 160, 0, 200)
-Container.Position = UDim2.new(1, -180, 0.5, -100) -- Bên phải, giữa màn hình
+Container.Size = UDim2.new(0, 200, 0, 220)
+Container.Position = UDim2.new(1, -220, 0.5, -110) -- Bên phải, giữa màn hình
 Container.Parent = ScreenGui
 
 -- Sử dụng UIListLayout để tự động sắp xếp các button
@@ -2121,18 +2121,36 @@ UIPadding.Parent = Container
 local function createTeleportButton(name, text, color)
 	local button = Instance.new("TextButton")
 	button.Name = name
-	button.Size = UDim2.new(0, 150, 0, 35)
+	button.Size = UDim2.new(0, 160, 0, 40)
 	button.BackgroundColor3 = color
 	button.BorderSizePixel = 0
 	button.Text = text
 	button.TextColor3 = Color3.fromRGB(255, 255, 255)
 	button.TextSize = 14
-	button.Font = Enum.Font.SourceSansBold
+	button.Font = Enum.Font.GothamBold
 	button.AutoButtonColor = false
 	button.Parent = Container
 	
-	-- Hover effects
-	local hoverColor = Color3.new(math.min(color.R + 0.2, 1), math.min(color.G + 0.2, 1), math.min(color.B + 0.2, 1))
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 10)
+	corner.Parent = button
+	
+	local stroke = Instance.new("UIStroke")
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	stroke.Color = Color3.fromRGB(255, 255, 255)
+	stroke.Thickness = 1
+	stroke.Transparency = 0.6
+	stroke.Parent = button
+	
+	local gradient = Instance.new("UIGradient")
+	gradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, color),
+		ColorSequenceKeypoint.new(1, color:Lerp(Color3.fromRGB(20, 20, 20), 0.3))
+	})
+	gradient.Rotation = 90
+	gradient.Parent = button
+	
+	local hoverColor = color:Lerp(Color3.fromRGB(255, 255, 255), 0.2)
 	local originalColor = color
 	
 	button.MouseEnter:Connect(function()
@@ -2432,7 +2450,7 @@ local function refreshButtons()
 	-- Kiểm tra và tạo button Exit Door
 	local exitDoors = findAllExitDoors()
 	if #exitDoors > 0 then
-		local exitDoorButton = createTeleportButton("ExitDoorButton", "🚪 Exit Door", Color3.fromRGB(155, 89, 182))
+		local exitDoorButton = createTeleportButton("ExitDoorButton", "Exit Door", Color3.fromRGB(155, 89, 182))
 		exitDoorButton.LayoutOrder = buttonLayoutOrder
 		buttonLayoutOrder = buttonLayoutOrder + 1
 		createdButtons["ExitDoor"] = exitDoorButton
@@ -2465,7 +2483,7 @@ local function refreshButtons()
 	-- Task button (hiển thị riêng, độc lập với Exit Door)
 	local taskPos = findTaskPosition()
 	if taskPos then
-		local taskButton = createTeleportButton("TaskButton", "📋 Task Cuối Map", Color3.fromRGB(52, 152, 219))
+		local taskButton = createTeleportButton("TaskButton", "Final Task", Color3.fromRGB(52, 152, 219))
 		taskButton.LayoutOrder = buttonLayoutOrder
 		buttonLayoutOrder = buttonLayoutOrder + 1
 		createdButtons["Task"] = taskButton
@@ -2479,7 +2497,7 @@ local function refreshButtons()
 	-- Tạo button riêng cho TỪNG Supply Pile (nếu có 3 thì tạo 3 button)
 	local supplies = findAllSupplyPiles()
 	for i, supplyPos in ipairs(supplies) do
-		local supplyButton = createTeleportButton("SupplyButton" .. i, "🔫 Đạn " .. i, Color3.fromRGB(241, 196, 15))
+		local supplyButton = createTeleportButton("SupplyButton" .. i, "Supply " .. i, Color3.fromRGB(241, 196, 15))
 		supplyButton.LayoutOrder = buttonLayoutOrder
 		buttonLayoutOrder = buttonLayoutOrder + 1
 		createdButtons["Supply" .. i] = supplyButton
@@ -2496,7 +2514,7 @@ local function refreshButtons()
 	-- Tạo button riêng cho TỪNG Ammo (nếu có 3 thì tạo 3 button)
 	local ammos = findAllAmmo()
 	for i, ammoPos in ipairs(ammos) do
-		local ammoButton = createTeleportButton("AmmoButton" .. i, "💣 Ammo " .. i, Color3.fromRGB(230, 126, 34))
+		local ammoButton = createTeleportButton("AmmoButton" .. i, "Ammo " .. i, Color3.fromRGB(230, 126, 34))
 		ammoButton.LayoutOrder = buttonLayoutOrder
 		buttonLayoutOrder = buttonLayoutOrder + 1
 		createdButtons["Ammo" .. i] = ammoButton
@@ -2514,8 +2532,9 @@ local function refreshButtons()
 	
 	-- Cập nhật kích thước container dựa trên số button
 	if currentButtonCount > 0 then
-		Container.Size = UDim2.new(0, 160, 0, currentButtonCount * 40 + 20)
-		Container.Position = UDim2.new(1, -180, 0.5, -(currentButtonCount * 40 + 20) / 2)
+		local containerHeight = currentButtonCount * 45 + 20
+		Container.Size = UDim2.new(0, 200, 0, containerHeight)
+		Container.Position = UDim2.new(1, -220, 0.5, -containerHeight / 2)
 		Container.Visible = true
 	else
 		Container.Visible = false
