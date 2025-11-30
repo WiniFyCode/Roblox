@@ -53,6 +53,7 @@ local cameraTeleportEnabled = true
 local teleportToLastZombie = false -- Teleport tới zombie cuối cùng hay không
 local cameraTeleportKey = Enum.KeyCode.X -- ấn X để tele camera tới zombie
 local cameraTeleportActive = false -- Biến kiểm tra đang chạy camera teleport loop
+local savedAimbotState = nil -- Lưu trạng thái aimbot trước khi camera teleport
 
 -- Map decoration removal
 local cameraTeleportStartPosition = nil -- Vị trí ban đầu của nhân vật
@@ -731,6 +732,11 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		if cameraTeleportActive then
 			cameraTeleportActive = false
 			
+			-- Khôi phục aimbot về trạng thái cũ (nếu có lưu)
+			if savedAimbotState ~= nil then
+				aimbotEnabled = savedAimbotState
+			end
+			
 			-- Teleport về vị trí ban đầu
 			local char = localPlayer.Character
 			local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -746,6 +752,10 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 			camera.CameraSubject = localPlayer.Character and localPlayer.Character:FindFirstChild("Humanoid")
 			return
 		end
+		
+		-- Lưu trạng thái aimbot hiện tại và tắt tạm thời
+		savedAimbotState = aimbotEnabled
+		aimbotEnabled = false
 		
 		-- Lưu vị trí ban đầu của nhân vật
 		local char = localPlayer.Character
@@ -962,24 +972,30 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                 end
             end
             
-            -- Reset camera và nhân vật
-            if hrp then
-                hrp.Anchored = false
-                if teleportToLastZombie and lastZombiePosition then
-                    hrp.CFrame = CFrame.new(lastZombiePosition + Vector3.new(0, 5, 0))
-                end
-            end
-            
-            local finalChar = localPlayer.Character
-            if finalChar then
-                local finalHumanoid = finalChar:FindFirstChild("Humanoid")
-                if finalHumanoid then
-                    camera.CameraSubject = finalHumanoid
-                end
-            end
-            
-            cameraTeleportActive = false
-            print("Camera Teleport đã dừng")
+-- Reset camera và nhân vật
+			if hrp then
+				hrp.Anchored = false
+				if teleportToLastZombie and lastZombiePosition then
+					hrp.CFrame = CFrame.new(lastZombiePosition + Vector3.new(0, 5, 0))
+				end
+			end
+			
+			-- Khôi phục aimbot trạng thái cũ (nếu có lưu)
+			if savedAimbotState ~= nil then
+				aimbotEnabled = savedAimbotState
+				print("Aimbot được khôi phục:", aimbotEnabled and "ON" or "OFF")
+			end
+			
+			local finalChar = localPlayer.Character
+			if finalChar then
+				local finalHumanoid = finalChar:FindFirstChild("Humanoid")
+				if finalHumanoid then
+					camera.CameraSubject = finalHumanoid
+				end
+			end
+			
+			cameraTeleportActive = false
+			print("Camera Teleport đã dừng")
         end)
 	end
 end)
@@ -2151,8 +2167,9 @@ InfoTab:AddParagraph({
 InfoTab:AddParagraph({
     Title = "Cleanup",
     Content = [[
-        • End key - Cleanup all script objects
+        • End key - Unload script & cleanup everything
         • Right Shift - Toggle menu
+        • Camera Teleport (X) tự tắt aimbot, tự bật lại khi kết thúc
 ]]
 })
 
