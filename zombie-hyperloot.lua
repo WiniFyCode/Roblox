@@ -70,6 +70,10 @@ local speedValue = 16 -- Giá trị cộng thêm vào WalkSpeed (studs)
 local skill1010Interval = 15 -- Thời gian giữa các lần dùng skill 1010 (giây)
 local skill1002Interval = 20 -- Thời gian giữa các lần dùng skill 1002 (giây)
 
+-- Noclip Cam Configuration
+local noclipCamEnabled = true -- Bật/tắt Noclip Cam
+local noclipCamKey = Enum.KeyCode.N -- Nhấn N để bật/tắt Noclip Cam
+
 -- Aimbot Configuration
 local aimbotEnabled = true
 local aimbotHoldMouse2 = false -- Giữ chuột phải để aim
@@ -713,6 +717,51 @@ end
 localPlayer.CharacterAdded:Connect(onCharacterAddedForSpeed)
 
 ----------------------------------------------------------
+-- 🔹 Noclip Cam Functions
+local function toggleNoclipCam()
+	local sc = (debug and debug.setconstant) or setconstant
+	local gc = (debug and debug.getconstants) or getconstants
+	if not sc or not getgc or not gc then
+		warn("Exploit không hỗ trợ Noclip Cam (thiếu setconstant hoặc getconstants)")
+		return false
+	end
+	
+	local success = false
+	local pop = localPlayer:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule"):WaitForChild("CameraModule"):WaitForChild("ZoomController"):WaitForChild("Popper")
+	
+	for _, v in pairs(getgc()) do
+		if type(v) == 'function' and getfenv(v).script == pop then
+			for i, v1 in pairs(gc(v)) do
+				if tonumber(v1) == 0.25 then
+					sc(v, i, 0)
+					success = true
+				elseif tonumber(v1) == 0 then
+					sc(v, i, 0.25)
+					success = true
+				end
+			end
+		end
+	end
+	
+	return success
+end
+
+local function applyNoclipCam()
+	if noclipCamEnabled then
+		local success = toggleNoclipCam()
+		if success then
+			print("Noclip Cam: ON")
+		else
+			warn("Noclip Cam: FAILED - Exploit không tương thích")
+			noclipCamEnabled = false
+		end
+	else
+		toggleNoclipCam() -- Toggles back to normal
+		print("Noclip Cam: OFF")
+	end
+end
+
+----------------------------------------------------------
 -- 🔹 HipHeight Toggle (Press M)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed or scriptUnloaded then return end
@@ -720,6 +769,9 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		antiZombieEnabled = not antiZombieEnabled
 		applyAntiZombie()
 		print("Anti-Zombie:", antiZombieEnabled and "ON" or "OFF")
+	elseif input.KeyCode == noclipCamKey then
+		noclipCamEnabled = not noclipCamEnabled
+		applyNoclipCam()
 	end
 end)
 
@@ -1937,6 +1989,17 @@ MovementTab:AddSlider("HipHeight", {
     end
 })
 
+MovementTab:AddToggle("NoclipCam", {
+    Title = "Noclip Cam (N)",
+    Description = "Cho phép camera nhìn xuyên tường",
+    Default = noclipCamEnabled,
+    Callback = function(Value)
+        noclipCamEnabled = Value
+        applyNoclipCam()
+        print("Noclip Cam:", Value and "ON" or "OFF")
+    end
+})
+
 MovementTab:AddSection("Camera Teleport")
 
 MovementTab:AddToggle("CameraTeleport", {
@@ -2044,10 +2107,16 @@ local function cleanupScript()
         FOVCircle = nil
     end
 
-    -- Tắt Anti-Zombie, NoClip, Speed
+    -- Tắt Anti-Zombie, NoClip, Speed, Noclip Cam
     disableAntiZombie()
     applyNoClip()
     stopSpeedBoost()
+    
+    -- Tắt Noclip Cam
+    if noclipCamEnabled then
+        noclipCamEnabled = false
+        toggleNoclipCam()
+    end
 
     -- Khôi phục hitbox & clear ESP billboard
     for _, zombie in ipairs(entityFolder:GetChildren()) do
@@ -2146,6 +2215,7 @@ InfoTab:AddParagraph({
         T Key - Auto Open All Chests  
         X Key - Camera Teleport to Zombies
         M Key - Toggle Anti-Zombie
+        N Key - Toggle Noclip Cam
         Right Shift - Open/Close Menu
 ]]
 })
