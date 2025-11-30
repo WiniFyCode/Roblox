@@ -34,17 +34,17 @@ local teleportKey = Enum.KeyCode.T -- ấn T để tự mở toàn bộ chest
 local espZombieEnabled = true
 local espChestEnabled = true
 local espPlayerEnabled = true -- ESP Player
-local hitboxEnabled = true
+local hitboxEnabled = false
 
 -- ESP Zombie Configuration
 local espZombieBoxes = true
-local espZombieTracers = true
+local espZombieTracers = false
 local espZombieNames = true
 local espZombieHealth = true
 
 -- ESP Player Configuration
 local espPlayerBoxes = true
-local espPlayerTracers = true
+local espPlayerTracers = false
 local espPlayerNames = true
 local espPlayerHealth = true
 local espPlayerTeamCheck = false -- Kiểm tra team
@@ -65,7 +65,7 @@ local cameraTargetMode = "Nearest" -- Mode chọn mục tiêu camera: "LowestHea
 local autoSkillEnabled = true -- Bật/tắt auto skill loop
 local noClipEnabled = false -- Bật/tắt NoClip
 local speedEnabled = false -- Bật/tắt Speed
-local speedValue = 20 -- Giá trị cộng thêm vào WalkSpeed (studs)
+local speedValue = 16 -- Giá trị cộng thêm vào WalkSpeed (studs)
 local skill1010Interval = 15 -- Thời gian giữa các lần dùng skill 1010 (giây)
 local skill1002Interval = 20 -- Thời gian giữa các lần dùng skill 1002 (giây)
 
@@ -75,7 +75,7 @@ local aimbotHoldMouse2 = true -- Giữ chuột phải để aim
 local aimbotSmoothness = 0.15 -- Mức độ mượt (0 = instantly, 1 = very slow)
 local aimbotPrediction = 0.05 -- Dự đoán chuyển động
 local aimbotFOVEnabled = true
-local aimbotFOVRadius = 200
+local aimbotFOVRadius = 100
 local aimbotTargetMode = "Zombies" -- Zombies, Players, All
 local aimbotAimPart = "Head" -- Head, UpperTorso, HumanoidRootPart
 
@@ -2102,8 +2102,8 @@ ScreenGui.Parent = localPlayer:WaitForChild("PlayerGui")
 local Container = Instance.new("Frame")
 Container.Name = "Container"
 Container.BackgroundTransparency = 1
-Container.Size = UDim2.new(0, 200, 0, 220)
-Container.Position = UDim2.new(1, -220, 0.5, -110) -- Bên phải, giữa màn hình
+Container.Size = UDim2.new(0, 170, 0, 200)
+Container.Position = UDim2.new(1, -190, 0.5, -100) -- Sát cạnh phải, giữa màn hình
 Container.Parent = ScreenGui
 
 -- Sử dụng UIListLayout để tự động sắp xếp các button
@@ -2121,36 +2121,29 @@ UIPadding.Parent = Container
 local function createTeleportButton(name, text, color)
 	local button = Instance.new("TextButton")
 	button.Name = name
-	button.Size = UDim2.new(0, 160, 0, 40)
+	button.Size = UDim2.new(0, 150, 0, 34)
 	button.BackgroundColor3 = color
 	button.BorderSizePixel = 0
 	button.Text = text
 	button.TextColor3 = Color3.fromRGB(255, 255, 255)
-	button.TextSize = 14
+	button.TextStrokeColor3 = Color3.fromRGB(15, 15, 15)
+	button.TextSize = 16
 	button.Font = Enum.Font.GothamBold
 	button.AutoButtonColor = false
 	button.Parent = Container
 	
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 10)
+	corner.CornerRadius = UDim.new(0, 8)
 	corner.Parent = button
 	
 	local stroke = Instance.new("UIStroke")
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	stroke.Color = Color3.fromRGB(255, 255, 255)
+	stroke.Color = color:Lerp(Color3.fromRGB(255, 255, 255), 0.4)
 	stroke.Thickness = 1
-	stroke.Transparency = 0.6
+	stroke.Transparency = 0.2
 	stroke.Parent = button
 	
-	local gradient = Instance.new("UIGradient")
-	gradient.Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, color),
-		ColorSequenceKeypoint.new(1, color:Lerp(Color3.fromRGB(20, 20, 20), 0.3))
-	})
-	gradient.Rotation = 90
-	gradient.Parent = button
-	
-	local hoverColor = color:Lerp(Color3.fromRGB(255, 255, 255), 0.2)
+	local hoverColor = color:Lerp(Color3.fromRGB(255, 255, 255), 0.35)
 	local originalColor = color
 	
 	button.MouseEnter:Connect(function()
@@ -2532,9 +2525,9 @@ local function refreshButtons()
 	
 	-- Cập nhật kích thước container dựa trên số button
 	if currentButtonCount > 0 then
-		local containerHeight = currentButtonCount * 45 + 20
-		Container.Size = UDim2.new(0, 200, 0, containerHeight)
-		Container.Position = UDim2.new(1, -220, 0.5, -containerHeight / 2)
+		local containerHeight = currentButtonCount * 38 + 20
+		Container.Size = UDim2.new(0, 170, 0, containerHeight)
+		Container.Position = UDim2.new(1, -190, 0.5, -containerHeight / 2)
 		Container.Visible = true
 	else
 		Container.Visible = false
