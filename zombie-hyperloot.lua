@@ -24,7 +24,7 @@ local mapModel = Workspace:WaitForChild("Map")
 
 -- Cấu hình esp
 local hitboxSize = Vector3.new(4, 4, 4)
-local espColorZombie = Color3.fromRGB(255, 100, 100) -- Màu đỏ nhạt cho zombie
+local espColorZombie = Color3.fromRGB(180, 110, 255) -- Màu tím cho zombie
 local espColorChest = Color3.fromRGB(255, 255, 0) -- Màu vàng cho chest
 local espColorPlayer = Color3.fromRGB(100, 200, 255) -- Màu xanh dương cho player
 local espColorEnemy = Color3.fromRGB(255, 50, 50) -- Màu đỏ cho enemy
@@ -35,6 +35,12 @@ local espZombieEnabled = true
 local espChestEnabled = true
 local espPlayerEnabled = true -- ESP Player
 local hitboxEnabled = true
+
+-- ESP Zombie Configuration
+local espZombieBoxes = true
+local espZombieTracers = true
+local espZombieNames = true
+local espZombieHealth = true
 
 -- ESP Player Configuration
 local espPlayerBoxes = true
@@ -47,6 +53,8 @@ local cameraTeleportEnabled = true
 local teleportToLastZombie = false -- Teleport tới zombie cuối cùng hay không
 local cameraTeleportKey = Enum.KeyCode.X -- ấn X để tele camera tới zombie
 local cameraTeleportActive = false -- Biến kiểm tra đang chạy camera teleport loop
+
+-- Map decoration removal
 local cameraTeleportStartPosition = nil -- Vị trí ban đầu của nhân vật
 local cameraOffsetX = 0 -- Camera offset X
 local cameraOffsetY = 10 -- Camera offset Y
@@ -57,7 +65,7 @@ local cameraTargetMode = "Nearest" -- Mode chọn mục tiêu camera: "LowestHea
 local autoSkillEnabled = true -- Bật/tắt auto skill loop
 local noClipEnabled = false -- Bật/tắt NoClip
 local speedEnabled = false -- Bật/tắt Speed
-local speedValue = 20 -- Giá trị speed mặc định
+local speedValue = 20 -- Giá trị cộng thêm vào WalkSpeed (studs)
 local skill1010Interval = 15 -- Thời gian giữa các lần dùng skill 1010 (giây)
 local skill1002Interval = 20 -- Thời gian giữa các lần dùng skill 1002 (giây)
 
@@ -311,9 +319,7 @@ entityFolder.ChildAdded:Connect(function(zombie)
 		local head = zombie:WaitForChild("Head", 3)
 		if head then
 			task.wait(0.5) -- Đợi thêm một chút để model load xong hoàn toàn
-			if espZombieEnabled then
-				createESP(head, espColorZombie, zombie.Name, zombie)
-			end
+			-- Chỉ xử lý hitbox, ESP zombie dùng Drawing trong RenderStepped
 			if hitboxEnabled then
 				expandHitbox(zombie)
 			end
@@ -446,7 +452,7 @@ local function clearZombieESP()
 end
 
 watchChestDescendants()
-applyZombieESPToAll()
+-- ESP zombie sẽ được vẽ bằng Drawing trong RenderStepped, không cần tạo Billboard sẵn
 if espChestEnabled then
 	applyChestESP()
 end
@@ -633,27 +639,64 @@ end
 ----------------------------------------------------------
 -- 🔹 Speed Functions
 local speedConnection = nil
+local originalWalkSpeed = nil
 
-local function applySpeed()
+local function startSpeedBoost()
+	if speedConnection then return end
+	speedConnection = RunService.Heartbeat:Connect(function()
+		if not speedEnabled then return end
+		
+		local char = localPlayer.Character
+		local humanoid = char and char:FindFirstChild("Humanoid")
+		if not humanoid then return end
+		
+		if not originalWalkSpeed then
+			originalWalkSpeed = humanoid.WalkSpeed
+		end
+		
+		local baseSpeed = originalWalkSpeed or 16
+		local targetSpeed = baseSpeed + speedValue
+		
+		if math.abs(humanoid.WalkSpeed - targetSpeed) > 0.01 then
+			humanoid.WalkSpeed = targetSpeed
+		end
+	end)
+end
+
+local function stopSpeedBoost()
+	if speedConnection then
+		speedConnection:Disconnect()
+		speedConnection = nil
+	end
+	
 	local char = localPlayer.Character
 	local humanoid = char and char:FindFirstChild("Humanoid")
-	if humanoid then
-		if speedEnabled then
-			humanoid.WalkSpeed = speedValue
-		else
-			humanoid.WalkSpeed = 16 -- Giá trị mặc định của Roblox
-		end
+	if humanoid and originalWalkSpeed then
+		humanoid.WalkSpeed = originalWalkSpeed
+	end
+	originalWalkSpeed = nil
+end
+
+local function applySpeed()
+	if speedEnabled then
+		startSpeedBoost()
+	else
+		stopSpeedBoost()
 	end
 end
 
 -- Tự động áp dụng speed khi character respawn
 local function onCharacterAddedForSpeed(character)
+	originalWalkSpeed = nil
 	task.wait(0.5)
 	if speedEnabled then
 		local humanoid = character:FindFirstChild("Humanoid")
 		if humanoid then
-			humanoid.WalkSpeed = speedValue
+			originalWalkSpeed = humanoid.WalkSpeed
 		end
+		startSpeedBoost()
+	else
+		stopSpeedBoost()
 	end
 end
 
@@ -1114,6 +1157,111 @@ local function drawPlayerESP(plr, cf, size, humanoid)
     end
 end
 
+-- 🔹 Zombie ESP Drawing (giống player nhưng màu tím)
+local zombieESPObjects = {}
+
+local function createZombieESPElements()
+    return {
+        Box       = newPlayerDrawing("Square", {Visible = false, Thickness = 2, Filled = false, Color = espColorZombie}),
+        Name      = newPlayerDrawing("Text",   {Visible = false, Center = true, Outline = true, Size = 14, Font = 2, Color = Color3.new(1,1,1)}),
+        Tracer    = newPlayerDrawing("Line",   {Visible = false, Thickness = 1, Color = espColorZombie}),
+        HealthBar = newPlayerDrawing("Line",   {Visible = false, Thickness = 3, Color = Color3.new(0,1,0)}),
+    }
+end
+
+local function hideZombieESP(data)
+    if not data then
+        return
+    end
+    data.Box.Visible = false
+    data.Name.Visible = false
+    data.Tracer.Visible = false
+    data.HealthBar.Visible = false
+end
+
+local function drawZombieESP(zombieModel, cf, size, humanoid)
+    if not hasPlayerDrawing or not espZombieEnabled then
+        hideZombieESP(zombieESPObjects[zombieModel])
+        return
+    end
+
+    local points, visible = getBoxScreenPoints(cf, size)
+    if not visible or #points == 0 then
+        hideZombieESP(zombieESPObjects[zombieModel])
+        return
+    end
+
+    local data = zombieESPObjects[zombieModel]
+    if not data then
+        data = createZombieESPElements()
+        zombieESPObjects[zombieModel] = data
+    end
+
+    local minX, minY, maxX, maxY = math.huge, math.huge, -math.huge, -math.huge
+    for _, pt in ipairs(points) do
+        minX = math.min(minX, pt.X)
+        minY = math.min(minY, pt.Y)
+        maxX = math.max(maxX, pt.X)
+        maxY = math.max(maxY, pt.Y)
+    end
+
+    local boxWidth, boxHeight = maxX - minX, maxY - minY
+    if boxWidth <= 3 or boxHeight <= 4 then
+        hideZombieESP(data)
+        return
+    end
+
+    local slimWidth = boxWidth * 0.7
+    local slimX = minX + (boxWidth - slimWidth) / 2
+    local baseColor = espColorZombie
+    local screenCenter = Vector2.new(Workspace.CurrentCamera.ViewportSize.X / 2, Workspace.CurrentCamera.ViewportSize.Y)
+
+    local hp    = humanoid and humanoid.Health or 0
+    local maxHp = humanoid and humanoid.MaxHealth or 100
+    local ratio = math.clamp(maxHp > 0 and hp / maxHp or 0, 0, 1)
+
+    -- Box
+    if espZombieBoxes then
+        data.Box.Visible  = true
+        data.Box.Position = Vector2.new(slimX, minY)
+        data.Box.Size     = Vector2.new(slimWidth, boxHeight)
+        data.Box.Color    = baseColor
+    else
+        data.Box.Visible = false
+    end
+
+    -- Name
+    if espZombieNames then
+        data.Name.Visible  = true
+        data.Name.Text     = string.format("%s [%d]", zombieModel.Name, math.floor(hp))
+        data.Name.Position = Vector2.new(slimX + slimWidth / 2, minY - 18)
+        data.Name.Color    = baseColor
+    else
+        data.Name.Visible = false
+    end
+
+    -- Tracer
+    if espZombieTracers then
+        data.Tracer.Visible = true
+        data.Tracer.From    = screenCenter
+        data.Tracer.To      = Vector2.new(slimX + slimWidth / 2, maxY)
+        data.Tracer.Color   = baseColor
+    else
+        data.Tracer.Visible = false
+    end
+
+    -- Health Bar
+    if espZombieHealth then
+        local barHeight = boxHeight * ratio
+        data.HealthBar.Visible = true
+        data.HealthBar.From = Vector2.new(slimX - 5, maxY)
+        data.HealthBar.To   = Vector2.new(slimX - 5, maxY - barHeight)
+        data.HealthBar.Color = Color3.fromRGB((1 - ratio) * 255, ratio * 255, 0)
+    else
+        data.HealthBar.Visible = false
+    end
+end
+
 -- 🔹 FOV Drawing
 local hasDrawing = false
 local FOVCircle = nil
@@ -1231,40 +1379,76 @@ RunService.RenderStepped:Connect(function()
         FOVCircle.Thickness = aimbotEnabled and 2 or 1.5
     end
     
-    -- ESP Player Update Loop
-    if hasPlayerDrawing and espPlayerEnabled then
-        local camera = Workspace.CurrentCamera
-        local playerCount = 0
-        
-        -- Update ESP cho tất cả players
-        for _, plr in ipairs(Players:GetPlayers()) do
-            if plr ~= localPlayer then
-                local char = plr.Character
-                local hum = char and char:FindFirstChildOfClass("Humanoid")
-                if char and hum and hum.Health > 0 then
-                    playerCount = playerCount + 1
-                    -- Team check
-                    if espPlayerTeamCheck and plr.Team == localPlayer.Team then
-                        hidePlayerESP(playerESPObjects[plr])
-                    else
-                        local ok, cf, size = pcall(char.GetBoundingBox, char)
-                        if ok and cf and size then
-                            drawPlayerESP(plr, cf, size, hum)
-                        else
+    -- ESP Player + Zombie Update Loop
+    if hasPlayerDrawing then
+        -- Player ESP
+        if espPlayerEnabled then
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr ~= localPlayer then
+                    local char = plr.Character
+                    local hum = char and char:FindFirstChildOfClass("Humanoid")
+                    if char and hum and hum.Health > 0 then
+                        -- Team check
+                        if espPlayerTeamCheck and plr.Team == localPlayer.Team then
                             hidePlayerESP(playerESPObjects[plr])
+                        else
+                            local ok, cf, size = pcall(char.GetBoundingBox, char)
+                            if ok and cf and size then
+                                drawPlayerESP(plr, cf, size, hum)
+                            else
+                                hidePlayerESP(playerESPObjects[plr])
+                            end
                         end
+                    else
+                        hidePlayerESP(playerESPObjects[plr])
                     end
-                else
-                    hidePlayerESP(playerESPObjects[plr])
                 end
             end
+        else
+            -- Ẩn tất cả ESP player nếu tắt
+            for _, data in pairs(playerESPObjects) do
+                hidePlayerESP(data)
+            end
         end
-        
 
+        -- Zombie ESP (Drawing)
+        if espZombieEnabled then
+            local seenZombies = {}
+
+            for _, zombie in ipairs(entityFolder:GetChildren()) do
+                if zombie:IsA("Model") then
+                    local hum = zombie:FindFirstChildOfClass("Humanoid")
+                    if hum and hum.Health > 0 then
+                        local ok, cf, size = pcall(zombie.GetBoundingBox, zombie)
+                        if ok and cf and size then
+                            drawZombieESP(zombie, cf, size, hum)
+                            seenZombies[zombie] = true
+                        else
+                            hideZombieESP(zombieESPObjects[zombie])
+                        end
+                    else
+                        hideZombieESP(zombieESPObjects[zombie])
+                    end
+                end
+            end
+
+            for model, data in pairs(zombieESPObjects) do
+                if not seenZombies[model] then
+                    hideZombieESP(data)
+                end
+            end
+        else
+            for _, data in pairs(zombieESPObjects) do
+                hideZombieESP(data)
+            end
+        end
     else
-        -- Ẩn tất cả ESP player nếu tắt
+        -- Không có Drawing API
         for _, data in pairs(playerESPObjects) do
             hidePlayerESP(data)
+        end
+        for _, data in pairs(zombieESPObjects) do
+            hideZombieESP(data)
         end
     end
     
@@ -1311,11 +1495,11 @@ end)
 
 -- 🔹 Fluent UI Controls - Reorganized Tabs
 
--- 🎯 COMBAT TAB
-local CombatTab = Window:AddTab({ Title = "Combat", Icon = "⚔️" })
+-- COMBAT TAB
+local CombatTab = Window:AddTab({ Title = "Combat" })
 
 CombatTab:AddToggle("Aimbot", {
-    Title = "🎯 Aimbot",
+    Title = "Aimbot",
     Default = aimbotEnabled,
     Callback = function(Value)
         aimbotEnabled = Value
@@ -1324,10 +1508,10 @@ CombatTab:AddToggle("Aimbot", {
 })
 
 -- Aimbot Settings trong Combat Tab
-CombatTab:AddSection("🎯 Aimbot Settings")
+CombatTab:AddSection("Aimbot Settings")
 
 CombatTab:AddDropdown("AimbotTargetMode", {
-    Title = "🎯 Target Mode",
+    Title = "Target Mode",
     Description = "Chọn mục tiêu cho aimbot",
     Values = {"Zombies", "Players", "All"},
     Default = aimbotTargetMode,
@@ -1338,7 +1522,7 @@ CombatTab:AddDropdown("AimbotTargetMode", {
 })
 
 CombatTab:AddDropdown("AimbotAimPart", {
-    Title = "📍 Aim Part",
+    Title = "Aim Part",
     Description = "Chọn bộ phận nhắm mục tiêu",
     Values = {"Head", "UpperTorso", "HumanoidRootPart"},
     Default = aimbotAimPart,
@@ -1349,7 +1533,7 @@ CombatTab:AddDropdown("AimbotAimPart", {
 })
 
 CombatTab:AddToggle("AimbotHoldMouse2", {
-    Title = "🖱️ Hold Right Click",
+    Title = "Hold Right Click",
     Description = "Giữ chuột phải để kích hoạt aimbot",
     Default = aimbotHoldMouse2,
     Callback = function(Value)
@@ -1359,7 +1543,7 @@ CombatTab:AddToggle("AimbotHoldMouse2", {
 })
 
 CombatTab:AddToggle("AimbotFOV", {
-    Title = "📸 FOV Circle",
+    Title = "FOV Circle",
     Description = "Hiển thị và giới hạn phạm vi aimbot",
     Default = aimbotFOVEnabled,
     Callback = function(Value)
@@ -1369,7 +1553,7 @@ CombatTab:AddToggle("AimbotFOV", {
 })
 
 CombatTab:AddSlider("AimbotFOVRadius", {
-    Title = "📏 FOV Radius",
+    Title = "FOV Radius",
     Description = "Bán kính phạm vi aimbot",
     Default = aimbotFOVRadius,
     Min = 50,
@@ -1382,7 +1566,7 @@ CombatTab:AddSlider("AimbotFOVRadius", {
 })
 
 CombatTab:AddSlider("AimbotSmoothness", {
-    Title = "🐍 Smoothness",
+    Title = "Smoothness",
     Description = "Mức độ mượt của aimbot (0 = instantly, 1 = very slow)",
     Default = aimbotSmoothness,
     Min = 0,
@@ -1395,7 +1579,7 @@ CombatTab:AddSlider("AimbotSmoothness", {
 })
 
 CombatTab:AddSlider("AimbotPrediction", {
-    Title = "🔮 Prediction",
+    Title = "Prediction",
     Description = "Dự đoán chuyển động mục tiêu",
     Default = aimbotPrediction,
     Min = 0,
@@ -1407,10 +1591,10 @@ CombatTab:AddSlider("AimbotPrediction", {
     end
 })
 
-CombatTab:AddSection("📦 Hitbox Settings")
+CombatTab:AddSection("Hitbox Settings")
 
 CombatTab:AddToggle("Hitbox", {
-    Title = "📦 Hitbox Expander",
+    Title = "Hitbox Expander",
     Default = hitboxEnabled,
     Callback = function(Value)
         hitboxEnabled = Value
@@ -1456,10 +1640,10 @@ CombatTab:AddSlider("HitboxSize", {
     end
 })
 
-CombatTab:AddSection("⚡ Auto Skill")
+CombatTab:AddSection("Auto Skill")
 
 CombatTab:AddToggle("AutoSkill", {
-    Title = "⚡ Auto Skill",
+    Title = "Auto Skill",
     Default = autoSkillEnabled,
     Callback = function(Value)
         autoSkillEnabled = Value
@@ -1477,7 +1661,7 @@ CombatTab:AddToggle("AutoSkill", {
 })
 
 CombatTab:AddSlider("Skill1010Interval", {
-    Title = "⚡ Skill 1010 Interval",
+    Title = "Skill 1010 Interval",
     Description = "Khoảng thời gian dùng skill 1010 (giây)",
     Default = skill1010Interval,
     Min = 1,
@@ -1490,7 +1674,7 @@ CombatTab:AddSlider("Skill1010Interval", {
 })
 
 CombatTab:AddSlider("Skill1002Interval", {
-    Title = "⚡ Skill 1002 Interval",
+    Title = "Skill 1002 Interval",
     Description = "Khoảng thời gian dùng skill 1002 (giây)",
     Default = skill1002Interval,
     Min = 1,
@@ -1502,27 +1686,73 @@ CombatTab:AddSlider("Skill1002Interval", {
     end
 })
 
--- 👁️ ESP TAB
-local ESPTab = Window:AddTab({ Title = "ESP", Icon = "👁️" })
+-- ESP TAB
+local ESPTab = Window:AddTab({ Title = "ESP" })
 
-ESPTab:AddSection("🧟 Zombie & Chest ESP")
+ESPTab:AddSection("Zombie ESP")
 
 ESPTab:AddToggle("ESPZombie", {
-    Title = "🧟 ESP Zombie",
+    Title = "ESP Zombie",
     Default = espZombieEnabled,
     Callback = function(Value)
         espZombieEnabled = Value
-        if Value then
-            applyZombieESPToAll()
-        else
+        if not Value then
+            -- Xóa Billboard/Highlight cũ nếu còn
             clearZombieESP()
+            -- Ẩn toàn bộ ESP zombie dùng Drawing
+            for _, data in pairs(zombieESPObjects) do
+                hideZombieESP(data)
+            end
         end
         print("ESP Zombie:", Value and "ON" or "OFF")
     end
 })
 
+-- ESP Zombie Settings
+ESPTab:AddToggle("ESPZombieBoxes", {
+    Title = "Zombie Boxes",
+    Description = "Hiển thị box quanh zombie",
+    Default = espZombieBoxes,
+    Callback = function(Value)
+        espZombieBoxes = Value
+        print("ESP Zombie Boxes:", Value and "ON" or "OFF")
+    end
+})
+
+ESPTab:AddToggle("ESPZombieTracers", {
+    Title = "Zombie Tracers",
+    Description = "Hiển thị đường line từ cạnh dưới màn hình tới zombie",
+    Default = espZombieTracers,
+    Callback = function(Value)
+        espZombieTracers = Value
+        print("ESP Zombie Tracers:", Value and "ON" or "OFF")
+    end
+})
+
+ESPTab:AddToggle("ESPZombieNames", {
+    Title = "Zombie Names",
+    Description = "Hiển thị tên và máu của zombie",
+    Default = espZombieNames,
+    Callback = function(Value)
+        espZombieNames = Value
+        print("ESP Zombie Names:", Value and "ON" or "OFF")
+    end
+})
+
+ESPTab:AddToggle("ESPZombieHealth", {
+    Title = "Zombie Health Bars",
+    Description = "Hiển thị thanh máu của zombie",
+    Default = espZombieHealth,
+    Callback = function(Value)
+        espZombieHealth = Value
+        print("ESP Zombie Health:", Value and "ON" or "OFF")
+    end
+})
+
+ESPTab:AddSection("Chest ESP")
+
 ESPTab:AddToggle("ESPChest", {
-    Title = "📦 ESP Chest",
+    Title = "ESP Chest",
     Default = espChestEnabled,
     Callback = function(Value)
         espChestEnabled = Value
@@ -1535,10 +1765,10 @@ ESPTab:AddToggle("ESPChest", {
     end
 })
 
-ESPTab:AddSection("👤 Player ESP")
+ESPTab:AddSection("Player ESP")
 
 ESPTab:AddToggle("ESPPlayer", {
-    Title = "👤 ESP Player",
+    Title = "ESP Player",
     Default = espPlayerEnabled,
     Callback = function(Value)
         espPlayerEnabled = Value
@@ -1561,7 +1791,7 @@ ESPTab:AddToggle("ESPPlayer", {
 
 -- ESP Player Settings trong ESP Tab
 ESPTab:AddToggle("ESPPlayerBoxes", {
-    Title = "📦 Player Boxes",
+    Title = "Player Boxes",
     Description = "Hiển thị box quanh người chơi",
     Default = espPlayerBoxes,
     Callback = function(Value)
@@ -1571,7 +1801,7 @@ ESPTab:AddToggle("ESPPlayerBoxes", {
 })
 
 ESPTab:AddToggle("ESPPlayerTracers", {
-    Title = "📍 Player Tracers",
+    Title = "Player Tracers",
     Description = "Hiển thị đường line từ camera đến player",
     Default = espPlayerTracers,
     Callback = function(Value)
@@ -1581,7 +1811,7 @@ ESPTab:AddToggle("ESPPlayerTracers", {
 })
 
 ESPTab:AddToggle("ESPPlayerNames", {
-    Title = "🏷️ Player Names",
+    Title = "Player Names",
     Description = "Hiển thị tên và máu của player",
     Default = espPlayerNames,
     Callback = function(Value)
@@ -1591,7 +1821,7 @@ ESPTab:AddToggle("ESPPlayerNames", {
 })
 
 ESPTab:AddToggle("ESPPlayerHealth", {
-    Title = "❤️ Player Health Bars",
+    Title = "Player Health Bars",
     Description = "Hiển thị thanh máu của player",
     Default = espPlayerHealth,
     Callback = function(Value)
@@ -1601,7 +1831,7 @@ ESPTab:AddToggle("ESPPlayerHealth", {
 })
 
 ESPTab:AddToggle("ESPPlayerTeamCheck", {
-    Title = "🤝 Team Check",
+    Title = "Team Check",
     Description = "Chỉ hiển thị ESP cho enemy (không cùng team)",
     Default = espPlayerTeamCheck,
     Callback = function(Value)
@@ -1610,11 +1840,11 @@ ESPTab:AddToggle("ESPPlayerTeamCheck", {
     end
 })
 
--- 🚀 MOVEMENT TAB
-local MovementTab = Window:AddTab({ Title = "Movement", Icon = "🚀" })
+-- MOVEMENT TAB
+local MovementTab = Window:AddTab({ Title = "Movement" })
 
 MovementTab:AddToggle("Speed", {
-    Title = "💨 Speed Boost",
+    Title = "Speed Boost",
     Default = speedEnabled,
     Callback = function(Value)
         speedEnabled = Value
@@ -1624,8 +1854,8 @@ MovementTab:AddToggle("Speed", {
 })
 
 MovementTab:AddSlider("Speed", {
-    Title = "💨 Speed Value",
-    Description = "Tốc độ di chuyển (default: 20)",
+    Title = "Speed Bonus",
+    Description = "Giá trị cộng thêm vào WalkSpeed (studs)",
     Default = speedValue,
     Min = 1,
     Max = 100,
@@ -1635,12 +1865,12 @@ MovementTab:AddSlider("Speed", {
         if speedEnabled then
             applySpeed() -- Áp dụng ngay nếu đang bật
         end
-        print("Speed Value:", Value)
+        print("Speed Bonus:", Value)
     end
 })
 
 MovementTab:AddToggle("NoClip", {
-    Title = "👻 NoClip",
+    Title = "NoClip",
     Default = noClipEnabled,
     Callback = function(Value)
         noClipEnabled = Value
@@ -1650,7 +1880,7 @@ MovementTab:AddToggle("NoClip", {
 })
 
 MovementTab:AddToggle("AntiZombie", {
-    Title = "🛡️ Anti-Zombie",
+    Title = "Anti-Zombie",
     Default = antiZombieEnabled,
     Callback = function(Value)
         antiZombieEnabled = Value
@@ -1660,7 +1890,7 @@ MovementTab:AddToggle("AntiZombie", {
 })
 
 MovementTab:AddSlider("HipHeight", {
-    Title = "🛡️ HipHeight",
+    Title = "HipHeight",
     Description = "Điều chỉnh HipHeight để tránh zombie (studs)",
     Default = 20,
     Min = 0,
@@ -1675,10 +1905,10 @@ MovementTab:AddSlider("HipHeight", {
     end
 })
 
-MovementTab:AddSection("📷 Camera Teleport")
+MovementTab:AddSection("Camera Teleport")
 
 MovementTab:AddToggle("CameraTeleport", {
-    Title = "📷 Camera Teleport (X)",
+    Title = "Camera Teleport (X)",
     Default = cameraTeleportEnabled,
     Callback = function(Value)
         cameraTeleportEnabled = Value
@@ -1687,7 +1917,7 @@ MovementTab:AddToggle("CameraTeleport", {
 })
 
 MovementTab:AddDropdown("CameraTargetMode", {
-    Title = "🎥 Target Mode",
+    Title = "Target Mode",
     Description = "Chọn chế độ nhắm mục tiêu cho camera teleport",
     Values = {"LowestHealth", "Nearest"},
     Default = cameraTargetMode,
@@ -1698,7 +1928,7 @@ MovementTab:AddDropdown("CameraTargetMode", {
 })
 
 MovementTab:AddToggle("TeleportToLastZombie", {
-    Title = "🏁 Teleport to Last Zombie",
+    Title = "Teleport to Last Zombie",
     Description = "Teleport đến vị trí zombie cuối cùng sau khi camera teleport kết thúc",
     Default = teleportToLastZombie,
     Callback = function(Value)
@@ -1707,11 +1937,11 @@ MovementTab:AddToggle("TeleportToLastZombie", {
     end
 })
 
--- 💰 FARM TAB
-local FarmTab = Window:AddTab({ Title = "Farm", Icon = "💰" })
+-- FARM TAB
+local FarmTab = Window:AddTab({ Title = "Farm" })
 
 FarmTab:AddToggle("AutoBulletBox", {
-    Title = "🎁 Auto BulletBox + Items",
+    Title = "Auto BulletBox + Items",
     Default = autoBulletBoxEnabled,
     Callback = function(Value)
         autoBulletBoxEnabled = Value
@@ -1720,7 +1950,7 @@ FarmTab:AddToggle("AutoBulletBox", {
 })
 
 FarmTab:AddToggle("Teleport", {
-    Title = "🗝️ Auto Chest (T Key)",
+    Title = "Auto Chest (T Key)",
     Default = teleportEnabled,
     Callback = function(Value)
         teleportEnabled = Value
@@ -1728,23 +1958,28 @@ FarmTab:AddToggle("Teleport", {
     end
 })
 
--- ⚙️ SETTINGS TAB
-local SettingsTab = Window:AddTab({ Title = "Settings", Icon = "⚙️" })
+-- SETTINGS TAB
+local SettingsTab = Window:AddTab({ Title = "Settings" })
 
-SettingsTab:AddSection("🎮 Keybinds")
+SettingsTab:AddSection("Keybinds")
 
 SettingsTab:AddKeybind("MenuKey", {
-    Title = "🔧 Menu Key",
-    Default = Enum.KeyCode.RightShift,
-    Callback = function()
-        -- Menu key đã được Fluent xử lý
+    Title = "Menu Key",
+    Default = "RightShift", -- Fluent yêu cầu string thay vì Enum
+    Mode = "Toggle",
+    Callback = function(isOpen)
+        if isOpen then
+            Window:Minimize()
+        else
+            Window:Restore()
+        end
     end
 })
 
-SettingsTab:AddSection("⚠️ Reset Script")
+SettingsTab:AddSection("Reset Script")
 
-SettingsTab:AddButton("Unload", {
-    Title = "🧹 Unload Script",
+SettingsTab:AddButton({
+    Title = "Unload Script",
     Description = "Unload toàn bộ script và xóa GUI",
     Callback = function()
         -- Cleanup FOV
@@ -1768,9 +2003,9 @@ SettingsTab:AddButton("Unload", {
     end
 })
 
-SettingsTab:AddSection("🎨 Theme")
+SettingsTab:AddSection("Theme")
 SettingsTab:AddDropdown("Theme", {
-    Title = "🎨 UI Theme",
+    Title = "UI Theme",
     Description = "Chọn theme cho giao diện",
     Values = {"Dark", "Light", "Acrilic", "Glass"},
     Default = "Dark",
@@ -1780,49 +2015,49 @@ SettingsTab:AddDropdown("Theme", {
     end
 })
 
--- 📝 INFO TAB
-local InfoTab = Window:AddTab({ Title = "Info", Icon = "📝" })
+-- INFO TAB
+local InfoTab = Window:AddTab({ Title = "Info" })
 
 InfoTab:AddParagraph({
-    Title = "🎮 Controls",
+    Title = "Controls",
     Content = [[
-🖱️ Right Click - Activate Aimbot (if enabled)
-🗝️ T Key - Auto Open All Chests  
-📷 X Key - Camera Teleport to Zombies
-🛡️ M Key - Toggle Anti-Zombie
-⌨️ Right Shift - Open/Close Menu
+        Right Click - Activate Aimbot (if enabled)
+        T Key - Auto Open All Chests  
+        X Key - Camera Teleport to Zombies
+        M Key - Toggle Anti-Zombie
+        Right Shift - Open/Close Menu
 ]]
 })
 
 InfoTab:AddParagraph({
-    Title = "💡 Tips",
+    Title = "Tips",
     Content = [[
-• Combine Aimbot + Hitbox for maximum efficiency
-• Use ESP to track zombies through walls
-• ESP Player shows enemies through walls with boxes
-• Anti-Zombie keeps you safe from attacks
-• Auto Skill provides continuous damage
-• Camera Teleport is great for farming
-• Auto Chest collects all loot instantly
-• Aimbot targets both zombies and players
+        • Combine Aimbot + Hitbox for maximum efficiency
+        • Use ESP to track zombies through walls
+        • ESP Player shows enemies through walls with boxes
+        • Anti-Zombie keeps you safe from attacks
+        • Auto Skill provides continuous damage
+        • Camera Teleport is great for farming
+        • Auto Chest collects all loot instantly
+        • Aimbot targets both zombies and players
 ]]
 })
 
 InfoTab:AddParagraph({
-    Title = "🔧 Cleanup",
+    Title = "Cleanup",
     Content = [[
-• End key - Cleanup all script objects
-• Right Shift - Toggle menu
+        • End key - Cleanup all script objects
+        • Right Shift - Toggle menu
 ]]
 })
 
 InfoTab:AddParagraph({
-    Title = "⚠️ Important",
+    Title = "Important",
     Content = [[
-• Some features may not work in all games
-• Use responsibly to avoid detection
-• Adjust settings based on your playstyle
-• Disable features if experiencing lag
+        • Some features may not work in all games
+        • Use responsibly to avoid detection
+        • Adjust settings based on your playstyle
+        • Disable features if experiencing lag
 ]]
 })
 
@@ -1849,12 +2084,12 @@ end)
 
 Window:SelectTab(1)
 print("Zombie Hyperloot: Script loaded successfully!")
-print("🎯 Tabs: Combat | ESP | Movement | Farm | Settings | Info")
-print("👥 ESP Player: " .. (hasPlayerDrawing and "ENABLED" or "DISABLED - Drawing API not available"))
-print("📸 FOV Circle: " .. (hasFOVDrawing and "ENABLED" or "DISABLED - Drawing API not available"))
-print("🔴 Green FOV = Idle | Red FOV = Locked Target")
-print("👤 ESP Player Features: Boxes, Tracers, Names, Health Bars")
-print("🔧 End key - Cleanup all script objects")
+print("Tabs: Combat | ESP | Movement | Farm | Settings | Info")
+print("ESP Player: " .. (hasPlayerDrawing and "ENABLED" or "DISABLED - Drawing API not available"))
+print("FOV Circle: " .. (hasFOVDrawing and "ENABLED" or "DISABLED - Drawing API not available"))
+print("Green FOV = Idle | Red FOV = Locked Target")
+print("ESP Player Features: Boxes, Tracers, Names, Health Bars")
+print("End key - Cleanup all script objects")
 
 ----------------------------------------------------------
 -- 🔹 Quick Teleport Buttons (Right Side of Screen)
