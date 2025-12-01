@@ -1,6 +1,8 @@
 --// Zombie + Chest ESP + Hitbox + Teleport Collector
 -- Load Fluent UI (working library)
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
 
 local Window = Fluent:CreateWindow({
     Title = "Zombie Hyperloot",
@@ -205,11 +207,12 @@ localPlayer.CharacterAdded:Connect(onCharacterAdded)
 local function createESP(part, color, name, zombie)
 	if not part or part:FindFirstChild("ESPTag") then return end
 
-	-- Tạo Highlight để làm nổi bật zombie
+	-- Tạo Highlight để làm nổi bật zombie/chest
 	local highlight = Instance.new("Highlight")
 	highlight.Name = "ESP_Highlight"
 	highlight.Adornee = part.Parent -- Áp dụng highlight cho toàn bộ zombie model
-	highlight.FillColor = Color3.fromRGB(255, 100, 100) -- Màu đỏ nhạt
+	local highlightColor = color or Color3.fromRGB(255, 100, 100)
+	highlight.FillColor = highlightColor
 	highlight.OutlineColor = Color3.fromRGB(255, 255, 255) -- Viền trắng
 	highlight.FillTransparency = 0.7 -- Độ trong suốt của phần fill
 	highlight.OutlineTransparency = 0 -- Viền không trong suốt
@@ -402,6 +405,19 @@ local function clearChestESP()
 	end)
 end
 
+local function refreshChestHighlights(color)
+	local targetColor = color or espColorChest
+	forEachChestPart(function(chestPart)
+		local parentModel = chestPart.Parent
+		if parentModel then
+			local highlight = parentModel:FindFirstChild("ESP_Highlight")
+			if highlight then
+				highlight.FillColor = targetColor
+			end
+		end
+	end)
+end
+
 local function watchChestDescendants()
 	if chestDescendantConnection then
 		chestDescendantConnection:Disconnect()
@@ -461,6 +477,18 @@ local function clearZombieESP()
 			local highlight = zombie:FindFirstChild("ESP_Highlight")
 			if highlight then
 				highlight:Destroy()
+			end
+		end
+	end
+end
+
+local function refreshZombieHighlights(color)
+	local targetColor = color or espColorZombie
+	for _, zombie in ipairs(entityFolder:GetChildren()) do
+		if zombie:IsA("Model") then
+			local highlight = zombie:FindFirstChild("ESP_Highlight")
+			if highlight then
+				highlight.FillColor = targetColor
 			end
 		end
 	end
@@ -833,14 +861,12 @@ local function applyNoclipCam()
 	if noclipCamEnabled then
 		local success = toggleNoclipCam()
 		if success then
-			print("Noclip Cam: ON")
 		else
 			warn("Noclip Cam: FAILED - Exploit không tương thích")
 			noclipCamEnabled = false
 		end
 	else
 		toggleNoclipCam() -- Toggles back to normal
-		print("Noclip Cam: OFF")
 	end
 end
 
@@ -851,7 +877,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if input.KeyCode == hipHeightToggleKey then
 		antiZombieEnabled = not antiZombieEnabled
 		applyAntiZombie()
-		print("Anti-Zombie:", antiZombieEnabled and "ON" or "OFF")
 	elseif input.KeyCode == noclipCamKey then
 		noclipCamEnabled = not noclipCamEnabled
 		applyNoclipCam()
@@ -1055,7 +1080,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                 currentTarget = waitForNewWaveAndSelect()
             end
             if not currentTarget then
-                print("Không tìm thấy zombie nào!")
                 cameraTeleportActive = false
                 return
             end
@@ -1148,7 +1172,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 			-- Khôi phục aimbot trạng thái cũ (nếu có lưu)
 			if savedAimbotState ~= nil then
 				aimbotEnabled = savedAimbotState
-				print("Aimbot được khôi phục:", aimbotEnabled and "ON" or "OFF")
 			end
 			
 			local finalChar = localPlayer.Character
@@ -1160,7 +1183,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 			end
 			
 			cameraTeleportActive = false
-			print("Camera Teleport đã dừng")
         end)
 	end
 end)
@@ -1700,7 +1722,6 @@ CombatTab:AddToggle("Aimbot", {
     Default = aimbotEnabled,
     Callback = function(Value)
         aimbotEnabled = Value
-        print("Aimbot:", Value and "ON" or "OFF")
     end
 })
 
@@ -1714,7 +1735,6 @@ CombatTab:AddDropdown("AimbotTargetMode", {
     Default = aimbotTargetMode,
     Callback = function(Value)
         aimbotTargetMode = Value
-        print("Aimbot Target Mode:", Value)
     end
 })
 
@@ -1725,7 +1745,6 @@ CombatTab:AddDropdown("AimbotAimPart", {
     Default = aimbotAimPart,
     Callback = function(Value)
         aimbotAimPart = Value
-        print("Aimbot Aim Part:", Value)
     end
 })
 
@@ -1735,7 +1754,6 @@ CombatTab:AddToggle("AimbotHoldMouse2", {
     Default = aimbotHoldMouse2,
     Callback = function(Value)
         aimbotHoldMouse2 = Value
-        print("Aimbot Hold Mouse2:", Value and "ON" or "OFF")
     end
 })
 
@@ -1745,7 +1763,6 @@ CombatTab:AddToggle("AimbotFOV", {
     Default = aimbotFOVEnabled,
     Callback = function(Value)
         aimbotFOVEnabled = Value
-        print("Aimbot FOV:", Value and "ON" or "OFF")
     end
 })
 
@@ -1758,7 +1775,6 @@ CombatTab:AddSlider("AimbotFOVRadius", {
     Rounding = 0,
     Callback = function(Value)
         aimbotFOVRadius = Value
-        print("Aimbot FOV Radius:", Value)
     end
 })
 
@@ -1771,7 +1787,6 @@ CombatTab:AddSlider("AimbotSmoothness", {
     Rounding = 2,
     Callback = function(Value)
         aimbotSmoothness = Value
-        print("Aimbot Smoothness:", Value)
     end
 })
 
@@ -1784,7 +1799,6 @@ CombatTab:AddSlider("AimbotPrediction", {
     Rounding = 3,
     Callback = function(Value)
         aimbotPrediction = Value
-        print("Aimbot Prediction:", Value)
     end
 })
 
@@ -1820,7 +1834,6 @@ CombatTab:AddToggle("Hitbox", {
                 end
             end
         end
-        print("Hitbox:", Value and "ON" or "OFF")
     end
 })
 
@@ -1833,7 +1846,6 @@ CombatTab:AddSlider("HitboxSize", {
     Rounding = 1,
     Callback = function(Value)
         hitboxSize = Vector3.new(Value, Value, Value)
-        print("Hitbox Size:", Value)
     end
 })
 
@@ -1853,7 +1865,6 @@ CombatTab:AddToggle("AutoSkill", {
                 activateSkill1002()
             end)
         end
-        print("Auto Skill:", Value and "ON" or "OFF")
     end
 })
 
@@ -1866,7 +1877,6 @@ CombatTab:AddSlider("Skill1010Interval", {
     Rounding = 1,
     Callback = function(Value)
         skill1010Interval = Value
-        print("Skill 1010 Interval:", Value, "seconds")
     end
 })
 
@@ -1879,7 +1889,6 @@ CombatTab:AddSlider("Skill1002Interval", {
     Rounding = 1,
     Callback = function(Value)
         skill1002Interval = Value
-        print("Skill 1002 Interval:", Value, "seconds")
     end
 })
 
@@ -1901,7 +1910,15 @@ ESPTab:AddToggle("ESPZombie", {
                 hideZombieESP(data)
             end
         end
-        print("ESP Zombie:", Value and "ON" or "OFF")
+    end
+})
+
+ESPTab:AddColorpicker("ESPZombieColor", {
+    Title = "Zombie ESP Color",
+    Default = espColorZombie,
+    Callback = function(Value)
+        espColorZombie = Value
+        refreshZombieHighlights(Value)
     end
 })
 
@@ -1912,7 +1929,6 @@ ESPTab:AddToggle("ESPZombieBoxes", {
     Default = espZombieBoxes,
     Callback = function(Value)
         espZombieBoxes = Value
-        print("ESP Zombie Boxes:", Value and "ON" or "OFF")
     end
 })
 
@@ -1922,7 +1938,6 @@ ESPTab:AddToggle("ESPZombieTracers", {
     Default = espZombieTracers,
     Callback = function(Value)
         espZombieTracers = Value
-        print("ESP Zombie Tracers:", Value and "ON" or "OFF")
     end
 })
 
@@ -1932,7 +1947,6 @@ ESPTab:AddToggle("ESPZombieNames", {
     Default = espZombieNames,
     Callback = function(Value)
         espZombieNames = Value
-        print("ESP Zombie Names:", Value and "ON" or "OFF")
     end
 })
 
@@ -1942,7 +1956,6 @@ ESPTab:AddToggle("ESPZombieHealth", {
     Default = espZombieHealth,
     Callback = function(Value)
         espZombieHealth = Value
-        print("ESP Zombie Health:", Value and "ON" or "OFF")
     end
 })
 
@@ -1958,7 +1971,15 @@ ESPTab:AddToggle("ESPChest", {
         else
             clearChestESP()
         end
-        print("ESP Chest:", Value and "ON" or "OFF")
+    end
+})
+
+ESPTab:AddColorpicker("ESPChestColor", {
+    Title = "Chest ESP Color",
+    Default = espColorChest,
+    Callback = function(Value)
+        espColorChest = Value
+        refreshChestHighlights(Value)
     end
 })
 
@@ -1982,7 +2003,6 @@ ESPTab:AddToggle("ESPPlayer", {
             end
         end
         
-        print("ESP Player:", Value and "ON" or "OFF")
     end
 })
 
@@ -1993,7 +2013,6 @@ ESPTab:AddToggle("ESPPlayerBoxes", {
     Default = espPlayerBoxes,
     Callback = function(Value)
         espPlayerBoxes = Value
-        print("ESP Player Boxes:", Value and "ON" or "OFF")
     end
 })
 
@@ -2003,7 +2022,6 @@ ESPTab:AddToggle("ESPPlayerTracers", {
     Default = espPlayerTracers,
     Callback = function(Value)
         espPlayerTracers = Value
-        print("ESP Player Tracers:", Value and "ON" or "OFF")
     end
 })
 
@@ -2013,7 +2031,6 @@ ESPTab:AddToggle("ESPPlayerNames", {
     Default = espPlayerNames,
     Callback = function(Value)
         espPlayerNames = Value
-        print("ESP Player Names:", Value and "ON" or "OFF")
     end
 })
 
@@ -2023,7 +2040,6 @@ ESPTab:AddToggle("ESPPlayerHealth", {
     Default = espPlayerHealth,
     Callback = function(Value)
         espPlayerHealth = Value
-        print("ESP Player Health:", Value and "ON" or "OFF")
     end
 })
 
@@ -2033,7 +2049,6 @@ ESPTab:AddToggle("ESPPlayerTeamCheck", {
     Default = espPlayerTeamCheck,
     Callback = function(Value)
         espPlayerTeamCheck = Value
-        print("ESP Player Team Check:", Value and "ON" or "OFF")
     end
 })
 
@@ -2046,7 +2061,6 @@ MovementTab:AddToggle("Speed", {
     Callback = function(Value)
         speedEnabled = Value
         applySpeed()
-        print("Speed:", Value and "ON" or "OFF")
     end
 })
 
@@ -2062,7 +2076,22 @@ MovementTab:AddSlider("Speed", {
         if speedEnabled then
             applySpeed() -- Áp dụng ngay nếu đang bật
         end
-        print("Speed Bonus:", Value)
+    end
+})
+
+ESPTab:AddColorpicker("ESPPlayerColor", {
+    Title = "Player ESP Color",
+    Default = espColorPlayer,
+    Callback = function(Value)
+        espColorPlayer = Value
+    end
+})
+
+ESPTab:AddColorpicker("ESPEnemyColor", {
+    Title = "Enemy ESP Color",
+    Default = espColorEnemy,
+    Callback = function(Value)
+        espColorEnemy = Value
     end
 })
 
@@ -2072,7 +2101,6 @@ MovementTab:AddToggle("NoClip", {
     Callback = function(Value)
         noClipEnabled = Value
         applyNoClip()
-        print("NoClip:", Value and "ON" or "OFF")
     end
 })
 
@@ -2082,7 +2110,6 @@ MovementTab:AddToggle("AntiZombie", {
     Callback = function(Value)
         antiZombieEnabled = Value
         applyAntiZombie() -- Áp dụng ngay lập tức
-        print("Anti-Zombie:", Value and "ON" or "OFF")
     end
 })
 
@@ -2098,7 +2125,6 @@ MovementTab:AddSlider("HipHeight", {
         if antiZombieEnabled then
             applyAntiZombie() -- Áp dụng ngay nếu đang bật
         end
-        print("HipHeight:", Value)
     end
 })
 
@@ -2109,7 +2135,6 @@ MovementTab:AddToggle("NoclipCam", {
     Callback = function(Value)
         noclipCamEnabled = Value
         applyNoclipCam()
-        print("Noclip Cam:", Value and "ON" or "OFF")
     end
 })
 
@@ -2120,7 +2145,6 @@ MovementTab:AddToggle("CameraTeleport", {
     Default = cameraTeleportEnabled,
     Callback = function(Value)
         cameraTeleportEnabled = Value
-        print("Camera Teleport:", Value and "ON" or "OFF")
     end
 })
 
@@ -2131,7 +2155,6 @@ MovementTab:AddDropdown("CameraTargetMode", {
     Default = cameraTargetMode,
     Callback = function(Value)
         cameraTargetMode = Value
-        print("Camera Target Mode:", Value)
     end
 })
 
@@ -2144,7 +2167,6 @@ MovementTab:AddSlider("CameraTeleportWaveDelay", {
     Rounding = 0,
     Callback = function(Value)
         cameraTeleportWaveDelay = Value
-        print("Camera Teleport Wait:", Value .. "s")
     end
 })
 
@@ -2154,7 +2176,6 @@ MovementTab:AddToggle("TeleportToLastZombie", {
     Default = teleportToLastZombie,
     Callback = function(Value)
         teleportToLastZombie = Value
-        print("Teleport to Last Zombie:", Value and "ON" or "OFF")
     end
 })
 
@@ -2192,7 +2213,6 @@ MapTab:AddDropdown("MapWorld", {
         if id then
             selectedWorldId = id
         end
-        print("Map:", Value, id or "?")
     end
 })
 
@@ -2206,7 +2226,6 @@ MapTab:AddDropdown("MapDifficulty", {
         if num then
             selectedDifficulty = num
         end
-        print("Difficulty:", Value)
     end
 })
 
@@ -2219,7 +2238,6 @@ MapTab:AddSlider("MapMaxCount", {
     Rounding = 0,
     Callback = function(Value)
         selectedMaxCount = Value
-        print("MaxCount:", Value)
     end
 })
 
@@ -2229,7 +2247,6 @@ MapTab:AddToggle("MapFriendOnly", {
     Default = selectedFriendOnly,
     Callback = function(Value)
         selectedFriendOnly = Value
-        print("FriendOnly:", Value and "ON" or "OFF")
     end
 })
 
@@ -2249,7 +2266,6 @@ FarmTab:AddToggle("AutoBulletBox", {
     Default = autoBulletBoxEnabled,
     Callback = function(Value)
         autoBulletBoxEnabled = Value
-        print("Auto BulletBox + Items:", Value and "ON" or "OFF")
     end
 })
 
@@ -2258,29 +2274,11 @@ FarmTab:AddToggle("Teleport", {
     Default = teleportEnabled,
     Callback = function(Value)
         teleportEnabled = Value
-        print("Auto Chest:", Value and "ON" or "OFF")
     end
 })
 
 -- SETTINGS TAB
 local SettingsTab = Window:AddTab({ Title = "Settings" })
-
-SettingsTab:AddSection("Keybinds")
-
-SettingsTab:AddKeybind("MenuKey", {
-    Title = "Menu Key",
-    Default = "RightShift", -- Fluent yêu cầu string thay vì Enum
-    Mode = "Toggle",
-    Callback = function()
-        -- Một số phiên bản Fluent không có Window:Restore, nên dùng Toggle cho an toàn
-        if Window and Window.Toggle then
-            Window:Toggle()
-        elseif Window and Window.Minimize then
-            -- Fallback: nếu không có Toggle nhưng có Minimize thì chỉ thu/phóng
-            Window:Minimize()
-        end
-    end
-})
 
 SettingsTab:AddSection("Reset Script")
 
@@ -2393,7 +2391,6 @@ local function cleanupScript()
         end)
     end
 
-    print("Script unloaded successfully!")
 end
 
 SettingsTab:AddButton({
@@ -2404,17 +2401,16 @@ SettingsTab:AddButton({
     end
 })
 
-SettingsTab:AddSection("Theme")
-SettingsTab:AddDropdown("Theme", {
-    Title = "UI Theme",
-    Description = "Chọn theme cho giao diện",
-    Values = {"Dark", "Light", "Acrilic", "Glass"},
-    Default = "Dark",
-    Callback = function(Value)
-        -- Fluent sẽ tự xử lý theme
-        print("Theme changed to:", Value)
-    end
-})
+-- Config Save / Load (Fluent SaveManager + InterfaceManager)
+SaveManager:SetLibrary(Fluent)
+InterfaceManager:SetLibrary(Fluent)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({})
+InterfaceManager:SetFolder("ZombieHyperloot")
+SaveManager:SetFolder("ZombieHyperloot/Configs")
+InterfaceManager:BuildInterfaceSection(SettingsTab)
+SaveManager:BuildConfigSection(SettingsTab)
+SaveManager:LoadAutoloadConfig()
 
 -- INFO TAB
 local InfoTab = Window:AddTab({ Title = "Info" })
@@ -2475,13 +2471,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 Window:SelectTab(1)
-print("Zombie Hyperloot: Script loaded successfully!")
-print("Tabs: Combat | ESP | Movement | Farm | Settings | Info")
-print("ESP Player: " .. (hasPlayerDrawing and "ENABLED" or "DISABLED - Drawing API not available"))
-print("FOV Circle: " .. (hasFOVDrawing and "ENABLED" or "DISABLED - Drawing API not available"))
-print("Green FOV = Idle | Red FOV = Locked Target")
-print("ESP Player Features: Boxes, Tracers, Names, Health Bars")
-print("End key - Cleanup all script objects")
 
 ----------------------------------------------------------
 -- 🔹 Quick Teleport Buttons (Right Side of Screen)
