@@ -63,6 +63,7 @@ local cameraOffsetZ = -2 -- Camera offset Z
 local hipHeightToggleKey = Enum.KeyCode.M -- ấn M để bật/tắt Anti-Zombie nhanh
 local autoBulletBoxEnabled = true -- Kéo BulletBox về vị trí người chơi
 local cameraTargetMode = "Nearest" -- Mode chọn mục tiêu camera: "LowestHealth" hoặc "Nearest"
+local cameraTeleportWaveDelay = 5 -- Thời gian chờ giữa các đợt zombie (giây)
 local autoSkillEnabled = true -- Bật/tắt auto skill loop
 local noClipEnabled = false -- Bật/tắt NoClip
 local speedEnabled = false -- Bật/tắt Speed
@@ -77,10 +78,10 @@ local noclipCamKey = Enum.KeyCode.N -- Nhấn N để bật/tắt Noclip Cam
 -- Aimbot Configuration
 local aimbotEnabled = true
 local aimbotHoldMouse2 = false -- Giữ chuột phải để aim
-local aimbotSmoothness = 0.15 -- Mức độ mượt (0 = instantly, 1 = very slow)
-local aimbotPrediction = 0.05 -- Dự đoán chuyển động
+local aimbotSmoothness = 0.1 -- Mức độ mượt (0 = instantly, 1 = very slow)
+local aimbotPrediction = 0.1 -- Dự đoán chuyển động
 local aimbotFOVEnabled = true
-local aimbotFOVRadius = 100
+local aimbotFOVRadius = 50
 local aimbotTargetMode = "Zombies" -- Zombies, Players, All
 local aimbotAimPart = "Head" -- Head, UpperTorso, HumanoidRootPart
 
@@ -938,12 +939,32 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         
         -- Loop teleport theo mode được chọn
         task.spawn(function()
+            local function waitForNewWaveAndSelect()
+                if cameraTeleportWaveDelay > 0 then
+                    local waited = 0
+                    while cameraTeleportActive and waited < cameraTeleportWaveDelay do
+                        local step = math.min(0.25, cameraTeleportWaveDelay - waited)
+                        task.wait(step)
+                        waited += step
+                    end
+                end
+
+                if not cameraTeleportActive then
+                    return nil
+                end
+
+                return selectInitialTarget()
+            end
+
             local camera = Workspace.CurrentCamera
             local char = localPlayer.Character
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
             
             -- Kiểm tra xem có zombie không trước khi bắt đầu
             local currentTarget = selectInitialTarget()
+            if not currentTarget then
+                currentTarget = waitForNewWaveAndSelect()
+            end
             if not currentTarget then
                 print("Không tìm thấy zombie nào!")
                 cameraTeleportActive = false
@@ -971,8 +992,11 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 
                 currentTarget = selectNextTarget(currentTarget)
                 if cameraTeleportActive and not currentTarget then
-                    ranOutOfZombies = true
-                    break
+                    currentTarget = waitForNewWaveAndSelect()
+                    if not currentTarget then
+                        ranOutOfZombies = true
+                        break
+                    end
                 end
                 
                 if currentTarget and currentTarget.zombie then
@@ -2019,6 +2043,19 @@ MovementTab:AddDropdown("CameraTargetMode", {
     Callback = function(Value)
         cameraTargetMode = Value
         print("Camera Target Mode:", Value)
+    end
+})
+
+MovementTab:AddSlider("CameraTeleportWaveDelay", {
+    Title = "Wave Wait Time (s)",
+    Description = "Thời gian chờ đợi wave zombie mới sau khi hết mục tiêu",
+    Default = cameraTeleportWaveDelay,
+    Min = 0,
+    Max = 15,
+    Rounding = 0,
+    Callback = function(Value)
+        cameraTeleportWaveDelay = Value
+        print("Camera Teleport Wait:", Value .. "s")
     end
 })
 
