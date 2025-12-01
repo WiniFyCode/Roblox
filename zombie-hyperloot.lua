@@ -940,13 +940,20 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         -- Loop teleport theo mode được chọn
         task.spawn(function()
             local function waitForNewWaveAndSelect()
-                if cameraTeleportWaveDelay > 0 then
-                    local waited = 0
-                    while cameraTeleportActive and waited < cameraTeleportWaveDelay do
-                        local step = math.min(0.25, cameraTeleportWaveDelay - waited)
-                        task.wait(step)
-                        waited += step
+                if cameraTeleportWaveDelay <= 0 then
+                    return selectInitialTarget()
+                end
+
+                local waited = 0
+                while cameraTeleportActive and waited < cameraTeleportWaveDelay do
+                    local candidate = selectInitialTarget()
+                    if candidate then
+                        return candidate
                     end
+
+                    local step = math.min(0.25, cameraTeleportWaveDelay - waited)
+                    task.wait(step)
+                    waited += step
                 end
 
                 if not cameraTeleportActive then
