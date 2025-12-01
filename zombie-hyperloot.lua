@@ -71,6 +71,12 @@ local speedValue = 16 -- Giá trị cộng thêm vào WalkSpeed (studs)
 local skill1010Interval = 15 -- Thời gian giữa các lần dùng skill 1010 (giây)
 local skill1002Interval = 20 -- Thời gian giữa các lần dùng skill 1002 (giây)
 
+-- Map selection configuration
+local selectedWorldId = 1001 -- Exclusion
+local selectedDifficulty = 1 -- 1 = Normal, 2 = Hard, 3 = Nightmare
+local selectedMaxCount = 4
+local selectedFriendOnly = false
+
 -- Noclip Cam Configuration
 local noclipCamEnabled = true -- Bật/tắt Noclip Cam
 local noclipCamKey = Enum.KeyCode.N -- Nhấn N để bật/tắt Noclip Cam
@@ -508,6 +514,77 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		hrp.CFrame = CFrame.new(oldPos)
 	end
 end)
+
+----------------------------------------------------------
+-- 🔹 Map Teleport & Start
+local function getWaitAreaTouchPart()
+	local ok, result = pcall(function()
+		local eItem = Workspace:FindFirstChild("EItem")
+		if not eItem then return nil end
+		local waitArea = eItem:FindFirstChild("WaitArea")
+		if not waitArea then return nil end
+		local inner = waitArea:FindFirstChild("WaitArea")
+		if not inner then return nil end
+		return inner:FindFirstChild("TouchPart")
+	end)
+
+	if ok then
+		return result
+	end
+
+	return nil
+end
+
+local function teleportToWaitAreaAndStart()
+	if scriptUnloaded then
+		return
+	end
+
+	local char = localPlayer.Character
+	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+	if not char or not hrp then
+		warn("[MapTeleport] Không tìm thấy nhân vật hoặc HumanoidRootPart")
+		return
+	end
+
+	local touchPart = getWaitAreaTouchPart()
+	if not touchPart or not touchPart:IsA("BasePart") then
+		warn("[MapTeleport] Không tìm thấy WaitArea TouchPart")
+		return
+	end
+
+	-- Bước 1: Teleport tới cửa map
+	hrp.CFrame = touchPart.CFrame + Vector3.new(0, 4, 0)
+	task.wait(0.5)
+
+	-- Bước 2: Gửi remote chọn map
+	local replicatedStorage = game:GetService("ReplicatedStorage")
+	local remoteFolder = replicatedStorage:FindFirstChild("Remote")
+	if not remoteFolder then
+		warn("[MapTeleport] Không tìm thấy ReplicatedStorage.Remote")
+		return
+	end
+
+	local remoteEvent = remoteFolder:FindFirstChild("RemoteEvent")
+	if not remoteEvent then
+		warn("[MapTeleport] Không tìm thấy RemoteEvent")
+		return
+	end
+
+	local args = {
+		1604900034,
+		{
+			difficulty = selectedDifficulty,
+			worldId = selectedWorldId,
+			maxCount = selectedMaxCount,
+			friendOnly = selectedFriendOnly
+		}
+	}
+
+	pcall(function()
+		remoteEvent:FireServer(unpack(args))
+	end)
+end
 
 ----------------------------------------------------------
 -- 🔹 Infinite Skill Loop
@@ -2073,6 +2150,89 @@ MovementTab:AddToggle("TeleportToLastZombie", {
     Callback = function(Value)
         teleportToLastZombie = Value
         print("Teleport to Last Zombie:", Value and "ON" or "OFF")
+    end
+})
+
+-- MAP TAB
+local MapTab = Window:AddTab({ Title = "Map" })
+
+MapTab:AddSection("Auto Map Teleport")
+
+local mapDisplayNames = {
+    "Exclusion [1001]",
+    "Virus Laboratory [1002]",
+    "Biology Laboratory [1003]",
+    "Wave Mode [102]",
+    "Raid Mode [201]",
+}
+
+local mapIdByDisplay = {
+    ["Exclusion [1001]"] = 1001,
+    ["Virus Laboratory [1002]"] = 1002,
+    ["Biology Laboratory [1003]"] = 1003,
+    ["Wave Mode [102]"] = 102,
+    ["Raid Mode [201]"] = 201,
+}
+
+local defaultMapDisplay = mapDisplayNames[1]
+selectedWorldId = mapIdByDisplay[defaultMapDisplay] or selectedWorldId
+
+MapTab:AddDropdown("MapWorld", {
+    Title = "Map",
+    Description = "Chọn map để vào",
+    Values = mapDisplayNames,
+    Default = defaultMapDisplay,
+    Callback = function(Value)
+        local id = mapIdByDisplay[Value]
+        if id then
+            selectedWorldId = id
+        end
+        print("Map:", Value, id or "?")
+    end
+})
+
+MapTab:AddDropdown("MapDifficulty", {
+    Title = "Difficulty",
+    Description = "Difficulty: 1 Normal, 2 Hard, 3 Nightmare",
+    Values = {"1 - Normal", "2 - Hard", "3 - Nightmare"},
+    Default = "1 - Normal",
+    Callback = function(Value)
+        local num = tonumber(string.match(Value, "^(%d+)"))
+        if num then
+            selectedDifficulty = num
+        end
+        print("Difficulty:", Value)
+    end
+})
+
+MapTab:AddSlider("MapMaxCount", {
+    Title = "Max Players",
+    Description = "Số người chơi tối đa trong phòng",
+    Default = selectedMaxCount,
+    Min = 1,
+    Max = 4,
+    Rounding = 0,
+    Callback = function(Value)
+        selectedMaxCount = Value
+        print("MaxCount:", Value)
+    end
+})
+
+MapTab:AddToggle("MapFriendOnly", {
+    Title = "Friend Only",
+    Description = "Chỉ bạn bè mới có thể vào phòng",
+    Default = selectedFriendOnly,
+    Callback = function(Value)
+        selectedFriendOnly = Value
+        print("FriendOnly:", Value and "ON" or "OFF")
+    end
+})
+
+MapTab:AddButton({
+    Title = "Teleport & Start Map",
+    Description = "Teleport tới cửa rồi chọn map",
+    Callback = function()
+        teleportToWaitAreaAndStart()
     end
 })
 
