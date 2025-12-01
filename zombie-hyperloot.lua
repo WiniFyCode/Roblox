@@ -618,6 +618,29 @@ local function teleportToWaitAreaAndStart()
 	end)
 end
 
+local function replayCurrentMatch()
+	if scriptUnloaded then
+		return
+	end
+
+	local replicatedStorage = game:GetService("ReplicatedStorage")
+	local remoteFolder = replicatedStorage:FindFirstChild("Remote")
+	if not remoteFolder then
+		warn("[ReplayMatch] Không tìm thấy ReplicatedStorage.Remote")
+		return
+	end
+
+	local remoteEvent = remoteFolder:FindFirstChild("RemoteEvent")
+	if not remoteEvent then
+		warn("[ReplayMatch] Không tìm thấy RemoteEvent")
+		return
+	end
+
+	pcall(function()
+		remoteEvent:FireServer(3463932402)
+	end)
+end
+
 ----------------------------------------------------------
 -- 🔹 Infinite Skill Loop
 local function triggerSkill(skillId)
@@ -2258,6 +2281,14 @@ MapTab:AddButton({
     Description = "Teleport tới cửa rồi chọn map",
     Callback = function()
         teleportToWaitAreaAndStart()
+    end
+})
+
+MapTab:AddButton({
+    Title = "Replay Match",
+    Description = "Gửi remote trả trận hiện tại",
+    Callback = function()
+        replayCurrentMatch()
     end
 })
 
