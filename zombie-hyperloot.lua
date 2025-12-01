@@ -2271,11 +2271,13 @@ SettingsTab:AddKeybind("MenuKey", {
     Title = "Menu Key",
     Default = "RightShift", -- Fluent yêu cầu string thay vì Enum
     Mode = "Toggle",
-    Callback = function(isOpen)
-        if isOpen then
+    Callback = function()
+        -- Một số phiên bản Fluent không có Window:Restore, nên dùng Toggle cho an toàn
+        if Window and Window.Toggle then
+            Window:Toggle()
+        elseif Window and Window.Minimize then
+            -- Fallback: nếu không có Toggle nhưng có Minimize thì chỉ thu/phóng
             Window:Minimize()
-        else
-            Window:Restore()
         end
     end
 })
