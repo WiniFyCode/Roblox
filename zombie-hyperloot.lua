@@ -81,7 +81,6 @@ local selectedFriendOnly = false
 
 -- Noclip Cam Configuration
 local noclipCamEnabled = true -- Bật/tắt Noclip Cam
-local noclipCamKey = Enum.KeyCode.N -- Nhấn N để bật/tắt Noclip Cam
 
 -- Aimbot Configuration
 local aimbotEnabled = true
@@ -877,8 +876,12 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if input.KeyCode == hipHeightToggleKey then
 		antiZombieEnabled = not antiZombieEnabled
 		applyAntiZombie()
-	elseif input.KeyCode == noclipCamKey then
-		noclipCamEnabled = not noclipCamEnabled
+	end
+end)
+
+-- Kích hoạt Noclip Cam ngay khi script load nếu đang được bật sẵn
+task.defer(function()
+	if noclipCamEnabled then
 		applyNoclipCam()
 	end
 end)
@@ -2006,6 +2009,22 @@ ESPTab:AddToggle("ESPPlayer", {
     end
 })
 
+ESPTab:AddColorpicker("ESPPlayerColor", {
+    Title = "Player ESP Color",
+    Default = espColorPlayer,
+    Callback = function(Value)
+        espColorPlayer = Value
+    end
+})
+
+ESPTab:AddColorpicker("ESPEnemyColor", {
+    Title = "Enemy ESP Color",
+    Default = espColorEnemy,
+    Callback = function(Value)
+        espColorEnemy = Value
+    end
+})
+
 -- ESP Player Settings trong ESP Tab
 ESPTab:AddToggle("ESPPlayerBoxes", {
     Title = "Player Boxes",
@@ -2076,22 +2095,6 @@ MovementTab:AddSlider("Speed", {
         if speedEnabled then
             applySpeed() -- Áp dụng ngay nếu đang bật
         end
-    end
-})
-
-ESPTab:AddColorpicker("ESPPlayerColor", {
-    Title = "Player ESP Color",
-    Default = espColorPlayer,
-    Callback = function(Value)
-        espColorPlayer = Value
-    end
-})
-
-ESPTab:AddColorpicker("ESPEnemyColor", {
-    Title = "Enemy ESP Color",
-    Default = espColorEnemy,
-    Callback = function(Value)
-        espColorEnemy = Value
     end
 })
 
