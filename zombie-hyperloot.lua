@@ -571,10 +571,15 @@ local function teleportToWaitAreaAndStart()
 		return
 	end
 
+	local difficultyToSend = selectedDifficulty
+	if selectedWorldId == 102 or selectedWorldId == 201 then
+		difficultyToSend = 1
+	end
+
 	local args = {
 		1604900034,
 		{
-			difficulty = selectedDifficulty,
+			difficulty = difficultyToSend,
 			worldId = selectedWorldId,
 			maxCount = selectedMaxCount,
 			friendOnly = selectedFriendOnly
