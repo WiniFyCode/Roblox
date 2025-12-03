@@ -18,9 +18,9 @@ function Map.getWaitAreaTouchPart()
         if not eItem then return nil end
         local waitArea = eItem:FindFirstChild("WaitArea")
         if not waitArea then return nil end
-        local inner = waitArea:FindFirstChild("WaitArea")
-        if not inner then return nil end
-        return inner:FindFirstChild("TouchPart")
+        local waitArea2 = waitArea:FindFirstChild("WaitArea2")
+        if not waitArea2 then return nil end
+        return waitArea2:FindFirstChild("TouchPart")
     end)
 
     if ok then return result end
