@@ -105,6 +105,10 @@ Farm.startAutoBulletBoxLoop()
 Farm.setupChestTeleportInput()
 
 ----------------------------------------------------------
+-- 🔹 Setup Map Auto Replay
+Map.startAutoReplayLoop()
+
+----------------------------------------------------------
 -- 🔹 Entity Folder Listeners (Hitbox)
 Config.entityFolder.ChildAdded:Connect(function(zombie)
     if zombie:IsA("Model") then

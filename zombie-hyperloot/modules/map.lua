@@ -100,6 +100,18 @@ function Map.replayCurrentMatch()
     end)
 end
 
+-- Auto Replay Loop
+function Map.startAutoReplayLoop()
+    task.spawn(function()
+        while task.wait(3) do
+            if Config.scriptUnloaded then break end
+            if Config.autoReplayEnabled then
+                Map.replayCurrentMatch()
+            end
+        end
+    end)
+end
+
 ----------------------------------------------------------
 -- 🔹 Quick Teleport Helpers
 function Map.findTaskPosition()

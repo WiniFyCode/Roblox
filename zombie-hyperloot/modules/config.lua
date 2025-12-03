@@ -109,4 +109,7 @@ Config.selectedDifficulty = 1
 Config.selectedMaxCount = 4
 Config.selectedFriendOnly = false
 
+-- Auto Replay
+Config.autoReplayEnabled = false
+
 return Config

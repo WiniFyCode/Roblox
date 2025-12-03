@@ -453,9 +453,11 @@ function UI.createMapTab()
         Callback = function() Map.teleportToWaitAreaAndStart() end
     })
 
-    MapTab:AddButton({
-        Title = "Replay Match",
-        Callback = function() Map.replayCurrentMatch() end
+    MapTab:AddToggle("AutoReplay", {
+        Title = "Auto Replay Match",
+        Description = "Tự động replay khi kết thúc trận",
+        Default = Config.autoReplayEnabled,
+        Callback = function(Value) Config.autoReplayEnabled = Value end
     })
 
     return MapTab
