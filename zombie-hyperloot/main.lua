@@ -6,13 +6,13 @@
 ]]
 
 -- Load Modules
-local Config = loadstring(game:HttpGet("YOUR_RAW_URL/modules/config.lua"))()
-local Combat = loadstring(game:HttpGet("YOUR_RAW_URL/modules/combat.lua"))()
-local ESP = loadstring(game:HttpGet("YOUR_RAW_URL/modules/esp.lua"))()
-local Movement = loadstring(game:HttpGet("YOUR_RAW_URL/modules/movement.lua"))()
-local Map = loadstring(game:HttpGet("YOUR_RAW_URL/modules/map.lua"))()
-local Farm = loadstring(game:HttpGet("YOUR_RAW_URL/modules/farm.lua"))()
-local UI = loadstring(game:HttpGet("YOUR_RAW_URL/modules/ui.lua"))()
+local Config = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/config.lua"))()
+local Combat = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/combat.lua"))()
+local ESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/esp.lua"))()
+local Movement = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/movement.lua"))()
+local Map = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/map.lua"))()
+local Farm = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/farm.lua"))()
+local UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/ui.lua"))()
 
 -- Initialize Modules
 Combat.init(Config)
