@@ -47,6 +47,11 @@ Config.espPlayerNames = true
 Config.espPlayerHealth = true
 Config.espPlayerTeamCheck = false
 
+-- Auto Attack Configuration
+Config.autoAttackEnabled = false
+Config.autoAttackRange = 50
+Config.autoAttackDelay = 0.1
+
 -- Teleport Keys
 Config.teleportKey = Enum.KeyCode.T
 Config.cameraTeleportKey = Enum.KeyCode.X
@@ -64,7 +69,7 @@ Config.cameraTargetMode = "Nearest"
 
 -- Camera Offset
 Config.cameraOffsetX = 0
-Config.cameraOffsetY = 10
+Config.cameraOffsetY = 5
 Config.cameraOffsetZ = -2
 
 -- Anti-Zombie (HipHeight)

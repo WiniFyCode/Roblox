@@ -98,6 +98,46 @@ function UI.createCombatTab()
         Callback = function(Value) Config.aimbotPrediction = Value end
     })
 
+    CombatTab:AddSection("Auto Attack")
+
+    CombatTab:AddToggle("AutoAttackEnabled", {
+        Title = "Auto Attack",
+        Description = "Tự động tấn công zombie gần nhất",
+        Default = false,
+        Callback = function(Value)
+            Config.autoAttackEnabled = Value
+            if Value then
+                print("[ZombieHyperloot] Auto Attack đã bật")
+            else
+                print("[ZombieHyperloot] Auto Attack đã tắt")
+            end
+        end
+    })
+
+    CombatTab:AddSlider("AutoAttackRange", {
+        Title = "Attack Range",
+        Description = "Khoảng cách tối đa để auto attack",
+        Default = 50,
+        Min = 10,
+        Max = 200,
+        Rounding = 0,
+        Callback = function(Value)
+            Config.autoAttackRange = Value
+        end
+    })
+
+    CombatTab:AddSlider("AutoAttackDelay", {
+        Title = "Attack Delay",
+        Description = "Độ trễ giữa mỗi lần attack (giây)",
+        Default = 0.1,
+        Min = 0.05,
+        Max = 1,
+        Rounding = 2,
+        Callback = function(Value)
+            Config.autoAttackDelay = Value
+        end
+    })
+
     CombatTab:AddSection("Hitbox Settings")
 
     CombatTab:AddToggle("Hitbox", {
