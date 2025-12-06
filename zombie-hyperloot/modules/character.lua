@@ -82,15 +82,41 @@ function Character.copyOutfit(targetPlayer)
         return false
     end
     
-    -- Apply description vào local character
-    local applySuccess = pcall(function()
+    -- Thử apply với nhiều methods
+    local applySuccess = false
+    
+    -- Method 1: ApplyDescription trực tiếp
+    local try1 = pcall(function()
         humanoid:ApplyDescription(description)
     end)
+    
+    if try1 then
+        applySuccess = true
+    else
+        -- Method 2: Clone và apply
+        local try2 = pcall(function()
+            local clone = description:Clone()
+            humanoid:ApplyDescription(clone)
+        end)
+        
+        if try2 then
+            applySuccess = true
+        else
+            -- Method 3: Apply manually
+            local try3 = pcall(function()
+                Character.applyDescriptionManually(humanoid, description)
+            end)
+            
+            if try3 then
+                applySuccess = true
+            end
+        end
+    end
     
     if applySuccess then
         return true
     else
-        warn("[Character] Failed to apply description")
+        warn("[Character] All apply methods failed")
         return false
     end
 end
@@ -147,14 +173,51 @@ function Character.copyOutfitFromUserId(userId)
         return false, "Humanoid not found"
     end
     
-    -- Lấy HumanoidDescription từ UserId
-    local success, result = pcall(function()
-        local description = Config.Players:GetHumanoidDescriptionFromUserId(userIdNum)
-        humanoid:ApplyDescription(description)
-        return true
+    -- Method 1: Sử dụng GetHumanoidDescriptionFromUserId
+    local success1, description = pcall(function()
+        return Config.Players:GetHumanoidDescriptionFromUserId(userIdNum)
     end)
     
-    if success and result then
+    if not success1 or not description then
+        return false, "Failed to get description from UserId: " .. userId .. " (User may not exist)"
+    end
+    
+    -- Method 2: Apply description với nhiều cách thử
+    local applySuccess = false
+    local errorMsg = ""
+    
+    -- Thử 1: ApplyDescription trực tiếp
+    local try1 = pcall(function()
+        humanoid:ApplyDescription(description)
+    end)
+    
+    if try1 then
+        applySuccess = true
+    else
+        -- Thử 2: Clone description và apply
+        local try2, clonedDesc = pcall(function()
+            local clone = description:Clone()
+            humanoid:ApplyDescription(clone)
+            return clone
+        end)
+        
+        if try2 then
+            applySuccess = true
+        else
+            -- Thử 3: Apply từng property riêng lẻ
+            local try3 = pcall(function()
+                Character.applyDescriptionManually(humanoid, description)
+            end)
+            
+            if try3 then
+                applySuccess = true
+            else
+                errorMsg = "All apply methods failed. Game may have anti-cheat protection."
+            end
+        end
+    end
+    
+    if applySuccess then
         -- Lấy username để hiển thị
         local username = "Unknown"
         pcall(function()
@@ -162,7 +225,79 @@ function Character.copyOutfitFromUserId(userId)
         end)
         return true, "Successfully copied outfit from " .. username .. " (ID: " .. userId .. ")"
     else
-        return false, "Failed to copy outfit from UserId: " .. userId
+        return false, errorMsg
+    end
+end
+
+----------------------------------------------------------
+-- 🔹 Apply Description Manually (backup method)
+function Character.applyDescriptionManually(humanoid, description)
+    -- Apply các properties quan trọng
+    pcall(function() humanoid.BodyTypeScale = description.BodyTypeScale end)
+    pcall(function() humanoid.DepthScale = description.DepthScale end)
+    pcall(function() humanoid.HeadScale = description.HeadScale end)
+    pcall(function() humanoid.HeightScale = description.HeightScale end)
+    pcall(function() humanoid.ProportionScale = description.ProportionScale end)
+    pcall(function() humanoid.WidthScale = description.WidthScale end)
+    
+    -- Apply accessories
+    local char = humanoid.Parent
+    if char then
+        -- Xóa accessories cũ
+        for _, accessory in ipairs(char:GetChildren()) do
+            if accessory:IsA("Accessory") then
+                pcall(function() accessory:Destroy() end)
+            end
+        end
+        
+        -- Thêm accessories mới từ description
+        local accessoryIds = {
+            description.HatAccessory,
+            description.HairAccessory,
+            description.FaceAccessory,
+            description.NeckAccessory,
+            description.ShoulderAccessory,
+            description.FrontAccessory,
+            description.BackAccessory,
+            description.WaistAccessory
+        }
+        
+        for _, accessoryId in ipairs(accessoryIds) do
+            if accessoryId and accessoryId ~= "" and accessoryId ~= "0" then
+                pcall(function()
+                    local accessory = game:GetService("InsertService"):LoadAsset(tonumber(accessoryId))
+                    if accessory then
+                        local acc = accessory:GetChildren()[1]
+                        if acc and acc:IsA("Accessory") then
+                            acc.Parent = char
+                        end
+                    end
+                end)
+            end
+        end
+        
+        -- Apply clothing
+        pcall(function()
+            local shirt = char:FindFirstChildOfClass("Shirt")
+            if not shirt then
+                shirt = Instance.new("Shirt")
+                shirt.Parent = char
+            end
+            if description.Shirt and description.Shirt ~= "" then
+                shirt.ShirtTemplate = "rbxassetid://" .. description.Shirt
+            end
+        end)
+        
+        pcall(function()
+            local pants = char:FindFirstChildOfClass("Pants")
+            if not pants then
+                pants = Instance.new("Pants")
+                pants.Parent = char
+            end
+            if description.Pants and description.Pants ~= "" then
+                pants.PantsTemplate = "rbxassetid://" .. description.Pants
+            end
+        end)
     end
 end
 
