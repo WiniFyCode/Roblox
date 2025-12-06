@@ -700,6 +700,20 @@ function UI.createHUDTab()
         end
     })
 
+    HUDTab:AddToggle("ClonePlayerInfoToGame", {
+        Title = "Clone PlayerInfo to Game",
+        Description = "Copy PlayerInfo từ Lobby vào màn chơi",
+        Default = false,
+        Callback = function(Value)
+            HUD.clonePlayerInfoEnabled = Value
+            if Value then
+                HUD.createClonedPlayerInfo()
+            else
+                HUD.removeClonedPlayerInfo()
+            end
+        end
+    })
+
     HUDTab:AddSection("Text Customization")
 
     HUDTab:AddInput("CustomTitle", {

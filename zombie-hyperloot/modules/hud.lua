@@ -19,6 +19,12 @@ HUD.playerNameVisible = true
 HUD.classVisible = true
 HUD.levelVisible = true
 HUD.lobbyPlayerInfoVisible = true
+HUD.clonePlayerInfoEnabled = false
+
+-- Cloned PlayerInfo
+HUD.clonedPlayerInfo = nil
+HUD.clonedScreenGui = nil
+HUD.playerInfoUpdateConnection = nil
 
 -- Gradient Colors (sẽ được set từ original values)
 HUD.titleGradientColor1 = nil
@@ -343,12 +349,102 @@ function HUD.applyLobbyPlayerInfoVisibility()
 end
 
 ----------------------------------------------------------
+-- 🔹 Clone PlayerInfo Functions
+function HUD.createClonedPlayerInfo()
+    -- Xóa clone cũ nếu có
+    HUD.removeClonedPlayerInfo()
+    
+    -- Lấy PlayerInfo gốc từ Lobby
+    local originalPlayerInfo = HUD.getLobbyPlayerInfo()
+    if not originalPlayerInfo then
+        warn("[HUD] Không tìm thấy PlayerInfo trong Lobby")
+        return
+    end
+    
+    -- Tạo ScreenGui mới
+    HUD.clonedScreenGui = Instance.new("ScreenGui")
+    HUD.clonedScreenGui.Name = "ClonedPlayerInfo"
+    HUD.clonedScreenGui.ResetOnSpawn = false
+    HUD.clonedScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    HUD.clonedScreenGui.DisplayOrder = 100 -- Hiển thị trên cùng
+    
+    -- Clone PlayerInfo
+    HUD.clonedPlayerInfo = originalPlayerInfo:Clone()
+    HUD.clonedPlayerInfo.Name = "PlayerInfo_Cloned"
+    HUD.clonedPlayerInfo.Visible = true
+    
+    -- Đặt vị trí (góc trên bên trái)
+    HUD.clonedPlayerInfo.Position = UDim2.new(0, 10, 0, 10)
+    HUD.clonedPlayerInfo.AnchorPoint = Vector2.new(0, 0)
+    
+    HUD.clonedPlayerInfo.Parent = HUD.clonedScreenGui
+    HUD.clonedScreenGui.Parent = Config.localPlayer.PlayerGui
+    
+    -- Update data realtime
+    HUD.startPlayerInfoUpdate()
+end
+
+function HUD.removeClonedPlayerInfo()
+    if HUD.clonedScreenGui then
+        HUD.clonedScreenGui:Destroy()
+        HUD.clonedScreenGui = nil
+        HUD.clonedPlayerInfo = nil
+    end
+    
+    HUD.stopPlayerInfoUpdate()
+end
+
+function HUD.updateClonedPlayerInfo()
+    if not HUD.clonedPlayerInfo or not HUD.clonedScreenGui then return end
+    
+    -- Lấy data từ PlayerInfo gốc
+    local originalPlayerInfo = HUD.getLobbyPlayerInfo()
+    if not originalPlayerInfo then return end
+    
+    -- Update các giá trị từ original sang clone
+    for _, child in ipairs(originalPlayerInfo:GetDescendants()) do
+        if child:IsA("TextLabel") or child:IsA("TextButton") then
+            local clonedChild = HUD.clonedPlayerInfo:FindFirstChild(child.Name, true)
+            if clonedChild and clonedChild:IsA("TextLabel") or clonedChild:IsA("TextButton") then
+                clonedChild.Text = child.Text
+            end
+        end
+        
+        if child:IsA("ImageLabel") then
+            local clonedChild = HUD.clonedPlayerInfo:FindFirstChild(child.Name, true)
+            if clonedChild and clonedChild:IsA("ImageLabel") then
+                clonedChild.Image = child.Image
+            end
+        end
+    end
+end
+
+function HUD.startPlayerInfoUpdate()
+    if HUD.playerInfoUpdateConnection then return end
+    
+    HUD.playerInfoUpdateConnection = Config.RunService.Heartbeat:Connect(function()
+        if HUD.clonePlayerInfoEnabled and HUD.clonedPlayerInfo then
+            HUD.updateClonedPlayerInfo()
+        end
+    end)
+end
+
+function HUD.stopPlayerInfoUpdate()
+    if HUD.playerInfoUpdateConnection then
+        HUD.playerInfoUpdateConnection:Disconnect()
+        HUD.playerInfoUpdateConnection = nil
+    end
+end
+
+----------------------------------------------------------
 -- 🔹 Cleanup
 function HUD.cleanup()
     HUD.restoreOriginalHUD()
     -- Restore lobby player info
     HUD.lobbyPlayerInfoVisible = true
     HUD.applyLobbyPlayerInfoVisibility()
+    -- Remove cloned player info
+    HUD.removeClonedPlayerInfo()
 end
 
 return HUD
