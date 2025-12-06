@@ -8,10 +8,16 @@ local Config = nil
 
 -- HUD Settings
 HUD.customHUDEnabled = false
-HUD.customTitle = ""
+HUD.customTitle = "CHEATER"
 HUD.customPlayerName = "WiniFy"
 HUD.customClass = ""
 HUD.customLevel = ""
+
+-- EXP Display Settings
+HUD.expDisplayEnabled = false
+HUD.expScreenGui = nil
+HUD.expLabel = nil
+HUD.expUpdateConnection = nil
 
 -- Visibility Settings
 HUD.titleVisible = true
@@ -19,16 +25,10 @@ HUD.playerNameVisible = true
 HUD.classVisible = true
 HUD.levelVisible = true
 HUD.lobbyPlayerInfoVisible = true
-HUD.clonePlayerInfoEnabled = false
-
--- Cloned PlayerInfo
-HUD.clonedPlayerInfo = nil
-HUD.clonedScreenGui = nil
-HUD.playerInfoUpdateConnection = nil
 
 -- Gradient Colors (sẽ được set từ original values)
-HUD.titleGradientColor1 = nil
-HUD.titleGradientColor2 = nil
+HUD.titleGradientColor1 = Color3.fromRGB(255, 0, 0) -- Red
+HUD.titleGradientColor2 = Color3.fromRGB(255, 255, 255) -- White
 HUD.playerNameGradientColor1 = nil
 HUD.playerNameGradientColor2 = nil
 HUD.classGradientColor1 = nil
@@ -85,11 +85,7 @@ function HUD.backupOriginalValues()
         if HUD.originalValues.title.gradient then
             HUD.originalValues.title.gradientColor1 = HUD.originalValues.title.gradient.Color.Keypoints[1].Value
             HUD.originalValues.title.gradientColor2 = HUD.originalValues.title.gradient.Color.Keypoints[2].Value
-            -- Set default colors nếu chưa có
-            if not HUD.titleGradientColor1 then
-                HUD.titleGradientColor1 = HUD.originalValues.title.gradientColor1
-                HUD.titleGradientColor2 = HUD.originalValues.title.gradientColor2
-            end
+            -- Title gradient mặc định là Red -> White, không lấy từ original
         end
     end
     
@@ -315,6 +311,122 @@ function HUD.onCharacterAdded(character)
 end
 
 ----------------------------------------------------------
+-- 🔹 EXP Display Functions
+function HUD.createExpDisplay()
+    -- Xóa UI cũ nếu có
+    if HUD.expScreenGui then
+        HUD.expScreenGui:Destroy()
+        HUD.expScreenGui = nil
+    end
+    
+    -- Tạo ScreenGui
+    HUD.expScreenGui = Instance.new("ScreenGui")
+    HUD.expScreenGui.Name = "ExpDisplay"
+    HUD.expScreenGui.ResetOnSpawn = false
+    HUD.expScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    
+    -- Tạo Frame chứa
+    local frame = Instance.new("Frame")
+    frame.Name = "ExpFrame"
+    frame.Size = UDim2.new(0, 150, 0, 40)
+    frame.Position = UDim2.new(1, -160, 1, -50) -- Góc phải dưới
+    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    frame.BackgroundTransparency = 0.3
+    frame.BorderSizePixel = 2
+    frame.BorderColor3 = Color3.fromRGB(255, 215, 0) -- Gold border
+    frame.Parent = HUD.expScreenGui
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = frame
+    
+    -- Tạo TextLabel hiển thị EXP
+    HUD.expLabel = Instance.new("TextLabel")
+    HUD.expLabel.Name = "ExpLabel"
+    HUD.expLabel.Size = UDim2.new(1, 0, 1, 0)
+    HUD.expLabel.Position = UDim2.new(0, 0, 0, 0)
+    HUD.expLabel.BackgroundTransparency = 1
+    HUD.expLabel.Text = "Exp: 0"
+    HUD.expLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    HUD.expLabel.TextSize = 18
+    HUD.expLabel.Font = Enum.Font.SourceSansBold
+    HUD.expLabel.TextXAlignment = Enum.TextXAlignment.Center
+    HUD.expLabel.Parent = frame
+    
+    -- Gradient cho text
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 215, 0)), -- Gold
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255)) -- White
+    })
+    gradient.Parent = HUD.expLabel
+    
+    -- Stroke để text nổi bật
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(0, 0, 0)
+    stroke.Thickness = 2
+    stroke.Parent = HUD.expLabel
+    
+    HUD.expScreenGui.Parent = game:GetService("CoreGui")
+end
+
+function HUD.updateExpDisplay()
+    if not HUD.expLabel then return end
+    
+    local leaderstats = Config.localPlayer:FindFirstChild("leaderstats")
+    if leaderstats then
+        local exp = leaderstats:FindFirstChild("exp")
+        if exp then
+            HUD.expLabel.Text = string.format("Exp: %s", tostring(exp.Value))
+        else
+            HUD.expLabel.Text = "Exp: N/A"
+        end
+    else
+        HUD.expLabel.Text = "Exp: N/A"
+    end
+end
+
+function HUD.startExpDisplay()
+    if HUD.expUpdateConnection then return end
+    
+    -- Tạo UI
+    HUD.createExpDisplay()
+    
+    -- Update lần đầu
+    HUD.updateExpDisplay()
+    
+    -- Auto update mỗi 1 giây
+    HUD.expUpdateConnection = Config.RunService.Heartbeat:Connect(function()
+        if not HUD.expDisplayEnabled then return end
+        HUD.updateExpDisplay()
+    end)
+end
+
+function HUD.stopExpDisplay()
+    if HUD.expUpdateConnection then
+        HUD.expUpdateConnection:Disconnect()
+        HUD.expUpdateConnection = nil
+    end
+    
+    if HUD.expScreenGui then
+        HUD.expScreenGui:Destroy()
+        HUD.expScreenGui = nil
+    end
+    
+    HUD.expLabel = nil
+end
+
+function HUD.toggleExpDisplay(enabled)
+    HUD.expDisplayEnabled = enabled
+    
+    if enabled then
+        HUD.startExpDisplay()
+    else
+        HUD.stopExpDisplay()
+    end
+end
+
+----------------------------------------------------------
 -- 🔹 Lobby PlayerInfo Functions
 function HUD.getLobbyPlayerInfo()
     local playerGui = Config.localPlayer:FindFirstChild("PlayerGui")
@@ -349,102 +461,14 @@ function HUD.applyLobbyPlayerInfoVisibility()
 end
 
 ----------------------------------------------------------
--- 🔹 Clone PlayerInfo Functions
-function HUD.createClonedPlayerInfo()
-    -- Xóa clone cũ nếu có
-    HUD.removeClonedPlayerInfo()
-    
-    -- Lấy PlayerInfo gốc từ Lobby
-    local originalPlayerInfo = HUD.getLobbyPlayerInfo()
-    if not originalPlayerInfo then
-        warn("[HUD] Không tìm thấy PlayerInfo trong Lobby")
-        return
-    end
-    
-    -- Tạo ScreenGui mới
-    HUD.clonedScreenGui = Instance.new("ScreenGui")
-    HUD.clonedScreenGui.Name = "ClonedPlayerInfo"
-    HUD.clonedScreenGui.ResetOnSpawn = false
-    HUD.clonedScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    HUD.clonedScreenGui.DisplayOrder = 100 -- Hiển thị trên cùng
-    
-    -- Clone PlayerInfo
-    HUD.clonedPlayerInfo = originalPlayerInfo:Clone()
-    HUD.clonedPlayerInfo.Name = "PlayerInfo_Cloned"
-    HUD.clonedPlayerInfo.Visible = true
-    
-    -- Đặt vị trí (góc trên bên trái)
-    HUD.clonedPlayerInfo.Position = UDim2.new(0, 10, 0, 10)
-    HUD.clonedPlayerInfo.AnchorPoint = Vector2.new(0, 0)
-    
-    HUD.clonedPlayerInfo.Parent = HUD.clonedScreenGui
-    HUD.clonedScreenGui.Parent = Config.localPlayer.PlayerGui
-    
-    -- Update data realtime
-    HUD.startPlayerInfoUpdate()
-end
-
-function HUD.removeClonedPlayerInfo()
-    if HUD.clonedScreenGui then
-        HUD.clonedScreenGui:Destroy()
-        HUD.clonedScreenGui = nil
-        HUD.clonedPlayerInfo = nil
-    end
-    
-    HUD.stopPlayerInfoUpdate()
-end
-
-function HUD.updateClonedPlayerInfo()
-    if not HUD.clonedPlayerInfo or not HUD.clonedScreenGui then return end
-    
-    -- Lấy data từ PlayerInfo gốc
-    local originalPlayerInfo = HUD.getLobbyPlayerInfo()
-    if not originalPlayerInfo then return end
-    
-    -- Update các giá trị từ original sang clone
-    for _, child in ipairs(originalPlayerInfo:GetDescendants()) do
-        if child:IsA("TextLabel") or child:IsA("TextButton") then
-            local clonedChild = HUD.clonedPlayerInfo:FindFirstChild(child.Name, true)
-            if clonedChild and clonedChild:IsA("TextLabel") or clonedChild:IsA("TextButton") then
-                clonedChild.Text = child.Text
-            end
-        end
-        
-        if child:IsA("ImageLabel") then
-            local clonedChild = HUD.clonedPlayerInfo:FindFirstChild(child.Name, true)
-            if clonedChild and clonedChild:IsA("ImageLabel") then
-                clonedChild.Image = child.Image
-            end
-        end
-    end
-end
-
-function HUD.startPlayerInfoUpdate()
-    if HUD.playerInfoUpdateConnection then return end
-    
-    HUD.playerInfoUpdateConnection = Config.RunService.Heartbeat:Connect(function()
-        if HUD.clonePlayerInfoEnabled and HUD.clonedPlayerInfo then
-            HUD.updateClonedPlayerInfo()
-        end
-    end)
-end
-
-function HUD.stopPlayerInfoUpdate()
-    if HUD.playerInfoUpdateConnection then
-        HUD.playerInfoUpdateConnection:Disconnect()
-        HUD.playerInfoUpdateConnection = nil
-    end
-end
-
-----------------------------------------------------------
 -- 🔹 Cleanup
 function HUD.cleanup()
     HUD.restoreOriginalHUD()
     -- Restore lobby player info
     HUD.lobbyPlayerInfoVisible = true
     HUD.applyLobbyPlayerInfoVisibility()
-    -- Remove cloned player info
-    HUD.removeClonedPlayerInfo()
+    -- Stop exp display
+    HUD.stopExpDisplay()
 end
 
 return HUD

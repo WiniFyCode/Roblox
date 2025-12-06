@@ -700,17 +700,14 @@ function UI.createHUDTab()
         end
     })
 
-    HUDTab:AddToggle("ClonePlayerInfoToGame", {
-        Title = "Clone PlayerInfo to Game",
-        Description = "Copy PlayerInfo từ Lobby vào màn chơi",
+    HUDTab:AddSection("EXP Display")
+
+    HUDTab:AddToggle("ExpDisplay", {
+        Title = "Show EXP Display",
+        Description = "Hiển thị EXP ở góc phải dưới màn hình",
         Default = false,
         Callback = function(Value)
-            HUD.clonePlayerInfoEnabled = Value
-            if Value then
-                HUD.createClonedPlayerInfo()
-            else
-                HUD.removeClonedPlayerInfo()
-            end
+            HUD.toggleExpDisplay(Value)
         end
     })
 
@@ -719,7 +716,7 @@ function UI.createHUDTab()
     HUDTab:AddInput("CustomTitle", {
         Title = "Custom Title",
         Description = "Để trống để giữ nguyên",
-        Default = "",
+        Default = "CHEATER",
         Placeholder = "Enter title...",
         Callback = function(Value)
             HUD.customTitle = Value
@@ -772,7 +769,7 @@ function UI.createHUDTab()
 
     HUDTab:AddColorpicker("TitleGradient1", {
         Title = "Title Color 1",
-        Default = HUD.titleGradientColor1 or Color3.fromRGB(255, 255, 255),
+        Default = Color3.fromRGB(255, 0, 0), -- Red
         Callback = function(Value)
             HUD.titleGradientColor1 = Value
             if HUD.customHUDEnabled then
@@ -783,7 +780,7 @@ function UI.createHUDTab()
 
     HUDTab:AddColorpicker("TitleGradient2", {
         Title = "Title Color 2",
-        Default = HUD.titleGradientColor2 or Color3.fromRGB(255, 255, 255),
+        Default = Color3.fromRGB(255, 255, 255), -- White
         Callback = function(Value)
             HUD.titleGradientColor2 = Value
             if HUD.customHUDEnabled then
