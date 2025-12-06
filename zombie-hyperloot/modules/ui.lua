@@ -566,7 +566,7 @@ function UI.createInfoTab()
 end
 
 ----------------------------------------------------------
--- 🔹 Quick Teleport Buttons
+-- 🔹 Quick Teleport Buttons (2 cột: Exit Doors bên trái, Supplies bên phải)
 function UI.createQuickTeleportButtons()
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "QuickTeleportButtons"
@@ -574,38 +574,55 @@ function UI.createQuickTeleportButtons()
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     ScreenGui.Parent = Config.localPlayer:WaitForChild("PlayerGui")
 
-    local Container = Instance.new("Frame")
-    Container.Name = "Container"
-    Container.BackgroundTransparency = 1
-    Container.Size = UDim2.new(0, 170, 0, 200)
-    Container.Position = UDim2.new(1, -190, 0.5, -100)
-    Container.Parent = ScreenGui
+    -- Main Container
+    local MainContainer = Instance.new("Frame")
+    MainContainer.Name = "MainContainer"
+    MainContainer.BackgroundTransparency = 1
+    MainContainer.Size = UDim2.new(0, 340, 0, 300)
+    MainContainer.Position = UDim2.new(1, -360, 0.5, -150)
+    MainContainer.Parent = ScreenGui
 
-    local UIListLayout = Instance.new("UIListLayout")
-    UIListLayout.Padding = UDim.new(0, 5)
-    UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    UIListLayout.Parent = Container
+    -- Left Column (Exit Doors)
+    local LeftColumn = Instance.new("Frame")
+    LeftColumn.Name = "LeftColumn"
+    LeftColumn.BackgroundTransparency = 1
+    LeftColumn.Size = UDim2.new(0, 160, 1, 0)
+    LeftColumn.Position = UDim2.new(0, 0, 0, 0)
+    LeftColumn.Parent = MainContainer
 
-    local UIPadding = Instance.new("UIPadding")
-    UIPadding.PaddingTop = UDim.new(0, 10)
-    UIPadding.PaddingRight = UDim.new(0, 10)
-    UIPadding.Parent = Container
+    local LeftLayout = Instance.new("UIListLayout")
+    LeftLayout.Padding = UDim.new(0, 5)
+    LeftLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    LeftLayout.Parent = LeftColumn
 
-    local function createButton(name, text, color, callback)
+    -- Right Column (Supplies)
+    local RightColumn = Instance.new("Frame")
+    RightColumn.Name = "RightColumn"
+    RightColumn.BackgroundTransparency = 1
+    RightColumn.Size = UDim2.new(0, 160, 1, 0)
+    RightColumn.Position = UDim2.new(0, 175, 0, 0)
+    RightColumn.Parent = MainContainer
+
+    local RightLayout = Instance.new("UIListLayout")
+    RightLayout.Padding = UDim.new(0, 5)
+    RightLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    RightLayout.Parent = RightColumn
+
+    local function createButton(parent, name, text, color, callback)
         local button = Instance.new("TextButton")
         button.Name = name
-        button.Size = UDim2.new(0, 150, 0, 34)
+        button.Size = UDim2.new(0, 150, 0, 30)
         button.BackgroundColor3 = color
         button.BorderSizePixel = 0
         button.Text = text
         button.TextColor3 = Color3.fromRGB(255, 255, 255)
-        button.TextSize = 16
+        button.TextSize = 14
         button.Font = Enum.Font.GothamBold
         button.AutoButtonColor = false
-        button.Parent = Container
+        button.Parent = parent
         
         local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0, 8)
+        corner.CornerRadius = UDim.new(0, 6)
         corner.Parent = button
         
         local hoverColor = color:Lerp(Color3.fromRGB(255, 255, 255), 0.35)
@@ -616,37 +633,45 @@ function UI.createQuickTeleportButtons()
         return button
     end
 
-    -- Task Button
-    createButton("TaskBtn", "📍 Task", Color3.fromRGB(100, 150, 255), function()
+    local function teleportTo(pos)
+        local char = Config.localPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if hrp and pos then hrp.CFrame = CFrame.new(pos) end
+    end
+
+    -- Task Button (ở trên cùng bên trái)
+    createButton(LeftColumn, "TaskBtn", "📍 Task", Color3.fromRGB(100, 150, 255), function()
         local pos = Map.findTaskPosition()
-        if pos then
-            local char = Config.localPlayer.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            if hrp then hrp.CFrame = CFrame.new(pos) end
-        end
+        if pos then teleportTo(pos) end
     end)
 
-    -- Exit Door Button
-    createButton("ExitBtn", "🚪 Exit Door", Color3.fromRGB(255, 100, 100), function()
-        local doors = Map.findAllExitDoors()
-        if #doors > 0 then
-            local char = Config.localPlayer.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            if hrp then hrp.CFrame = CFrame.new(doors[1]) end
-        end
-    end)
+    -- Tạo nút cho TẤT CẢ Exit Doors
+    local doors = Map.findAllExitDoors()
+    for i, doorPos in ipairs(doors) do
+        createButton(LeftColumn, "ExitBtn" .. i, "🚪 Exit " .. i, Color3.fromRGB(255, 100, 100), function()
+            teleportTo(doorPos)
+        end)
+    end
 
-    -- Supply Button
-    createButton("SupplyBtn", "📦 Supply", Color3.fromRGB(100, 255, 100), function()
-        local supplies = Map.findAllSupplyPiles()
-        if #supplies > 0 then
-            local char = Config.localPlayer.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            if hrp then hrp.CFrame = CFrame.new(supplies[1]) end
-        end
-    end)
+    -- Tạo nút cho TẤT CẢ Supplies
+    local supplies = Map.findAllSupplyPiles()
+    for i, supplyPos in ipairs(supplies) do
+        createButton(RightColumn, "SupplyBtn" .. i, "📦 Supply " .. i, Color3.fromRGB(100, 255, 100), function()
+            teleportTo(supplyPos)
+        end)
+    end
 
     return ScreenGui
+end
+
+-- Refresh Quick Teleport Buttons (gọi khi vào map mới)
+function UI.refreshQuickTeleportButtons()
+    local playerGui = Config.localPlayer:FindFirstChild("PlayerGui")
+    if playerGui then
+        local oldGui = playerGui:FindFirstChild("QuickTeleportButtons")
+        if oldGui then oldGui:Destroy() end
+    end
+    UI.createQuickTeleportButtons()
 end
 
 ----------------------------------------------------------

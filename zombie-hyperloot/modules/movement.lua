@@ -92,13 +92,19 @@ function Movement.applyAntiZombie()
 end
 
 ----------------------------------------------------------
--- 🔹 NoClip
+-- 🔹 NoClip (riêng biệt với Anti-Zombie)
+Movement.noClipOnlyConnection = nil
+
 function Movement.enableNoClip()
-    if Movement.noClipConnection then return end
+    -- Disconnect cũ nếu có
+    if Movement.noClipOnlyConnection then
+        Movement.noClipOnlyConnection:Disconnect()
+        Movement.noClipOnlyConnection = nil
+    end
     
-    Movement.noClipConnection = Config.RunService.Stepped:Connect(function()
+    Movement.noClipOnlyConnection = Config.RunService.Stepped:Connect(function()
         local char = Config.localPlayer.Character
-        if char and Config.noClipEnabled then
+        if char then
             for _, descendant in ipairs(char:GetDescendants()) do
                 if descendant:IsA("BasePart") then
                     descendant.CanCollide = false
@@ -109,10 +115,13 @@ function Movement.enableNoClip()
 end
 
 function Movement.disableNoClip()
-    if Movement.noClipConnection then
-        Movement.noClipConnection:Disconnect()
-        Movement.noClipConnection = nil
-        
+    if Movement.noClipOnlyConnection then
+        Movement.noClipOnlyConnection:Disconnect()
+        Movement.noClipOnlyConnection = nil
+    end
+    
+    -- Chỉ restore collision nếu Anti-Zombie không bật
+    if not Config.antiZombieEnabled then
         local char = Config.localPlayer.Character
         if char then
             for _, descendant in ipairs(char:GetDescendants()) do
@@ -121,8 +130,8 @@ function Movement.disableNoClip()
                 end
             end
         end
+        restoreOriginalCollisions()
     end
-    restoreOriginalCollisions()
 end
 
 function Movement.applyNoClip()
@@ -364,6 +373,7 @@ end
 -- 🔹 Cleanup
 function Movement.cleanup()
     Movement.disableAntiZombie()
+    Config.noClipEnabled = false
     Movement.disableNoClip()
     Movement.stopSpeedBoost()
     if Config.noclipCamEnabled then
