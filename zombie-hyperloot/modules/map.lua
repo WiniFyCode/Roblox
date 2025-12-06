@@ -123,12 +123,32 @@ function Map.preloadMapObjects()
     local map = Config.Workspace:FindFirstChild("Map")
     if not map then return {}, {}, {} end
     
-    -- Tìm tất cả EItem positions để visit
+    -- Tìm tất cả vị trí cần visit (nhiều điểm hơn để load đầy đủ)
     local visitPositions = {}
+    
     for _, mapChild in ipairs(map:GetChildren()) do
         local eItem = mapChild:FindFirstChild("EItem")
         if eItem then
-            -- Lấy vị trí trung tâm của EItem
+            -- Thử tìm tất cả children của EItem
+            for _, child in ipairs(eItem:GetChildren()) do
+                local pos = nil
+                
+                -- Nếu là Model, lấy bounding box
+                if child:IsA("Model") then
+                    local ok, cf = pcall(function() return child:GetBoundingBox() end)
+                    if ok and cf then
+                        pos = cf.Position
+                    end
+                elseif child:IsA("BasePart") then
+                    pos = child.Position
+                end
+                
+                if pos then
+                    table.insert(visitPositions, pos)
+                end
+            end
+            
+            -- Thêm vị trí trung tâm EItem
             local ok, cf = pcall(function() return eItem:GetBoundingBox() end)
             if ok and cf then
                 table.insert(visitPositions, cf.Position)
@@ -137,20 +157,27 @@ function Map.preloadMapObjects()
     end
     
     -- Di chuyển đến từng vị trí để load objects
-    for _, pos in ipairs(visitPositions) do
+    for i, pos in ipairs(visitPositions) do
         if Config.scriptUnloaded then break end
-        hrp.CFrame = CFrame.new(pos + Vector3.new(0, 10, 0))
-        task.wait(0.3) -- Đợi game load
+        hrp.CFrame = CFrame.new(pos + Vector3.new(0, 15, 0))
+        task.wait(0.5) -- Đợi lâu hơn để game load
+        
+        -- Mỗi 5 vị trí, tìm lại để xem đã load được gì chưa
+        if i % 5 == 0 then
+            task.wait(0.3)
+        end
     end
     
     -- Quay về vị trí ban đầu
     hrp.CFrame = CFrame.new(originalPos)
-    task.wait(0.2)
+    task.wait(0.5)
     
     -- Bây giờ tìm lại tất cả objects
     local exitDoors = Map.findAllExitDoors()
     local supplies = Map.findAllSupplyPiles()
     local ammos = Map.findAllAmmo()
+    
+    print(string.format("[PreLoad] Found: %d Exit Doors, %d Supplies, %d Ammos", #exitDoors, #supplies, #ammos))
     
     return exitDoors, supplies, ammos
 end
