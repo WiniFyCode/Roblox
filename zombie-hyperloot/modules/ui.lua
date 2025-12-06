@@ -594,6 +594,8 @@ UI.quickTeleportGui = nil
 UI.leftColumn = nil
 UI.rightColumn = nil
 UI.createdButtons = {}
+UI.mapConnection = nil
+UI.lastMapChildCount = 0
 
 function UI.createQuickTeleportButtons()
     local ScreenGui = Instance.new("ScreenGui")
@@ -602,46 +604,46 @@ function UI.createQuickTeleportButtons()
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     ScreenGui.Parent = Config.localPlayer:WaitForChild("PlayerGui")
 
-    -- Main container chứa 2 cột
+    -- Main container chứa 2 cột (nhỏ gọn hơn)
     local MainContainer = Instance.new("Frame")
     MainContainer.Name = "MainContainer"
     MainContainer.BackgroundTransparency = 1
-    MainContainer.Size = UDim2.new(0, 320, 0, 300)
-    MainContainer.Position = UDim2.new(1, -340, 0.5, -150)
+    MainContainer.Size = UDim2.new(0, 230, 0, 200)
+    MainContainer.Position = UDim2.new(1, -245, 0.5, -100)
     MainContainer.Parent = ScreenGui
 
     -- Cột trái (Exit Door + Task)
     local LeftColumn = Instance.new("Frame")
     LeftColumn.Name = "LeftColumn"
     LeftColumn.BackgroundTransparency = 1
-    LeftColumn.Size = UDim2.new(0, 150, 1, 0)
+    LeftColumn.Size = UDim2.new(0, 105, 1, 0)
     LeftColumn.Position = UDim2.new(0, 0, 0, 0)
     LeftColumn.Parent = MainContainer
 
     local LeftLayout = Instance.new("UIListLayout")
-    LeftLayout.Padding = UDim.new(0, 5)
+    LeftLayout.Padding = UDim.new(0, 4)
     LeftLayout.SortOrder = Enum.SortOrder.LayoutOrder
     LeftLayout.Parent = LeftColumn
 
     local LeftPadding = Instance.new("UIPadding")
-    LeftPadding.PaddingTop = UDim.new(0, 10)
+    LeftPadding.PaddingTop = UDim.new(0, 5)
     LeftPadding.Parent = LeftColumn
 
     -- Cột phải (Supply + Ammo)
     local RightColumn = Instance.new("Frame")
     RightColumn.Name = "RightColumn"
     RightColumn.BackgroundTransparency = 1
-    RightColumn.Size = UDim2.new(0, 150, 1, 0)
-    RightColumn.Position = UDim2.new(0, 160, 0, 0)
+    RightColumn.Size = UDim2.new(0, 105, 1, 0)
+    RightColumn.Position = UDim2.new(0, 115, 0, 0)
     RightColumn.Parent = MainContainer
 
     local RightLayout = Instance.new("UIListLayout")
-    RightLayout.Padding = UDim.new(0, 5)
+    RightLayout.Padding = UDim.new(0, 4)
     RightLayout.SortOrder = Enum.SortOrder.LayoutOrder
     RightLayout.Parent = RightColumn
 
     local RightPadding = Instance.new("UIPadding")
-    RightPadding.PaddingTop = UDim.new(0, 10)
+    RightPadding.PaddingTop = UDim.new(0, 5)
     RightPadding.Parent = RightColumn
 
     UI.quickTeleportGui = ScreenGui
@@ -652,42 +654,54 @@ function UI.createQuickTeleportButtons()
     -- Tạo buttons lần đầu
     UI.refreshQuickTeleportButtons()
     
-    -- Auto refresh mỗi 15 giây
-    task.spawn(function()
-        while task.wait(15) do
-            if Config.scriptUnloaded then break end
-            UI.refreshQuickTeleportButtons()
-        end
-    end)
+    -- Lắng nghe Map thay đổi (khi vào map mới)
+    UI.setupMapWatcher()
 
     return ScreenGui
+end
+
+-- Lắng nghe sự kiện Map thay đổi thay vì poll 15s
+function UI.setupMapWatcher()
+    local map = Config.Workspace:FindFirstChild("Map")
+    if not map then return end
+    
+    -- Lưu số lượng children hiện tại
+    UI.lastMapChildCount = #map:GetChildren()
+    
+    -- Lắng nghe khi có map mới được thêm vào
+    UI.mapConnection = map.ChildAdded:Connect(function(child)
+        if Config.scriptUnloaded then return end
+        -- Đợi map load xong
+        task.wait(1)
+        UI.refreshQuickTeleportButtons()
+    end)
+    
+    -- Lắng nghe khi map bị xóa (kết thúc trận)
+    map.ChildRemoved:Connect(function(child)
+        if Config.scriptUnloaded then return end
+        task.wait(0.5)
+        UI.refreshQuickTeleportButtons()
+    end)
 end
 
 function UI.createTeleportButton(name, text, color, layoutOrder, parent)
     local button = Instance.new("TextButton")
     button.Name = name
-    button.Size = UDim2.new(0, 140, 0, 34)
+    button.Size = UDim2.new(0, 100, 0, 26)
     button.BackgroundColor3 = color
     button.BorderSizePixel = 0
     button.Text = text
     button.TextColor3 = Color3.fromRGB(255, 255, 255)
     button.TextStrokeColor3 = Color3.fromRGB(15, 15, 15)
-    button.TextSize = 14
+    button.TextSize = 12
     button.Font = Enum.Font.GothamBold
     button.AutoButtonColor = false
     button.LayoutOrder = layoutOrder
     button.Parent = parent
     
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
+    corner.CornerRadius = UDim.new(0, 6)
     corner.Parent = button
-    
-    local stroke = Instance.new("UIStroke")
-    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    stroke.Color = color:Lerp(Color3.fromRGB(255, 255, 255), 0.4)
-    stroke.Thickness = 1
-    stroke.Transparency = 0.2
-    stroke.Parent = button
     
     local hoverColor = color:Lerp(Color3.fromRGB(255, 255, 255), 0.35)
     button.MouseEnter:Connect(function() button.BackgroundColor3 = hoverColor end)
@@ -732,7 +746,7 @@ function UI.refreshQuickTeleportButtons()
     -- Task button (cột trái)
     local taskPos = Map.findTaskPosition()
     if taskPos then
-        local btn = UI.createTeleportButton("Task", "📍 Final Task", Color3.fromRGB(52, 152, 219), leftOrder, UI.leftColumn)
+        local btn = UI.createTeleportButton("Task", "📍 Task", Color3.fromRGB(52, 152, 219), leftOrder, UI.leftColumn)
         leftOrder = leftOrder + 1
         UI.createdButtons["Task"] = btn
         
@@ -747,7 +761,7 @@ function UI.refreshQuickTeleportButtons()
     -- Supply buttons
     local supplies = Map.findAllSupplyPiles()
     for i, supplyPos in ipairs(supplies) do
-        local btn = UI.createTeleportButton("Supply" .. i, "📦 Supply " .. i, Color3.fromRGB(241, 196, 15), rightOrder, UI.rightColumn)
+        local btn = UI.createTeleportButton("Supply" .. i, "📦 Sup " .. i, Color3.fromRGB(241, 196, 15), rightOrder, UI.rightColumn)
         rightOrder = rightOrder + 1
         UI.createdButtons["Supply" .. i] = btn
         
@@ -780,9 +794,9 @@ function UI.refreshQuickTeleportButtons()
     local maxCount = math.max(leftCount, rightCount)
     
     if maxCount > 0 then
-        local containerHeight = maxCount * 38 + 20
-        UI.mainContainer.Size = UDim2.new(0, 320, 0, containerHeight)
-        UI.mainContainer.Position = UDim2.new(1, -340, 0.5, -containerHeight / 2)
+        local containerHeight = maxCount * 30 + 15
+        UI.mainContainer.Size = UDim2.new(0, 230, 0, containerHeight)
+        UI.mainContainer.Position = UDim2.new(1, -245, 0.5, -containerHeight / 2)
         UI.mainContainer.Visible = true
     else
         UI.mainContainer.Visible = false
@@ -807,6 +821,12 @@ end
 function UI.cleanup()
     if UI.Window and UI.Window.Destroy then
         pcall(function() UI.Window:Destroy() end)
+    end
+    
+    -- Disconnect map watcher
+    if UI.mapConnection then
+        pcall(function() UI.mapConnection:Disconnect() end)
+        UI.mapConnection = nil
     end
     
     -- Xóa quick teleport buttons
