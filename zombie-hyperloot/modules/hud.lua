@@ -456,7 +456,7 @@ function HUD.createExpDisplay()
     HUD.expLabel = Instance.new("TextLabel")
     HUD.expLabel.Name = "ExpLabel"
     HUD.expLabel.Size = UDim2.new(0, 200, 0, 30)
-    HUD.expLabel.Position = UDim2.new(0.5, -100, 1, -80) -- Center dưới, cao hơn 1 chút
+    HUD.expLabel.Position = UDim2.new(0.5, -100, 1, -60) -- Center dưới, cao hơn 1 chút
     HUD.expLabel.BackgroundTransparency = 1 -- Trong suốt hoàn toàn
     HUD.expLabel.Text = "Exp: 0"
     HUD.expLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
