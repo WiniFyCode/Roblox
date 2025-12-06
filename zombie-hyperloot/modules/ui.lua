@@ -4,20 +4,21 @@
 ]]
 
 local UI = {}
-local Config, Combat, ESP, Movement, Map, Farm = nil, nil, nil, nil, nil, nil
+local Config, Combat, ESP, Movement, Map, Farm, HUD = nil, nil, nil, nil, nil, nil, nil
 
 UI.Window = nil
 UI.Fluent = nil
 UI.SaveManager = nil
 UI.InterfaceManager = nil
 
-function UI.init(config, combat, esp, movement, map, farm)
+function UI.init(config, combat, esp, movement, map, farm, hud)
     Config = config
     Combat = combat
     ESP = esp
     Movement = movement
     Map = map
     Farm = farm
+    HUD = hud
 end
 
 function UI.loadLibraries()
@@ -629,6 +630,239 @@ function UI.createInfoTab()
 end
 
 ----------------------------------------------------------
+-- 🔹 HUD Customization Tab
+function UI.createHUDTab()
+    local HUDTab = UI.Window:AddTab({ Title = "HUD Customize" })
+
+    HUDTab:AddToggle("CustomHUD", {
+        Title = "Enable Custom HUD",
+        Description = "Bật/tắt custom HUD",
+        Default = false,
+        Callback = function(Value)
+            HUD.toggleCustomHUD(Value)
+        end
+    })
+
+    HUDTab:AddSection("Visibility Settings")
+
+    HUDTab:AddToggle("TitleVisible", {
+        Title = "Show Title",
+        Default = true,
+        Callback = function(Value)
+            HUD.titleVisible = Value
+            if HUD.customHUDEnabled then
+                HUD.applyCustomHUD()
+            end
+        end
+    })
+
+    HUDTab:AddToggle("PlayerNameVisible", {
+        Title = "Show Player Name",
+        Default = true,
+        Callback = function(Value)
+            HUD.playerNameVisible = Value
+            if HUD.customHUDEnabled then
+                HUD.applyCustomHUD()
+            end
+        end
+    })
+
+    HUDTab:AddToggle("ClassVisible", {
+        Title = "Show Class",
+        Default = true,
+        Callback = function(Value)
+            HUD.classVisible = Value
+            if HUD.customHUDEnabled then
+                HUD.applyCustomHUD()
+            end
+        end
+    })
+
+    HUDTab:AddToggle("LevelVisible", {
+        Title = "Show Level",
+        Default = true,
+        Callback = function(Value)
+            HUD.levelVisible = Value
+            if HUD.customHUDEnabled then
+                HUD.applyCustomHUD()
+            end
+        end
+    })
+
+    HUDTab:AddSection("Text Customization")
+
+    HUDTab:AddInput("CustomTitle", {
+        Title = "Custom Title",
+        Description = "Để trống để giữ nguyên",
+        Default = "",
+        Placeholder = "Enter title...",
+        Callback = function(Value)
+            HUD.customTitle = Value
+            if HUD.customHUDEnabled then
+                HUD.applyCustomHUD()
+            end
+        end
+    })
+
+    HUDTab:AddInput("CustomPlayerName", {
+        Title = "Custom Player Name",
+        Description = "Để trống để giữ nguyên",
+        Default = "",
+        Placeholder = "Enter name...",
+        Callback = function(Value)
+            HUD.customPlayerName = Value
+            if HUD.customHUDEnabled then
+                HUD.applyCustomHUD()
+            end
+        end
+    })
+
+    HUDTab:AddInput("CustomClass", {
+        Title = "Custom Class",
+        Description = "Để trống để giữ nguyên",
+        Default = "",
+        Placeholder = "Enter class...",
+        Callback = function(Value)
+            HUD.customClass = Value
+            if HUD.customHUDEnabled then
+                HUD.applyCustomHUD()
+            end
+        end
+    })
+
+    HUDTab:AddInput("CustomLevel", {
+        Title = "Custom Level",
+        Description = "Để trống để giữ nguyên",
+        Default = "",
+        Placeholder = "Enter level...",
+        Callback = function(Value)
+            HUD.customLevel = Value
+            if HUD.customHUDEnabled then
+                HUD.applyCustomHUD()
+            end
+        end
+    })
+
+    HUDTab:AddSection("Title Gradient Colors")
+
+    HUDTab:AddColorpicker("TitleGradient1", {
+        Title = "Title Color 1",
+        Default = Color3.fromRGB(255, 255, 255),
+        Callback = function(Value)
+            HUD.titleGradientColor1 = Value
+            if HUD.customHUDEnabled then
+                HUD.applyCustomHUD()
+            end
+        end
+    })
+
+    HUDTab:AddColorpicker("TitleGradient2", {
+        Title = "Title Color 2",
+        Default = Color3.fromRGB(255, 255, 255),
+        Callback = function(Value)
+            HUD.titleGradientColor2 = Value
+            if HUD.customHUDEnabled then
+                HUD.applyCustomHUD()
+            end
+        end
+    })
+
+    HUDTab:AddSection("Player Name Gradient Colors")
+
+    HUDTab:AddColorpicker("PlayerNameGradient1", {
+        Title = "Name Color 1",
+        Default = Color3.fromRGB(255, 255, 255),
+        Callback = function(Value)
+            HUD.playerNameGradientColor1 = Value
+            if HUD.customHUDEnabled then
+                HUD.applyCustomHUD()
+            end
+        end
+    })
+
+    HUDTab:AddColorpicker("PlayerNameGradient2", {
+        Title = "Name Color 2",
+        Default = Color3.fromRGB(255, 255, 255),
+        Callback = function(Value)
+            HUD.playerNameGradientColor2 = Value
+            if HUD.customHUDEnabled then
+                HUD.applyCustomHUD()
+            end
+        end
+    })
+
+    HUDTab:AddSection("Class Gradient Colors")
+
+    HUDTab:AddColorpicker("ClassGradient1", {
+        Title = "Class Color 1",
+        Default = Color3.fromRGB(255, 255, 255),
+        Callback = function(Value)
+            HUD.classGradientColor1 = Value
+            if HUD.customHUDEnabled then
+                HUD.applyCustomHUD()
+            end
+        end
+    })
+
+    HUDTab:AddColorpicker("ClassGradient2", {
+        Title = "Class Color 2",
+        Default = Color3.fromRGB(255, 255, 255),
+        Callback = function(Value)
+            HUD.classGradientColor2 = Value
+            if HUD.customHUDEnabled then
+                HUD.applyCustomHUD()
+            end
+        end
+    })
+
+    HUDTab:AddSection("Level Gradient Colors")
+
+    HUDTab:AddColorpicker("LevelGradient1", {
+        Title = "Level Color 1",
+        Default = Color3.fromRGB(255, 255, 255),
+        Callback = function(Value)
+            HUD.levelGradientColor1 = Value
+            if HUD.customHUDEnabled then
+                HUD.applyCustomHUD()
+            end
+        end
+    })
+
+    HUDTab:AddColorpicker("LevelGradient2", {
+        Title = "Level Color 2",
+        Default = Color3.fromRGB(255, 255, 255),
+        Callback = function(Value)
+            HUD.levelGradientColor2 = Value
+            if HUD.customHUDEnabled then
+                HUD.applyCustomHUD()
+            end
+        end
+    })
+
+    HUDTab:AddSection("Actions")
+
+    HUDTab:AddButton({
+        Title = "Apply Changes",
+        Description = "Áp dụng tất cả thay đổi",
+        Callback = function()
+            if HUD.customHUDEnabled then
+                HUD.applyCustomHUD()
+            end
+        end
+    })
+
+    HUDTab:AddButton({
+        Title = "Reset to Original",
+        Description = "Khôi phục HUD về ban đầu",
+        Callback = function()
+            HUD.restoreOriginalHUD()
+        end
+    })
+
+    return HUDTab
+end
+
+----------------------------------------------------------
 -- 🔹 Build All Tabs
 function UI.buildAllTabs(cleanupCallback)
     UI.createCombatTab()
@@ -636,6 +870,7 @@ function UI.buildAllTabs(cleanupCallback)
     UI.createMovementTab()
     UI.createMapTab()
     UI.createFarmTab()
+    UI.createHUDTab()
     UI.createSettingsTab(cleanupCallback)
     UI.createInfoTab()
     UI.Window:SelectTab(1)

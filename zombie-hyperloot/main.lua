@@ -12,6 +12,7 @@ local ESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCod
 local Movement = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/movement.lua"))()
 local Map = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/map.lua"))()
 local Farm = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/farm.lua"))()
+local HUD = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/hud.lua"))()
 local UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/ui.lua"))()
 
 -- Initialize Modules
@@ -20,7 +21,8 @@ ESP.init(Config)
 Movement.init(Config)
 Map.init(Config)
 Farm.init(Config, ESP)
-UI.init(Config, Combat, ESP, Movement, Map, Farm)
+HUD.init(Config)
+UI.init(Config, Combat, ESP, Movement, Map, Farm, HUD)
 
 ----------------------------------------------------------
 -- 🔹 Cleanup Function
@@ -77,6 +79,7 @@ local function cleanupScript()
     ESP.cleanup()
     Movement.cleanup()
     Map.cleanup()
+    HUD.cleanup()
     UI.cleanup()
 
     -- Khôi phục hitbox
@@ -127,7 +130,10 @@ if Config.noclipCamEnabled then
 end
 
 -- Character respawn handler
-characterAddedConnection = Config.localPlayer.CharacterAdded:Connect(Movement.onCharacterAdded)
+characterAddedConnection = Config.localPlayer.CharacterAdded:Connect(function(character)
+    Movement.onCharacterAdded(character)
+    HUD.onCharacterAdded(character)
+end)
 
 ----------------------------------------------------------
 -- 🔹 Setup Farm
