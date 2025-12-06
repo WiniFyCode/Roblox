@@ -91,9 +91,6 @@ Config.skill1002Interval = 20
 -- TrigerSkill Dupe
 Config.trigerSkillDupeEnabled = true
 Config.trigerSkillDupeCount = 5
-Config.trigerSkillAutoDupeEnabled = false -- Auto dupe khi bắn trúng zombie
-Config.trigerSkillAutoDupeDelay = 0.1 -- Delay giữa các gói dupe
-Config.trigerSkillAutoDupeMaxDuration = 10 -- Thời gian max dupe cho 1 zombie (giây)
 
 -- Aimbot Configuration
 Config.aimbotEnabled = true

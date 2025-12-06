@@ -13,9 +13,6 @@ end
 -- Lưu zombie đã xử lý hitbox
 Combat.processedZombies = {}
 
--- Lưu zombie đang auto-dupe
-Combat.autoDupeTargets = {}
-
 ----------------------------------------------------------
 -- 🔹 TrigerSkill GunFire Dupe
 local oldTrigerSkillNamecall = nil
@@ -36,14 +33,8 @@ function Combat.setupTrigerSkillDupe()
                 local secondArgument = remoteArguments[2]
 
                 if firstArgument == "GunFire" and secondArgument == "Atk" then
-                    -- Auto-dupe logic
-                    if Config.trigerSkillAutoDupeEnabled then
-                        Combat.startAutoDupeForTarget(remoteArguments)
-                    else
-                        -- Normal dupe
-                        for i = 1, Config.trigerSkillDupeCount do
-                            oldTrigerSkillNamecall(remoteInstance, table.unpack(remoteArguments))
-                        end
+                    for i = 1, Config.trigerSkillDupeCount do
+                        oldTrigerSkillNamecall(remoteInstance, table.unpack(remoteArguments))
                     end
                     return
                 end
@@ -54,61 +45,6 @@ function Combat.setupTrigerSkillDupe()
     else
         warn("[ZombieHyperloot] Executor không hỗ trợ hookmetamethod - TrigerSkill dupe tắt")
     end
-end
-
--- 🔹 Auto-Dupe Functions
-function Combat.startAutoDupeForTarget(args)
-    local targetPart = args[3]
-    if not targetPart or not targetPart.Parent then return end
-    
-    local zombie = targetPart.Parent
-    local zombieName = zombie.Name
-    local zombieId = tostring(zombie:GetInstanceID())
-    
-    -- Đang dupe zombie này rồi thì bỏ qua
-    if Combat.autoDupeTargets[zombieId] then return end
-    
-    print("[ZombieHyperloot] Bắt đầu auto-dupe cho:", zombieName)
-    
-    Combat.autoDupeTargets[zombieId] = {
-        zombie = zombie,
-        startTime = tick(),
-        active = true
-    }
-    
-    task.spawn(function()
-        while Combat.autoDupeTargets[zombieId] 
-            and Combat.autoDupeTargets[zombieId].active 
-            and not Config.scriptUnloaded do
-            
-            local targetInfo = Combat.autoDupeTargets[zombieId]
-            local currentTime = tick()
-            
-            -- Check timeout
-            if currentTime - targetInfo.startTime > Config.trigerSkillAutoDupeMaxDuration then
-                print("[ZombieHyperloot] Auto-dupe timeout cho:", zombieName)
-                break
-            end
-            
-            -- Check zombie còn sống không
-            local hum = targetInfo.zombie:FindFirstChildWhichIsA("Humanoid")
-            if not hum or hum.Health <= 0 then
-                print("[ZombieHyperloot] Zombie đã chết, stop auto-dupe:", zombieName)
-                break
-            end
-            
-            -- Send dupe packets
-            for i = 1, Config.trigerSkillDupeCount do
-                if Config.scriptUnloaded then break end
-                oldTrigerSkillNamecall(game:GetService("Players").LocalPlayer.Character:WaitForChild("NetMessage"):WaitForChild("TrigerSkill"), table.unpack(args))
-            end
-            
-            task.wait(Config.trigerSkillAutoDupeDelay)
-        end
-        
-        -- Cleanup
-        Combat.autoDupeTargets[zombieId] = nil
-    end)
 end
 
 ----------------------------------------------------------
@@ -325,12 +261,6 @@ function Combat.cleanup()
         Combat.FOVCircle = nil
     end
     Combat.processedZombies = {}
-    
-    -- Stop all auto-dupe loops
-    for id, target in pairs(Combat.autoDupeTargets) do
-        target.active = false
-    end
-    Combat.autoDupeTargets = {}
 end
 
 return Combat
