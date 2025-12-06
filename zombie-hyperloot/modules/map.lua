@@ -8,9 +8,10 @@ local Config = nil
 
 -- Supply ESP tracking
 Map.supplyItems = {}
-Map.supplyUIElements = {}
+Map.supplyScreenGui = nil
+Map.supplyFrame = nil
+Map.supplyButtons = {}
 Map.refreshConnection = nil
-Map.hasDrawing = false
 
 function Map.init(config)
     Config = config
@@ -150,96 +151,197 @@ function Map.findAllSupplies()
     return supplies
 end
 
-function Map.createSupplyUI()
-    -- Kiểm tra Drawing API
-    local ok, obj = pcall(function()
-        return Drawing.new("Text")
-    end)
-    if ok and obj then
-        Map.hasDrawing = true
-        obj:Remove()
-    else
-        warn("[Supply] Drawing API không khả dụng")
-        return false
+function Map.teleportToSupply(supplyPosition)
+    local char = Config.localPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        warn("[Supply] Không tìm thấy HumanoidRootPart")
+        return
     end
+    
+    -- Teleport tới supply (cao hơn 5 studs để tránh bị stuck)
+    hrp.CFrame = CFrame.new(supplyPosition + Vector3.new(0, 5, 0))
+end
+
+function Map.createSupplyUI()
+    -- Xóa UI cũ nếu có
+    if Map.supplyScreenGui then
+        Map.supplyScreenGui:Destroy()
+        Map.supplyScreenGui = nil
+    end
+    
+    -- Tạo ScreenGui
+    Map.supplyScreenGui = Instance.new("ScreenGui")
+    Map.supplyScreenGui.Name = "SupplyESP"
+    Map.supplyScreenGui.ResetOnSpawn = false
+    Map.supplyScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    
+    -- Tạo Frame chứa
+    Map.supplyFrame = Instance.new("Frame")
+    Map.supplyFrame.Name = "SupplyFrame"
+    Map.supplyFrame.Size = UDim2.new(0, 250, 0, 400)
+    Map.supplyFrame.Position = UDim2.new(0, 10, 0.5, -200) -- Bên trái giữa màn hình
+    Map.supplyFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    Map.supplyFrame.BackgroundTransparency = 0.3
+    Map.supplyFrame.BorderSizePixel = 2
+    Map.supplyFrame.BorderColor3 = Color3.fromRGB(255, 255, 0)
+    Map.supplyFrame.Parent = Map.supplyScreenGui
+    
+    -- Corner
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = Map.supplyFrame
+    
+    -- Title
+    local title = Instance.new("TextLabel")
+    title.Name = "Title"
+    title.Size = UDim2.new(1, 0, 0, 30)
+    title.Position = UDim2.new(0, 0, 0, 0)
+    title.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
+    title.BackgroundTransparency = 0.2
+    title.BorderSizePixel = 0
+    title.Text = "=== SUPPLIES ==="
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextSize = 16
+    title.Font = Enum.Font.SourceSansBold
+    title.Parent = Map.supplyFrame
+    
+    local titleCorner = Instance.new("UICorner")
+    titleCorner.CornerRadius = UDim.new(0, 8)
+    titleCorner.Parent = title
+    
+    -- ScrollingFrame cho danh sách supplies
+    local scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Name = "ScrollFrame"
+    scrollFrame.Size = UDim2.new(1, -10, 1, -40)
+    scrollFrame.Position = UDim2.new(0, 5, 0, 35)
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.BorderSizePixel = 0
+    scrollFrame.ScrollBarThickness = 6
+    scrollFrame.Parent = Map.supplyFrame
+    
+    -- UIListLayout
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    listLayout.Padding = UDim.new(0, 5)
+    listLayout.Parent = scrollFrame
+    
+    Map.supplyScreenGui.Parent = game:GetService("CoreGui")
     
     return true
 end
 
 function Map.updateSupplyDisplay()
-    if not Map.hasDrawing then return end
+    if not Map.supplyScreenGui or not Map.supplyFrame then
+        Map.createSupplyUI()
+    end
     
-    -- Xóa UI cũ
-    for _, element in ipairs(Map.supplyUIElements) do
-        if element.Remove then
-            pcall(function() element:Remove() end)
+    local scrollFrame = Map.supplyFrame:FindFirstChild("ScrollFrame")
+    if not scrollFrame then return end
+    
+    -- Xóa buttons cũ
+    for _, button in ipairs(Map.supplyButtons) do
+        if button and button.Parent then
+            button:Destroy()
         end
     end
-    Map.supplyUIElements = {}
+    Map.supplyButtons = {}
     
     -- Tìm supplies mới
     Map.supplyItems = Map.findAllSupplies()
     
-    if #Map.supplyItems == 0 then return end
-    
-    -- Vẽ UI mới
-    local screenHeight = Config.Workspace.CurrentCamera.ViewportSize.Y
-    local startY = (screenHeight / 2) - (#Map.supplyItems * 25 / 2) -- Center vertically
-    local startX = 20 -- Bên trái màn hình
-    
-    -- Title
-    local titleText = Drawing.new("Text")
-    titleText.Text = "=== SUPPLIES ==="
-    titleText.Size = 18
-    titleText.Font = 2
-    titleText.Color = Color3.fromRGB(255, 255, 0)
-    titleText.Position = Vector2.new(startX, startY - 30)
-    titleText.Outline = true
-    titleText.Visible = true
-    table.insert(Map.supplyUIElements, titleText)
-    
-    -- Supply items
-    for i, supply in ipairs(Map.supplyItems) do
-        local char = Config.localPlayer.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        local distance = hrp and (hrp.Position - supply.position).Magnitude or 0
-        
-        -- Text hiển thị
-        local displayText = string.format("[%d] %s - %.0fm", i, supply.name, distance)
-        
-        local text = Drawing.new("Text")
-        text.Text = displayText
-        text.Size = 16
-        text.Font = 2
-        text.Color = Color3.fromRGB(255, 255, 255)
-        text.Position = Vector2.new(startX, startY + (i - 1) * 25)
-        text.Outline = true
-        text.Visible = true
-        
-        table.insert(Map.supplyUIElements, text)
+    if #Map.supplyItems == 0 then
+        -- Hiển thị thông báo không có supply
+        local noSupplyLabel = Instance.new("TextLabel")
+        noSupplyLabel.Size = UDim2.new(1, 0, 0, 30)
+        noSupplyLabel.BackgroundTransparency = 1
+        noSupplyLabel.Text = "No supplies found"
+        noSupplyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        noSupplyLabel.TextSize = 14
+        noSupplyLabel.Font = Enum.Font.SourceSans
+        noSupplyLabel.Parent = scrollFrame
+        table.insert(Map.supplyButtons, noSupplyLabel)
+        return
     end
     
-    -- Count text
-    local countText = Drawing.new("Text")
-    countText.Text = string.format("Total: %d supplies", #Map.supplyItems)
-    countText.Size = 14
-    countText.Font = 2
-    countText.Color = Color3.fromRGB(100, 255, 100)
-    countText.Position = Vector2.new(startX, startY + #Map.supplyItems * 25 + 10)
-    countText.Outline = true
-    countText.Visible = true
-    table.insert(Map.supplyUIElements, countText)
+    -- Tạo button cho mỗi supply
+    for i, supply in ipairs(Map.supplyItems) do
+        local button = Instance.new("TextButton")
+        button.Name = "Supply_" .. i
+        button.Size = UDim2.new(1, -10, 0, 35)
+        button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        button.BackgroundTransparency = 0.2
+        button.BorderSizePixel = 1
+        button.BorderColor3 = Color3.fromRGB(100, 100, 100)
+        button.Font = Enum.Font.SourceSans
+        button.TextSize = 14
+        button.TextColor3 = Color3.fromRGB(255, 255, 255)
+        button.TextXAlignment = Enum.TextXAlignment.Left
+        button.Parent = scrollFrame
+        
+        local buttonCorner = Instance.new("UICorner")
+        buttonCorner.CornerRadius = UDim.new(0, 6)
+        buttonCorner.Parent = button
+        
+        local padding = Instance.new("UIPadding")
+        padding.PaddingLeft = UDim.new(0, 8)
+        padding.PaddingRight = UDim.new(0, 8)
+        padding.Parent = button
+        
+        -- Click event
+        button.MouseButton1Click:Connect(function()
+            Map.teleportToSupply(supply.position)
+        end)
+        
+        -- Hover effect
+        button.MouseEnter:Connect(function()
+            button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        end)
+        
+        button.MouseLeave:Connect(function()
+            button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        end)
+        
+        table.insert(Map.supplyButtons, button)
+    end
+    
+    -- Update canvas size
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, #Map.supplyItems * 40)
+end
+
+function Map.updateSupplyDistances()
+    if not Map.supplyScreenGui or #Map.supplyItems == 0 then return end
+    
+    local char = Config.localPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    for i, button in ipairs(Map.supplyButtons) do
+        local supply = Map.supplyItems[i]
+        if button and supply then
+            local distance = (hrp.Position - supply.position).Magnitude
+            button.Text = string.format("Supply %d: %.0fm", i, distance)
+            
+            -- Đổi màu theo khoảng cách
+            if distance < 50 then
+                button.BorderColor3 = Color3.fromRGB(0, 255, 0) -- Xanh lá - gần
+                button.TextColor3 = Color3.fromRGB(0, 255, 0)
+            elseif distance < 150 then
+                button.BorderColor3 = Color3.fromRGB(255, 255, 0) -- Vàng - trung bình
+                button.TextColor3 = Color3.fromRGB(255, 255, 0)
+            else
+                button.BorderColor3 = Color3.fromRGB(255, 100, 100) -- Đỏ - xa
+                button.TextColor3 = Color3.fromRGB(255, 100, 100)
+            end
+        end
+    end
 end
 
 function Map.startSupplyESP()
     if Map.refreshConnection then return end
     
     -- Tạo UI lần đầu
-    if not Map.createSupplyUI() then
-        warn("[Supply] Không thể khởi tạo Supply UI")
-        return
-    end
-    
+    Map.createSupplyUI()
     Map.updateSupplyDisplay()
     
     -- Auto refresh mỗi 15 giây
@@ -252,33 +354,10 @@ function Map.startSupplyESP()
         end
     end)
     
-    -- Update distance realtime (mỗi 0.5s)
+    -- Update distance realtime
     Map.refreshConnection = Config.RunService.Heartbeat:Connect(function()
-        if not Config.supplyESPEnabled or #Map.supplyItems == 0 then return end
-        
-        -- Chỉ update distance, không tìm lại supplies
-        local char = Config.localPlayer.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if not hrp then return end
-        
-        -- Update text elements (bỏ qua title và count)
-        for i = 2, #Map.supplyUIElements - 1 do
-            local element = Map.supplyUIElements[i]
-            local supply = Map.supplyItems[i - 1]
-            if element and supply then
-                local distance = (hrp.Position - supply.position).Magnitude
-                element.Text = string.format("[%d] %s - %.0fm", i - 1, supply.name, distance)
-                
-                -- Đổi màu theo khoảng cách
-                if distance < 50 then
-                    element.Color = Color3.fromRGB(0, 255, 0) -- Xanh lá - gần
-                elseif distance < 150 then
-                    element.Color = Color3.fromRGB(255, 255, 0) -- Vàng - trung bình
-                else
-                    element.Color = Color3.fromRGB(255, 100, 100) -- Đỏ - xa
-                end
-            end
-        end
+        if not Config.supplyESPEnabled then return end
+        Map.updateSupplyDistances()
     end)
 end
 
@@ -289,12 +368,12 @@ function Map.stopSupplyESP()
     end
     
     -- Xóa UI
-    for _, element in ipairs(Map.supplyUIElements) do
-        if element.Remove then
-            pcall(function() element:Remove() end)
-        end
+    if Map.supplyScreenGui then
+        Map.supplyScreenGui:Destroy()
+        Map.supplyScreenGui = nil
     end
-    Map.supplyUIElements = {}
+    
+    Map.supplyButtons = {}
     Map.supplyItems = {}
 end
 
