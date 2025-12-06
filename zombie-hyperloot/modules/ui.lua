@@ -646,7 +646,7 @@ function UI.createHUDTab()
     HUDTab:AddToggle("ApplyToOtherPlayers", {
         Title = "Apply to Other Players",
         Description = "Áp dụng custom HUD cho tất cả players khác",
-        Default = false,
+        Default = true,
         Callback = function(Value)
             HUD.toggleApplyToOtherPlayers(Value)
         end

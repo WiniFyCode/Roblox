@@ -8,7 +8,7 @@ local Config = nil
 
 -- HUD Settings
 HUD.customHUDEnabled = false
-HUD.applyToOtherPlayers = false
+HUD.applyToOtherPlayers = true
 HUD.customTitle = "CHEATER"
 HUD.customPlayerName = "WiniFy"
 HUD.customClass = ""
