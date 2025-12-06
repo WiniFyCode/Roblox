@@ -1,6 +1,7 @@
 --[[
     FPS Booster Module - Zombie Hyperloot
     Xóa effects/particles, giảm texture quality, tắt shadows/lighting
+    Không có restore - xóa luôn cho đơn giản
 ]]
 
 local FPS = {}
@@ -12,86 +13,110 @@ FPS.reduceLightingEnabled = false
 FPS.reduceTextureEnabled = false
 FPS.removeWeaponEffectsEnabled = false
 
--- Backup
-FPS.originalLighting = {}
-FPS.removedEffects = {}
+-- Connections
 FPS.weaponEffectsConnection = nil
+FPS.continuousEffectsConnection = nil
+FPS.lastWeaponCheck = 0
+FPS.lastEffectsCheck = 0
+FPS.weaponCheckInterval = 0.5 -- Check mỗi 0.5s thay vì mỗi frame
+FPS.effectsCheckInterval = 0.1 -- Check effects mỗi 0.1s để xóa ngay
 
 function FPS.init(config)
     Config = config
 end
 
 ----------------------------------------------------------
--- 🔹 Remove Effects & Particles
+-- 🔹 Remove Effects & Particles (Xóa luôn + Continuous monitoring)
 function FPS.removeEffects()
     if not FPS.removeEffectsEnabled then return end
     
     local count = 0
+    local effectTypes = {
+        "ParticleEmitter", "Trail", "Beam", "Fire", "Smoke", 
+        "Sparkles", "PointLight", "SpotLight", "SurfaceLight",
+        "Explosion", "Sound" -- Thêm Explosion và Sound
+    }
     
-    -- Xóa tất cả effects trong Workspace
+    -- Xóa tất cả effects 1 lần
     for _, obj in ipairs(Config.Workspace:GetDescendants()) do
-        if obj:IsA("ParticleEmitter") or 
-           obj:IsA("Trail") or 
-           obj:IsA("Beam") or 
-           obj:IsA("Fire") or 
-           obj:IsA("Smoke") or 
-           obj:IsA("Sparkles") or 
-           obj:IsA("PointLight") or 
-           obj:IsA("SpotLight") or 
-           obj:IsA("SurfaceLight") then
-            
-            -- Backup để restore sau
-            table.insert(FPS.removedEffects, {
-                instance = obj,
-                enabled = obj:IsA("ParticleEmitter") and obj.Enabled or true
-            })
-            
-            -- Disable hoặc xóa
-            if obj:IsA("ParticleEmitter") then
-                obj.Enabled = false
-            else
+        local className = obj.ClassName
+        
+        for _, effectType in ipairs(effectTypes) do
+            if className == effectType then
                 pcall(function() obj:Destroy() end)
+                count = count + 1
+                break
             end
-            
-            count = count + 1
         end
     end
     
     print(string.format("[FPS Booster] Removed %d effects/particles", count))
 end
 
-function FPS.restoreEffects()
-    for _, data in ipairs(FPS.removedEffects) do
-        if data.instance and data.instance.Parent then
-            if data.instance:IsA("ParticleEmitter") then
-                data.instance.Enabled = data.enabled
+-- Monitor liên tục để xóa effects mới spawn
+function FPS.startContinuousEffectsRemoval()
+    if FPS.continuousEffectsConnection then return end
+    
+    local effectTypes = {
+        "ParticleEmitter", "Trail", "Beam", "Fire", "Smoke", 
+        "Sparkles", "PointLight", "SpotLight", "SurfaceLight",
+        "Explosion", "Sound"
+    }
+    
+    FPS.continuousEffectsConnection = Config.RunService.Heartbeat:Connect(function()
+        if not FPS.removeEffectsEnabled then return end
+        
+        local currentTime = tick()
+        if currentTime - FPS.lastEffectsCheck < FPS.effectsCheckInterval then
+            return
+        end
+        FPS.lastEffectsCheck = currentTime
+        
+        -- Xóa effects mới spawn trong Workspace
+        for _, obj in ipairs(Config.Workspace:GetDescendants()) do
+            local className = obj.ClassName
+            
+            for _, effectType in ipairs(effectTypes) do
+                if className == effectType then
+                    pcall(function() obj:Destroy() end)
+                    break
+                end
             end
         end
-    end
+        
+        -- Xóa effects trong character của player
+        local character = Config.localPlayer.Character
+        if character then
+            for _, obj in ipairs(character:GetDescendants()) do
+                local className = obj.ClassName
+                
+                for _, effectType in ipairs(effectTypes) do
+                    if className == effectType then
+                        pcall(function() obj:Destroy() end)
+                        break
+                    end
+                end
+            end
+        end
+    end)
     
-    FPS.removedEffects = {}
-    print("[FPS Booster] Restored effects")
+    print("[FPS Booster] Continuous effects removal started")
+end
+
+function FPS.stopContinuousEffectsRemoval()
+    if FPS.continuousEffectsConnection then
+        FPS.continuousEffectsConnection:Disconnect()
+        FPS.continuousEffectsConnection = nil
+    end
+    print("[FPS Booster] Continuous effects removal stopped")
 end
 
 ----------------------------------------------------------
--- 🔹 Reduce Lighting Quality
+-- 🔹 Reduce Lighting Quality (Xóa luôn)
 function FPS.reduceLighting()
     if not FPS.reduceLightingEnabled then return end
     
     local lighting = game:GetService("Lighting")
-    
-    -- Backup original settings
-    if not FPS.originalLighting.backed then
-        FPS.originalLighting = {
-            GlobalShadows = lighting.GlobalShadows,
-            Brightness = lighting.Brightness,
-            OutdoorAmbient = lighting.OutdoorAmbient,
-            Ambient = lighting.Ambient,
-            FogEnd = lighting.FogEnd,
-            FogStart = lighting.FogStart,
-            backed = true
-        }
-    end
     
     -- Tắt shadows và giảm lighting
     lighting.GlobalShadows = false
@@ -101,48 +126,23 @@ function FPS.reduceLighting()
     lighting.FogEnd = 100000
     lighting.FogStart = 0
     
-    -- Xóa các lighting effects
+    -- Xóa luôn các lighting effects
     for _, effect in ipairs(lighting:GetChildren()) do
-        if effect:IsA("BloomEffect") or 
-           effect:IsA("BlurEffect") or 
-           effect:IsA("ColorCorrectionEffect") or 
-           effect:IsA("DepthOfFieldEffect") or 
-           effect:IsA("SunRaysEffect") then
-            effect.Enabled = false
+        local className = effect.ClassName
+        if className == "BloomEffect" or 
+           className == "BlurEffect" or 
+           className == "ColorCorrectionEffect" or 
+           className == "DepthOfFieldEffect" or 
+           className == "SunRaysEffect" then
+            pcall(function() effect:Destroy() end)
         end
     end
     
     print("[FPS Booster] Reduced lighting quality")
 end
 
-function FPS.restoreLighting()
-    if not FPS.originalLighting.backed then return end
-    
-    local lighting = game:GetService("Lighting")
-    
-    lighting.GlobalShadows = FPS.originalLighting.GlobalShadows
-    lighting.Brightness = FPS.originalLighting.Brightness
-    lighting.OutdoorAmbient = FPS.originalLighting.OutdoorAmbient
-    lighting.Ambient = FPS.originalLighting.Ambient
-    lighting.FogEnd = FPS.originalLighting.FogEnd
-    lighting.FogStart = FPS.originalLighting.FogStart
-    
-    -- Bật lại lighting effects
-    for _, effect in ipairs(lighting:GetChildren()) do
-        if effect:IsA("BloomEffect") or 
-           effect:IsA("BlurEffect") or 
-           effect:IsA("ColorCorrectionEffect") or 
-           effect:IsA("DepthOfFieldEffect") or 
-           effect:IsA("SunRaysEffect") then
-            effect.Enabled = true
-        end
-    end
-    
-    print("[FPS Booster] Restored lighting")
-end
-
 ----------------------------------------------------------
--- 🔹 Reduce Texture Quality
+-- 🔹 Reduce Texture Quality (Xóa luôn)
 function FPS.reduceTextures()
     if not FPS.reduceTextureEnabled then return end
     
@@ -150,28 +150,29 @@ function FPS.reduceTextures()
     
     -- Giảm chất lượng texture của tất cả parts
     for _, obj in ipairs(Config.Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") then
+        local className = obj.ClassName
+        
+        if className == "Part" or className == "MeshPart" or className == "UnionOperation" then
             -- Đơn giản hóa material
             if obj.Material ~= Enum.Material.SmoothPlastic then
                 obj.Material = Enum.Material.SmoothPlastic
                 count = count + 1
             end
             
+            -- Xóa MeshPart textures
+            if className == "MeshPart" and obj.TextureID ~= "" then
+                obj.TextureID = ""
+                count = count + 1
+            end
+            
             -- Xóa textures
             for _, child in ipairs(obj:GetChildren()) do
-                if child:IsA("Decal") or 
-                   child:IsA("Texture") or 
-                   child:IsA("SurfaceAppearance") then
+                local childClass = child.ClassName
+                if childClass == "Decal" or childClass == "Texture" or childClass == "SurfaceAppearance" then
                     child:Destroy()
                     count = count + 1
                 end
             end
-        end
-        
-        -- Xóa MeshPart textures
-        if obj:IsA("MeshPart") then
-            obj.TextureID = ""
-            count = count + 1
         end
     end
     
@@ -182,34 +183,30 @@ end
 -- 🔹 Toggle Functions
 function FPS.toggleRemoveEffects(enabled)
     FPS.removeEffectsEnabled = enabled
-    
     if enabled then
         FPS.removeEffects()
+        FPS.startContinuousEffectsRemoval() -- Bật monitoring liên tục
     else
-        FPS.restoreEffects()
+        FPS.stopContinuousEffectsRemoval()
     end
 end
 
 function FPS.toggleReduceLighting(enabled)
     FPS.reduceLightingEnabled = enabled
-    
     if enabled then
         FPS.reduceLighting()
-    else
-        FPS.restoreLighting()
     end
 end
 
 function FPS.toggleReduceTextures(enabled)
     FPS.reduceTextureEnabled = enabled
-    
     if enabled then
         FPS.reduceTextures()
     end
 end
 
 ----------------------------------------------------------
--- 🔹 Remove Weapon Effects
+-- 🔹 Remove Weapon Effects (Optimized với interval)
 function FPS.removeWeaponEffects()
     if FPS.weaponEffectsConnection then return end
     
@@ -218,17 +215,13 @@ function FPS.removeWeaponEffects()
         if not character then return end
         
         for _, obj in ipairs(character:GetDescendants()) do
-            if obj:IsA("ParticleEmitter") or 
-               obj:IsA("Trail") or 
-               obj:IsA("Beam") or 
-               obj:IsA("PointLight") or 
-               obj:IsA("SpotLight") then
-                
-                if obj:IsA("ParticleEmitter") then
-                    obj.Enabled = false
-                else
-                    pcall(function() obj:Destroy() end)
-                end
+            local className = obj.ClassName
+            if className == "ParticleEmitter" or 
+               className == "Trail" or 
+               className == "Beam" or 
+               className == "PointLight" or 
+               className == "SpotLight" then
+                pcall(function() obj:Destroy() end)
             end
         end
     end
@@ -236,20 +229,25 @@ function FPS.removeWeaponEffects()
     -- Clean character hiện tại
     cleanCharacterEffects(Config.localPlayer.Character)
     
-    -- Monitor và xóa effects mới
+    -- Monitor và xóa effects mới (với interval)
     FPS.weaponEffectsConnection = Config.RunService.Heartbeat:Connect(function()
         if not FPS.removeWeaponEffectsEnabled then return end
+        
+        local currentTime = tick()
+        if currentTime - FPS.lastWeaponCheck < FPS.weaponCheckInterval then
+            return
+        end
+        FPS.lastWeaponCheck = currentTime
         
         local character = Config.localPlayer.Character
         if not character then return end
         
         -- Xóa effects trong tools/weapons
         for _, tool in ipairs(character:GetChildren()) do
-            if tool:IsA("Tool") then
+            if tool.ClassName == "Tool" then
                 for _, obj in ipairs(tool:GetDescendants()) do
-                    if obj:IsA("ParticleEmitter") then
-                        obj.Enabled = false
-                    elseif obj:IsA("Trail") or obj:IsA("Beam") then
+                    local className = obj.ClassName
+                    if className == "ParticleEmitter" or className == "Trail" or className == "Beam" then
                         pcall(function() obj:Destroy() end)
                     end
                 end
@@ -265,7 +263,6 @@ function FPS.stopRemoveWeaponEffects()
         FPS.weaponEffectsConnection:Disconnect()
         FPS.weaponEffectsConnection = nil
     end
-    
     print("[FPS Booster] Weapon effects removal disabled")
 end
 
@@ -280,11 +277,47 @@ function FPS.toggleRemoveWeaponEffects(enabled)
 end
 
 ----------------------------------------------------------
+-- 🔹 Additional Optimizations
+function FPS.reduceRenderDistance()
+    -- Giảm render quality
+    pcall(function()
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+        settings().Rendering.MeshPartDetailLevel = Enum.MeshPartDetailLevel.Level01
+    end)
+    print("[FPS Booster] Reduced render quality")
+end
+
+function FPS.disablePlayerEffects()
+    -- Tắt effects của players khác
+    for _, player in ipairs(Config.Players:GetPlayers()) do
+        if player ~= Config.localPlayer and player.Character then
+            for _, obj in ipairs(player.Character:GetDescendants()) do
+                if obj.ClassName == "ParticleEmitter" then
+                    pcall(function() obj:Destroy() end)
+                end
+            end
+        end
+    end
+    print("[FPS Booster] Disabled other players' effects")
+end
+
+function FPS.enableAllOptimizations()
+    FPS.toggleRemoveEffects(true)
+    FPS.toggleReduceLighting(true)
+    FPS.toggleReduceTextures(true)
+    FPS.toggleRemoveWeaponEffects(true)
+    FPS.reduceRenderDistance()
+    FPS.disablePlayerEffects()
+    print("[FPS Booster] All optimizations enabled!")
+end
+
+----------------------------------------------------------
 -- 🔹 Cleanup
 function FPS.cleanup()
-    FPS.restoreEffects()
-    FPS.restoreLighting()
     FPS.stopRemoveWeaponEffects()
+    FPS.stopContinuousEffectsRemoval()
+    FPS.lastWeaponCheck = 0
+    FPS.lastEffectsCheck = 0
 end
 
 return FPS
