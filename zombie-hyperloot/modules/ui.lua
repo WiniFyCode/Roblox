@@ -4,14 +4,14 @@
 ]]
 
 local UI = {}
-local Config, Combat, ESP, Movement, Map, Farm, HUD = nil, nil, nil, nil, nil, nil, nil
+local Config, Combat, ESP, Movement, Map, Farm, HUD, Character = nil, nil, nil, nil, nil, nil, nil, nil
 
 UI.Window = nil
 UI.Fluent = nil
 UI.SaveManager = nil
 UI.InterfaceManager = nil
 
-function UI.init(config, combat, esp, movement, map, farm, hud)
+function UI.init(config, combat, esp, movement, map, farm, hud, character)
     Config = config
     Combat = combat
     ESP = esp
@@ -19,6 +19,7 @@ function UI.init(config, combat, esp, movement, map, farm, hud)
     Map = map
     Farm = farm
     HUD = hud
+    Character = character
 end
 
 function UI.loadLibraries()
@@ -885,6 +886,207 @@ function UI.createHUDTab()
 end
 
 ----------------------------------------------------------
+-- 🔹 Character Tab
+function UI.createCharacterTab()
+    local CharTab = UI.Window:AddTab({ Title = "Character" })
+
+    CharTab:AddSection("Copy from Server Players")
+
+    CharTab:AddInput("TargetPlayerName", {
+        Title = "Player Name (In Server)",
+        Description = "Nhập tên người chơi trong server",
+        Default = "",
+        Placeholder = "Enter player name...",
+        Callback = function(Value)
+            Character.targetPlayerName = Value
+        end
+    })
+
+    CharTab:AddButton({
+        Title = "Copy from Server Player",
+        Description = "Copy outfit từ người chơi trong server",
+        Callback = function()
+            if Character.targetPlayerName == "" then
+                warn("Please enter a player name")
+                return
+            end
+            
+            local success, message = Character.copyOutfitByName(Character.targetPlayerName)
+            if success then
+                print("[Character] " .. message)
+            else
+                warn("[Character] " .. message)
+            end
+        end
+    })
+
+    CharTab:AddSection("Copy from Any User")
+
+    CharTab:AddInput("TargetUserId", {
+        Title = "User ID",
+        Description = "Nhập UserId của bất kỳ ai (không cần trong server)",
+        Default = "",
+        Placeholder = "Enter UserId...",
+        Callback = function(Value)
+            Character.targetUserId = Value
+        end
+    })
+
+    CharTab:AddButton({
+        Title = "Copy from UserId",
+        Description = "Copy outfit từ UserId (không cần trong server)",
+        Callback = function()
+            if Character.targetUserId == "" then
+                warn("Please enter a UserId")
+                return
+            end
+            
+            local success, message = Character.copyOutfitFromUserId(Character.targetUserId)
+            if success then
+                print("[Character] " .. message)
+            else
+                warn("[Character] " .. message)
+            end
+        end
+    })
+
+    CharTab:AddInput("TargetUsername", {
+        Title = "Username",
+        Description = "Nhập Username của bất kỳ ai (không cần trong server)",
+        Default = "",
+        Placeholder = "Enter username...",
+        Callback = function(Value)
+            Character.targetUsername = Value
+        end
+    })
+
+    CharTab:AddButton({
+        Title = "Copy from Username",
+        Description = "Copy outfit từ Username (không cần trong server)",
+        Callback = function()
+            if not Character.targetUsername or Character.targetUsername == "" then
+                warn("Please enter a username")
+                return
+            end
+            
+            local success, message = Character.copyOutfitFromUsername(Character.targetUsername)
+            if success then
+                print("[Character] " .. message)
+            else
+                warn("[Character] " .. message)
+            end
+        end
+    })
+
+    CharTab:AddButton({
+        Title = "Copy Accessories Only",
+        Description = "Chỉ copy phụ kiện (hats, hair, face, etc.)",
+        Callback = function()
+            local targetPlayer = Character.findPlayerByName(Character.targetPlayerName)
+            if targetPlayer then
+                local success = Character.copyAccessories(targetPlayer)
+                if success then
+                    print("[Character] Copied accessories from " .. targetPlayer.DisplayName)
+                else
+                    warn("[Character] Failed to copy accessories")
+                end
+            else
+                warn("[Character] Player not found")
+            end
+        end
+    })
+
+    CharTab:AddButton({
+        Title = "Copy Clothing Only",
+        Description = "Chỉ copy quần áo (shirt, pants)",
+        Callback = function()
+            local targetPlayer = Character.findPlayerByName(Character.targetPlayerName)
+            if targetPlayer then
+                local success = Character.copyClothing(targetPlayer)
+                if success then
+                    print("[Character] Copied clothing from " .. targetPlayer.DisplayName)
+                else
+                    warn("[Character] Failed to copy clothing")
+                end
+            else
+                warn("[Character] Player not found")
+            end
+        end
+    })
+
+    CharTab:AddSection("Quick Copy")
+
+    -- Tạo dropdown với danh sách players
+    local playerNames = Character.getAllPlayersNames()
+    if #playerNames > 0 then
+        CharTab:AddDropdown("QuickCopyPlayer", {
+            Title = "Select Player",
+            Values = playerNames,
+            Default = playerNames[1],
+            Callback = function(Value)
+                -- Extract username từ format "DisplayName (@Username)"
+                local username = string.match(Value, "@([^)]+)")
+                if username then
+                    Character.targetPlayerName = username
+                end
+            end
+        })
+
+        CharTab:AddButton({
+            Title = "Quick Copy Selected",
+            Description = "Copy outfit từ player đã chọn",
+            Callback = function()
+                if Character.targetPlayerName ~= "" then
+                    local success, message = Character.copyOutfitByName(Character.targetPlayerName)
+                    if success then
+                        print("[Character] " .. message)
+                    else
+                        warn("[Character] " .. message)
+                    end
+                end
+            end
+        })
+    else
+        CharTab:AddParagraph({
+            Title = "No Players",
+            Content = "Không có người chơi nào khác trong server"
+        })
+    end
+
+    CharTab:AddSection("Reset")
+
+    CharTab:AddButton({
+        Title = "Reset to Original",
+        Description = "Khôi phục appearance về ban đầu",
+        Callback = function()
+            local success = Character.resetAppearance()
+            if success then
+                print("[Character] Reset appearance successfully")
+            else
+                warn("[Character] Failed to reset appearance")
+            end
+        end
+    })
+
+    CharTab:AddParagraph({
+        Title = "Tips",
+        Content = [[
+            SERVER PLAYERS:
+            • Chỉ copy từ players trong server hiện tại
+            • Có thể copy từng phần (accessories/clothing)
+            
+            ANY USER:
+            • Copy từ BẤT KỲ AI trên Roblox
+            • Cần UserId hoặc Username chính xác
+            • Chỉ copy full outfit (không copy từng phần)
+            • Tìm UserId: vào profile → URL có dạng /users/[UserId]
+        ]]
+    })
+
+    return CharTab
+end
+
+----------------------------------------------------------
 -- 🔹 Build All Tabs
 function UI.buildAllTabs(cleanupCallback)
     UI.createCombatTab()
@@ -893,6 +1095,7 @@ function UI.buildAllTabs(cleanupCallback)
     UI.createMapTab()
     UI.createFarmTab()
     UI.createHUDTab()
+    UI.createCharacterTab()
     UI.createSettingsTab(cleanupCallback)
     UI.createInfoTab()
     UI.Window:SelectTab(1)
