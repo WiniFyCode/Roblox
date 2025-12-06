@@ -452,29 +452,18 @@ function HUD.createExpDisplay()
     HUD.expScreenGui.ResetOnSpawn = false
     HUD.expScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     
-    -- Tạo Frame chứa
-    local frame = Instance.new("Frame")
-    frame.Name = "ExpFrame"
-    frame.Size = UDim2.new(0, 150, 0, 40)
-    frame.Position = UDim2.new(1, -160, 1, -50) -- Góc phải dưới
-    frame.Parent = HUD.expScreenGui
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = frame
-    
-    -- Tạo TextLabel hiển thị EXP
+    -- Tạo TextLabel hiển thị EXP (không có frame background)
     HUD.expLabel = Instance.new("TextLabel")
     HUD.expLabel.Name = "ExpLabel"
-    HUD.expLabel.Size = UDim2.new(1, 0, 1, 0)
-    HUD.expLabel.Position = UDim2.new(0, 0, 0, 0)
-    HUD.expLabel.BackgroundTransparency = 1
+    HUD.expLabel.Size = UDim2.new(0, 150, 0, 30) -- Cao hơn 10px (từ 20 lên 30)
+    HUD.expLabel.Position = UDim2.new(1, -160, 1, -40) -- Góc phải dưới, cao hơn 10px
+    HUD.expLabel.BackgroundTransparency = 1 -- Trong suốt hoàn toàn
     HUD.expLabel.Text = "Exp: 0"
     HUD.expLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     HUD.expLabel.TextSize = 18
     HUD.expLabel.Font = Enum.Font.SourceSansBold
-    HUD.expLabel.TextXAlignment = Enum.TextXAlignment.Center
-    HUD.expLabel.Parent = frame
+    HUD.expLabel.TextXAlignment = Enum.TextXAlignment.Right -- Căn phải
+    HUD.expLabel.Parent = HUD.expScreenGui
     
     -- Gradient cho text
     local gradient = Instance.new("UIGradient")
