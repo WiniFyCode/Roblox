@@ -484,6 +484,32 @@ function UI.createMapTab()
         Callback = function(Value) Config.autoReplayEnabled = Value end
     })
 
+    MapTab:AddSection("Supply ESP")
+
+    MapTab:AddToggle("SupplyESP", {
+        Title = "Supply ESP (Left Side)",
+        Description = "Hiển thị tất cả Supply items bên trái màn hình",
+        Default = Config.supplyESPEnabled,
+        Callback = function(Value)
+            Config.supplyESPEnabled = Value
+            if Value then
+                Map.startSupplyESP()
+            else
+                Map.stopSupplyESP()
+            end
+        end
+    })
+
+    MapTab:AddButton({
+        Title = "Refresh Supply List",
+        Description = "Tìm lại tất cả Supply items ngay lập tức",
+        Callback = function()
+            if Config.supplyESPEnabled then
+                Map.updateSupplyDisplay()
+            end
+        end
+    })
+
     return MapTab
 end
 
@@ -550,6 +576,9 @@ function UI.createInfoTab()
             M Key - Toggle Anti-Zombie
             N Key - Toggle Noclip Cam
             Right Shift - Open/Close Menu
+            
+            Supply ESP - Hiển thị bên trái màn hình
+            Auto refresh mỗi 15 giây
         ]]
     })
 

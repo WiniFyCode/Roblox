@@ -142,6 +142,10 @@ Config.selectedFriendOnly = false
 Config.autoReplayEnabled = false
 
 ----------------------------------------------------------
+-- 🔹 Supply ESP
+Config.supplyESPEnabled = true
+
+----------------------------------------------------------
 -- 🔹 Connection Storage (để cleanup)
 Config.connections = {}
 

@@ -48,6 +48,7 @@ local function cleanupScript()
     Config.noClipEnabled = false
     Config.speedEnabled = false
     Config.antiZombieEnabled = false
+    Config.supplyESPEnabled = false
 
     -- Disconnect all connections
     if renderSteppedConnection then
@@ -75,6 +76,7 @@ local function cleanupScript()
     Combat.cleanup()
     ESP.cleanup()
     Movement.cleanup()
+    Map.cleanup()
     UI.cleanup()
 
     -- Khôi phục hitbox
@@ -133,8 +135,9 @@ Farm.startAutoBulletBoxLoop()
 Farm.setupChestTeleportInput()
 
 ----------------------------------------------------------
--- 🔹 Setup Map Auto Replay
+-- 🔹 Setup Map Auto Replay & Supply ESP
 Map.startAutoReplayLoop()
+Map.startSupplyESP()
 
 ----------------------------------------------------------
 -- 🔹 Entity Folder Listeners (Hitbox)
