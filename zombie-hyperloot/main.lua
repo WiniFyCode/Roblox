@@ -147,6 +147,8 @@ Map.startSupplyESP()
 
 ----------------------------------------------------------
 -- 🔹 Setup HUD
+task.wait(1) -- Đợi HUD load
+HUD.backupOriginalValues() -- Backup và set default colors
 HUD.applyLobbyPlayerInfoVisibility()
 
 ----------------------------------------------------------

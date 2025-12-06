@@ -718,7 +718,7 @@ function UI.createHUDTab()
     HUDTab:AddInput("CustomPlayerName", {
         Title = "Custom Player Name",
         Description = "Để trống để giữ nguyên",
-        Default = "",
+        Default = "WiniFy",
         Placeholder = "Enter name...",
         Callback = function(Value)
             HUD.customPlayerName = Value
@@ -758,7 +758,7 @@ function UI.createHUDTab()
 
     HUDTab:AddColorpicker("TitleGradient1", {
         Title = "Title Color 1",
-        Default = Color3.fromRGB(255, 255, 255),
+        Default = HUD.titleGradientColor1 or Color3.fromRGB(255, 255, 255),
         Callback = function(Value)
             HUD.titleGradientColor1 = Value
             if HUD.customHUDEnabled then
@@ -769,7 +769,7 @@ function UI.createHUDTab()
 
     HUDTab:AddColorpicker("TitleGradient2", {
         Title = "Title Color 2",
-        Default = Color3.fromRGB(255, 255, 255),
+        Default = HUD.titleGradientColor2 or Color3.fromRGB(255, 255, 255),
         Callback = function(Value)
             HUD.titleGradientColor2 = Value
             if HUD.customHUDEnabled then
@@ -782,7 +782,7 @@ function UI.createHUDTab()
 
     HUDTab:AddColorpicker("PlayerNameGradient1", {
         Title = "Name Color 1",
-        Default = Color3.fromRGB(255, 255, 255),
+        Default = HUD.playerNameGradientColor1 or Color3.fromRGB(255, 255, 255),
         Callback = function(Value)
             HUD.playerNameGradientColor1 = Value
             if HUD.customHUDEnabled then
@@ -793,7 +793,7 @@ function UI.createHUDTab()
 
     HUDTab:AddColorpicker("PlayerNameGradient2", {
         Title = "Name Color 2",
-        Default = Color3.fromRGB(255, 255, 255),
+        Default = HUD.playerNameGradientColor2 or Color3.fromRGB(255, 255, 255),
         Callback = function(Value)
             HUD.playerNameGradientColor2 = Value
             if HUD.customHUDEnabled then
@@ -806,7 +806,7 @@ function UI.createHUDTab()
 
     HUDTab:AddColorpicker("ClassGradient1", {
         Title = "Class Color 1",
-        Default = Color3.fromRGB(255, 255, 255),
+        Default = HUD.classGradientColor1 or Color3.fromRGB(255, 255, 255),
         Callback = function(Value)
             HUD.classGradientColor1 = Value
             if HUD.customHUDEnabled then
@@ -817,7 +817,7 @@ function UI.createHUDTab()
 
     HUDTab:AddColorpicker("ClassGradient2", {
         Title = "Class Color 2",
-        Default = Color3.fromRGB(255, 255, 255),
+        Default = HUD.classGradientColor2 or Color3.fromRGB(255, 255, 255),
         Callback = function(Value)
             HUD.classGradientColor2 = Value
             if HUD.customHUDEnabled then
@@ -830,7 +830,7 @@ function UI.createHUDTab()
 
     HUDTab:AddColorpicker("LevelGradient1", {
         Title = "Level Color 1",
-        Default = Color3.fromRGB(255, 255, 255),
+        Default = HUD.levelGradientColor1 or Color3.fromRGB(255, 255, 255),
         Callback = function(Value)
             HUD.levelGradientColor1 = Value
             if HUD.customHUDEnabled then
@@ -841,7 +841,7 @@ function UI.createHUDTab()
 
     HUDTab:AddColorpicker("LevelGradient2", {
         Title = "Level Color 2",
-        Default = Color3.fromRGB(255, 255, 255),
+        Default = HUD.levelGradientColor2 or Color3.fromRGB(255, 255, 255),
         Callback = function(Value)
             HUD.levelGradientColor2 = Value
             if HUD.customHUDEnabled then

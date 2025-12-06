@@ -9,7 +9,7 @@ local Config = nil
 -- HUD Settings
 HUD.customHUDEnabled = false
 HUD.customTitle = ""
-HUD.customPlayerName = ""
+HUD.customPlayerName = "WiniFy"
 HUD.customClass = ""
 HUD.customLevel = ""
 
@@ -20,15 +20,15 @@ HUD.classVisible = true
 HUD.levelVisible = true
 HUD.lobbyPlayerInfoVisible = true
 
--- Gradient Colors
-HUD.titleGradientColor1 = Color3.fromRGB(255, 255, 255)
-HUD.titleGradientColor2 = Color3.fromRGB(255, 255, 255)
-HUD.playerNameGradientColor1 = Color3.fromRGB(255, 255, 255)
-HUD.playerNameGradientColor2 = Color3.fromRGB(255, 255, 255)
-HUD.classGradientColor1 = Color3.fromRGB(255, 255, 255)
-HUD.classGradientColor2 = Color3.fromRGB(255, 255, 255)
-HUD.levelGradientColor1 = Color3.fromRGB(255, 255, 255)
-HUD.levelGradientColor2 = Color3.fromRGB(255, 255, 255)
+-- Gradient Colors (sẽ được set từ original values)
+HUD.titleGradientColor1 = nil
+HUD.titleGradientColor2 = nil
+HUD.playerNameGradientColor1 = nil
+HUD.playerNameGradientColor2 = nil
+HUD.classGradientColor1 = nil
+HUD.classGradientColor2 = nil
+HUD.levelGradientColor1 = nil
+HUD.levelGradientColor2 = nil
 
 -- Original values backup
 HUD.originalValues = {}
@@ -79,6 +79,11 @@ function HUD.backupOriginalValues()
         if HUD.originalValues.title.gradient then
             HUD.originalValues.title.gradientColor1 = HUD.originalValues.title.gradient.Color.Keypoints[1].Value
             HUD.originalValues.title.gradientColor2 = HUD.originalValues.title.gradient.Color.Keypoints[2].Value
+            -- Set default colors nếu chưa có
+            if not HUD.titleGradientColor1 then
+                HUD.titleGradientColor1 = HUD.originalValues.title.gradientColor1
+                HUD.titleGradientColor2 = HUD.originalValues.title.gradientColor2
+            end
         end
     end
     
@@ -91,6 +96,11 @@ function HUD.backupOriginalValues()
         if HUD.originalValues.playerName.gradient then
             HUD.originalValues.playerName.gradientColor1 = HUD.originalValues.playerName.gradient.Color.Keypoints[1].Value
             HUD.originalValues.playerName.gradientColor2 = HUD.originalValues.playerName.gradient.Color.Keypoints[2].Value
+            -- Set default colors nếu chưa có
+            if not HUD.playerNameGradientColor1 then
+                HUD.playerNameGradientColor1 = HUD.originalValues.playerName.gradientColor1
+                HUD.playerNameGradientColor2 = HUD.originalValues.playerName.gradientColor2
+            end
         end
     end
     
@@ -103,6 +113,11 @@ function HUD.backupOriginalValues()
         if HUD.originalValues.class.gradient then
             HUD.originalValues.class.gradientColor1 = HUD.originalValues.class.gradient.Color.Keypoints[1].Value
             HUD.originalValues.class.gradientColor2 = HUD.originalValues.class.gradient.Color.Keypoints[2].Value
+            -- Set default colors nếu chưa có
+            if not HUD.classGradientColor1 then
+                HUD.classGradientColor1 = HUD.originalValues.class.gradientColor1
+                HUD.classGradientColor2 = HUD.originalValues.class.gradientColor2
+            end
         end
     end
     
@@ -117,6 +132,11 @@ function HUD.backupOriginalValues()
             if HUD.originalValues.level.gradient then
                 HUD.originalValues.level.gradientColor1 = HUD.originalValues.level.gradient.Color.Keypoints[1].Value
                 HUD.originalValues.level.gradientColor2 = HUD.originalValues.level.gradient.Color.Keypoints[2].Value
+                -- Set default colors nếu chưa có
+                if not HUD.levelGradientColor1 then
+                    HUD.levelGradientColor1 = HUD.originalValues.level.gradientColor1
+                    HUD.levelGradientColor2 = HUD.originalValues.level.gradientColor2
+                end
             end
         end
     end
