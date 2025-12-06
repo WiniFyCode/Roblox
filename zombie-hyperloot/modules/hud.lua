@@ -455,14 +455,14 @@ function HUD.createExpDisplay()
     -- Tạo TextLabel hiển thị EXP (không có frame background)
     HUD.expLabel = Instance.new("TextLabel")
     HUD.expLabel.Name = "ExpLabel"
-    HUD.expLabel.Size = UDim2.new(0, 150, 0, 30) -- Cao hơn 10px (từ 20 lên 30)
-    HUD.expLabel.Position = UDim2.new(1, -160, 1, -40) -- Góc phải dưới, cao hơn 10px
+    HUD.expLabel.Size = UDim2.new(0, 200, 0, 30)
+    HUD.expLabel.Position = UDim2.new(0.5, -100, 1, -80) -- Center dưới, cao hơn 1 chút
     HUD.expLabel.BackgroundTransparency = 1 -- Trong suốt hoàn toàn
     HUD.expLabel.Text = "Exp: 0"
     HUD.expLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     HUD.expLabel.TextSize = 18
     HUD.expLabel.Font = Enum.Font.SourceSansBold
-    HUD.expLabel.TextXAlignment = Enum.TextXAlignment.Right -- Căn phải
+    HUD.expLabel.TextXAlignment = Enum.TextXAlignment.Center -- Căn giữa
     HUD.expLabel.Parent = HUD.expScreenGui
     
     -- Gradient cho text
