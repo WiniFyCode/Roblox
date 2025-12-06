@@ -682,27 +682,21 @@ function UI.createQuickTeleportButtons()
         return btn
     end
 
-    local leftOrder = 1
-    local rightOrder = 1
-
-    -- Hiển thị loading message
-    local loadingText = Instance.new("TextLabel")
-    loadingText.Size = UDim2.new(1, 0, 1, 0)
-    loadingText.BackgroundTransparency = 1
-    loadingText.Text = "Loading map...\nPlease wait"
-    loadingText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    loadingText.TextSize = 14
-    loadingText.Font = Enum.Font.GothamBold
-    loadingText.Parent = MainContainer
-
-    -- Pre-load map objects (di chuyển để load)
-    task.spawn(function()
-        local exitDoors, supplies, ammos = Map.preloadMapObjects()
+    -- Tạo buttons ngay với những gì tìm được
+    local function createAllButtons()
+        local leftOrder = 1
+        local rightOrder = 1
         
-        -- Xóa loading text
-        loadingText:Destroy()
+        -- Xóa tất cả buttons cũ
+        for _, child in ipairs(LeftColumn:GetChildren()) do
+            if child:IsA("TextButton") then child:Destroy() end
+        end
+        for _, child in ipairs(RightColumn:GetChildren()) do
+            if child:IsA("TextButton") then child:Destroy() end
+        end
         
         -- === TẠO NÚT EXIT DOOR ===
+        local exitDoors = Map.findAllExitDoors()
         for i, pos in ipairs(exitDoors) do
             createBtn("Exit" .. i, "🚪 Exit " .. i, Color3.fromRGB(155, 89, 182), leftOrder, LeftColumn, pos)
             leftOrder = leftOrder + 1
@@ -716,12 +710,14 @@ function UI.createQuickTeleportButtons()
         end
 
         -- === TẠO NÚT SUPPLY ===
+        local supplies = Map.findAllSupplyPiles()
         for i, pos in ipairs(supplies) do
             createBtn("Sup" .. i, "📦 Sup " .. i, Color3.fromRGB(241, 196, 15), rightOrder, RightColumn, pos)
             rightOrder = rightOrder + 1
         end
         
         -- === TẠO NÚT AMMO ===
+        local ammos = Map.findAllAmmo()
         for i, pos in ipairs(ammos) do
             createBtn("Ammo" .. i, "🔫 Ammo " .. i, Color3.fromRGB(230, 126, 34), rightOrder, RightColumn, pos)
             rightOrder = rightOrder + 1
@@ -734,7 +730,21 @@ function UI.createQuickTeleportButtons()
         local containerHeight = maxCount * 24 + 8
         MainContainer.Size = UDim2.new(0, 170, 0, containerHeight)
         MainContainer.Position = UDim2.new(1, -180, 0.5, -containerHeight / 2)
-    end)
+        
+        return #exitDoors, #supplies, #ammos
+    end
+    
+    -- Tạo buttons lần đầu
+    local exitCount, supplyCount, ammoCount = createAllButtons()
+    
+    -- Nếu chưa đủ, preload và tạo lại
+    if exitCount < 3 or supplyCount < 3 or ammoCount < 3 then
+        task.spawn(function()
+            task.wait(1) -- Đợi 1s
+            Map.preloadMapObjects()
+            createAllButtons() -- Tạo lại buttons với đầy đủ vị trí
+        end)
+    end
 
     UI.quickTeleportGui = ScreenGui
     return ScreenGui
