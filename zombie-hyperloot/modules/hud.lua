@@ -8,6 +8,7 @@ local Config = nil
 
 -- HUD Settings
 HUD.customHUDEnabled = false
+HUD.applyToOtherPlayers = false
 HUD.customTitle = "CHEATER"
 HUD.customPlayerName = "WiniFy"
 HUD.customClass = ""
@@ -45,8 +46,9 @@ end
 
 ----------------------------------------------------------
 -- 🔹 Get HUD Elements
-function HUD.getHUDElements()
-    local char = Config.localPlayer.Character
+function HUD.getHUDElements(player)
+    player = player or Config.localPlayer
+    local char = player.Character
     if not char then return nil end
     
     local hrp = char:FindFirstChild("HumanoidRootPart")
@@ -145,13 +147,10 @@ function HUD.backupOriginalValues()
 end
 
 ----------------------------------------------------------
--- 🔹 Apply Custom HUD
-function HUD.applyCustomHUD()
-    local elements = HUD.getHUDElements()
+-- 🔹 Apply Custom HUD to Single Player
+function HUD.applyCustomHUDToPlayer(player)
+    local elements = HUD.getHUDElements(player)
     if not elements then return end
-    
-    -- Backup original values first
-    HUD.backupOriginalValues()
     
     -- Apply Title
     if elements.title then
@@ -288,6 +287,31 @@ function HUD.restoreOriginalHUD()
 end
 
 ----------------------------------------------------------
+-- 🔹 Apply Custom HUD (Local Player)
+function HUD.applyCustomHUD()
+    -- Backup original values first
+    HUD.backupOriginalValues()
+    
+    -- Apply to local player
+    HUD.applyCustomHUDToPlayer(Config.localPlayer)
+    
+    -- Apply to other players if enabled
+    if HUD.applyToOtherPlayers then
+        HUD.applyToAllOtherPlayers()
+    end
+end
+
+----------------------------------------------------------
+-- 🔹 Apply to All Other Players
+function HUD.applyToAllOtherPlayers()
+    for _, player in ipairs(Config.Players:GetPlayers()) do
+        if player ~= Config.localPlayer then
+            HUD.applyCustomHUDToPlayer(player)
+        end
+    end
+end
+
+----------------------------------------------------------
 -- 🔹 Toggle Custom HUD
 function HUD.toggleCustomHUD(enabled)
     HUD.customHUDEnabled = enabled
@@ -296,6 +320,16 @@ function HUD.toggleCustomHUD(enabled)
         HUD.applyCustomHUD()
     else
         HUD.restoreOriginalHUD()
+    end
+end
+
+----------------------------------------------------------
+-- 🔹 Toggle Apply to Other Players
+function HUD.toggleApplyToOtherPlayers(enabled)
+    HUD.applyToOtherPlayers = enabled
+    
+    if enabled and HUD.customHUDEnabled then
+        HUD.applyToAllOtherPlayers()
     end
 end
 

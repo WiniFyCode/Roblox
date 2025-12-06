@@ -13,7 +13,6 @@ local Movement = loadstring(game:HttpGet("https://raw.githubusercontent.com/Wini
 local Map = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/map.lua"))()
 local Farm = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/farm.lua"))()
 local HUD = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/hud.lua"))()
-local Character = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/character.lua"))()
 local UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/ui.lua"))()
 
 -- Initialize Modules
@@ -23,8 +22,7 @@ Movement.init(Config)
 Map.init(Config)
 Farm.init(Config, ESP)
 HUD.init(Config)
-Character.init(Config)
-UI.init(Config, Combat, ESP, Movement, Map, Farm, HUD, Character)
+UI.init(Config, Combat, ESP, Movement, Map, Farm, HUD)
 
 ----------------------------------------------------------
 -- 🔹 Cleanup Function
@@ -82,7 +80,6 @@ local function cleanupScript()
     Movement.cleanup()
     Map.cleanup()
     HUD.cleanup()
-    Character.cleanup()
     UI.cleanup()
 
     -- Khôi phục hitbox
