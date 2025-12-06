@@ -590,12 +590,8 @@ end
 
 ----------------------------------------------------------
 -- 🔹 Quick Teleport Buttons (2 cột: Exit Door | Ammo/Supply)
+-- Load 1 lần khi vào map, chỉ hiện nút có vị trí thật
 UI.quickTeleportGui = nil
-UI.leftColumn = nil
-UI.rightColumn = nil
-UI.createdButtons = {}
-UI.mapConnection = nil
-UI.lastMapChildCount = 0
 
 function UI.createQuickTeleportButtons()
     local ScreenGui = Instance.new("ScreenGui")
@@ -604,7 +600,7 @@ function UI.createQuickTeleportButtons()
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     ScreenGui.Parent = Config.localPlayer:WaitForChild("PlayerGui")
 
-    -- Main container chứa 2 cột (nhỏ gọn hơn)
+    -- Main container chứa 2 cột
     local MainContainer = Instance.new("Frame")
     MainContainer.Name = "MainContainer"
     MainContainer.BackgroundTransparency = 1
@@ -646,161 +642,87 @@ function UI.createQuickTeleportButtons()
     RightPadding.PaddingTop = UDim.new(0, 5)
     RightPadding.Parent = RightColumn
 
-    UI.quickTeleportGui = ScreenGui
-    UI.mainContainer = MainContainer
-    UI.leftColumn = LeftColumn
-    UI.rightColumn = RightColumn
-    
-    -- Tạo buttons lần đầu
-    UI.refreshQuickTeleportButtons()
-    
-    -- Lắng nghe Map thay đổi (khi vào map mới)
-    UI.setupMapWatcher()
-
-    return ScreenGui
-end
-
--- Lắng nghe sự kiện Map thay đổi thay vì poll 15s
-function UI.setupMapWatcher()
-    local map = Config.Workspace:FindFirstChild("Map")
-    if not map then return end
-    
-    -- Lưu số lượng children hiện tại
-    UI.lastMapChildCount = #map:GetChildren()
-    
-    -- Lắng nghe khi có map mới được thêm vào
-    UI.mapConnection = map.ChildAdded:Connect(function(child)
-        if Config.scriptUnloaded then return end
-        -- Đợi map load xong
-        task.wait(1)
-        UI.refreshQuickTeleportButtons()
-    end)
-    
-    -- Lắng nghe khi map bị xóa (kết thúc trận)
-    map.ChildRemoved:Connect(function(child)
-        if Config.scriptUnloaded then return end
-        task.wait(0.5)
-        UI.refreshQuickTeleportButtons()
-    end)
-end
-
-function UI.createTeleportButton(name, text, color, layoutOrder, parent)
-    local button = Instance.new("TextButton")
-    button.Name = name
-    button.Size = UDim2.new(0, 100, 0, 26)
-    button.BackgroundColor3 = color
-    button.BorderSizePixel = 0
-    button.Text = text
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.TextStrokeColor3 = Color3.fromRGB(15, 15, 15)
-    button.TextSize = 12
-    button.Font = Enum.Font.GothamBold
-    button.AutoButtonColor = false
-    button.LayoutOrder = layoutOrder
-    button.Parent = parent
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = button
-    
-    local hoverColor = color:Lerp(Color3.fromRGB(255, 255, 255), 0.35)
-    button.MouseEnter:Connect(function() button.BackgroundColor3 = hoverColor end)
-    button.MouseLeave:Connect(function() button.BackgroundColor3 = color end)
-    
-    return button
-end
-
-function UI.clearAllQuickButtons()
-    for _, button in pairs(UI.createdButtons) do
-        if button and button.Parent then
-            button:Destroy()
-        end
-    end
-    UI.createdButtons = {}
-end
-
-function UI.refreshQuickTeleportButtons()
-    if not UI.leftColumn or not UI.rightColumn then return end
-    
-    UI.clearAllQuickButtons()
-    local leftOrder = 1
-    local rightOrder = 1
-    
-    -- === CỘT TRÁI: Exit Door + Task ===
-    
-    -- Exit Door buttons
-    local exitDoors = Map.findAllExitDoors()
-    for i, doorPos in ipairs(exitDoors) do
-        local btn = UI.createTeleportButton("ExitDoor" .. i, "🚪 Exit " .. i, Color3.fromRGB(155, 89, 182), leftOrder, UI.leftColumn)
-        leftOrder = leftOrder + 1
-        UI.createdButtons["ExitDoor" .. i] = btn
+    -- Helper tạo button
+    local function createBtn(name, text, color, order, parent, position)
+        local btn = Instance.new("TextButton")
+        btn.Name = name
+        btn.Size = UDim2.new(0, 100, 0, 26)
+        btn.BackgroundColor3 = color
+        btn.BorderSizePixel = 0
+        btn.Text = text
+        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        btn.TextSize = 12
+        btn.Font = Enum.Font.GothamBold
+        btn.AutoButtonColor = false
+        btn.LayoutOrder = order
+        btn.Parent = parent
+        
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 6)
+        corner.Parent = btn
+        
+        local hoverColor = color:Lerp(Color3.fromRGB(255, 255, 255), 0.35)
+        btn.MouseEnter:Connect(function() btn.BackgroundColor3 = hoverColor end)
+        btn.MouseLeave:Connect(function() btn.BackgroundColor3 = color end)
+        
+        -- Lưu vị trí vào button
+        btn:SetAttribute("TargetX", position.X)
+        btn:SetAttribute("TargetY", position.Y)
+        btn:SetAttribute("TargetZ", position.Z)
         
         btn.MouseButton1Click:Connect(function()
-            local allDoors = Map.findAllExitDoors()
-            if allDoors[i] then
-                Map.teleportToPosition(allDoors[i])
-            end
-        end)
-    end
-    
-    -- Task button (cột trái)
-    local taskPos = Map.findTaskPosition()
-    if taskPos then
-        local btn = UI.createTeleportButton("Task", "📍 Task", Color3.fromRGB(52, 152, 219), leftOrder, UI.leftColumn)
-        leftOrder = leftOrder + 1
-        UI.createdButtons["Task"] = btn
-        
-        btn.MouseButton1Click:Connect(function()
-            local pos = Map.findTaskPosition()
+            local pos = Vector3.new(
+                btn:GetAttribute("TargetX"),
+                btn:GetAttribute("TargetY"),
+                btn:GetAttribute("TargetZ")
+            )
             Map.teleportToPosition(pos)
         end)
+        
+        return btn
+    end
+
+    local leftOrder = 1
+    local rightOrder = 1
+
+    -- === TÌM VÀ TẠO NÚT EXIT DOOR ===
+    local exitDoors = Map.findAllExitDoors()
+    for i, pos in ipairs(exitDoors) do
+        createBtn("Exit" .. i, "🚪 Exit " .. i, Color3.fromRGB(155, 89, 182), leftOrder, LeftColumn, pos)
+        leftOrder = leftOrder + 1
     end
     
-    -- === CỘT PHẢI: Supply + Ammo ===
-    
-    -- Supply buttons
+    -- === TÌM VÀ TẠO NÚT TASK ===
+    local taskPos = Map.findTaskPosition()
+    if taskPos then
+        createBtn("Task", "📍 Task", Color3.fromRGB(52, 152, 219), leftOrder, LeftColumn, taskPos)
+        leftOrder = leftOrder + 1
+    end
+
+    -- === TÌM VÀ TẠO NÚT SUPPLY ===
     local supplies = Map.findAllSupplyPiles()
-    for i, supplyPos in ipairs(supplies) do
-        local btn = UI.createTeleportButton("Supply" .. i, "📦 Sup " .. i, Color3.fromRGB(241, 196, 15), rightOrder, UI.rightColumn)
+    for i, pos in ipairs(supplies) do
+        createBtn("Sup" .. i, "📦 Sup " .. i, Color3.fromRGB(241, 196, 15), rightOrder, RightColumn, pos)
         rightOrder = rightOrder + 1
-        UI.createdButtons["Supply" .. i] = btn
-        
-        btn.MouseButton1Click:Connect(function()
-            local allSupplies = Map.findAllSupplyPiles()
-            if allSupplies[i] then
-                Map.teleportToPosition(allSupplies[i])
-            end
-        end)
     end
     
-    -- Ammo buttons
+    -- === TÌM VÀ TẠO NÚT AMMO ===
     local ammos = Map.findAllAmmo()
-    for i, ammoPos in ipairs(ammos) do
-        local btn = UI.createTeleportButton("Ammo" .. i, "🔫 Ammo " .. i, Color3.fromRGB(230, 126, 34), rightOrder, UI.rightColumn)
+    for i, pos in ipairs(ammos) do
+        createBtn("Ammo" .. i, "🔫 Ammo " .. i, Color3.fromRGB(230, 126, 34), rightOrder, RightColumn, pos)
         rightOrder = rightOrder + 1
-        UI.createdButtons["Ammo" .. i] = btn
-        
-        btn.MouseButton1Click:Connect(function()
-            local allAmmos = Map.findAllAmmo()
-            if allAmmos[i] then
-                Map.teleportToPosition(allAmmos[i])
-            end
-        end)
     end
-    
-    -- Cập nhật kích thước container dựa trên cột cao nhất
+
+    -- Cập nhật kích thước container
     local leftCount = leftOrder - 1
     local rightCount = rightOrder - 1
-    local maxCount = math.max(leftCount, rightCount)
-    
-    if maxCount > 0 then
-        local containerHeight = maxCount * 30 + 15
-        UI.mainContainer.Size = UDim2.new(0, 230, 0, containerHeight)
-        UI.mainContainer.Position = UDim2.new(1, -245, 0.5, -containerHeight / 2)
-        UI.mainContainer.Visible = true
-    else
-        UI.mainContainer.Visible = false
-    end
+    local maxCount = math.max(leftCount, rightCount, 1)
+    local containerHeight = maxCount * 30 + 15
+    MainContainer.Size = UDim2.new(0, 230, 0, containerHeight)
+    MainContainer.Position = UDim2.new(1, -245, 0.5, -containerHeight / 2)
+
+    UI.quickTeleportGui = ScreenGui
+    return ScreenGui
 end
 
 ----------------------------------------------------------
@@ -823,20 +745,10 @@ function UI.cleanup()
         pcall(function() UI.Window:Destroy() end)
     end
     
-    -- Disconnect map watcher
-    if UI.mapConnection then
-        pcall(function() UI.mapConnection:Disconnect() end)
-        UI.mapConnection = nil
-    end
-    
     -- Xóa quick teleport buttons
-    UI.clearAllQuickButtons()
     if UI.quickTeleportGui then
         pcall(function() UI.quickTeleportGui:Destroy() end)
         UI.quickTeleportGui = nil
-        UI.mainContainer = nil
-        UI.leftColumn = nil
-        UI.rightColumn = nil
     end
     
     local playerGui = Config.localPlayer:FindFirstChild("PlayerGui")
