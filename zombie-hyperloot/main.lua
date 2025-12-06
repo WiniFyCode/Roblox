@@ -423,7 +423,6 @@ end)
 UI.loadLibraries()
 UI.createWindow()
 UI.buildAllTabs(cleanupScript)
-UI.createQuickTeleportButtons()
 
 print("[ZombieHyperloot] Script loaded successfully!")
 print("[ZombieHyperloot] Press Right Shift to open menu")
