@@ -324,12 +324,49 @@ function HUD.toggleCustomHUD(enabled)
 end
 
 ----------------------------------------------------------
+-- 🔹 Restore HUD for Other Players
+function HUD.restoreAllOtherPlayers()
+    for _, player in ipairs(Config.Players:GetPlayers()) do
+        if player ~= Config.localPlayer then
+            HUD.restoreHUDForPlayer(player)
+        end
+    end
+end
+
+function HUD.restoreHUDForPlayer(player)
+    local elements = HUD.getHUDElements(player)
+    if not elements then return end
+    
+    -- Restore về tên gốc của player
+    if elements.playerName then
+        elements.playerName.Text = player.Name
+        elements.playerName.Visible = true
+    end
+    
+    -- Restore các elements khác về visible
+    if elements.title then
+        elements.title.Visible = true
+    end
+    
+    if elements.class then
+        elements.class.Visible = true
+    end
+    
+    if elements.level then
+        elements.level.Visible = true
+    end
+end
+
+----------------------------------------------------------
 -- 🔹 Toggle Apply to Other Players
 function HUD.toggleApplyToOtherPlayers(enabled)
     HUD.applyToOtherPlayers = enabled
     
     if enabled and HUD.customHUDEnabled then
         HUD.applyToAllOtherPlayers()
+    else
+        -- Restore lại HUD cho tất cả players khác
+        HUD.restoreAllOtherPlayers()
     end
 end
 
@@ -503,6 +540,8 @@ function HUD.cleanup()
     HUD.applyLobbyPlayerInfoVisibility()
     -- Stop exp display
     HUD.stopExpDisplay()
+    -- Restore all other players
+    HUD.restoreAllOtherPlayers()
 end
 
 return HUD

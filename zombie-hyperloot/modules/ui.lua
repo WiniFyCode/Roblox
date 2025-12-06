@@ -652,16 +652,6 @@ function UI.createHUDTab()
         end
     })
 
-    HUDTab:AddButton({
-        Title = "Apply to All Players Now",
-        Description = "Áp dụng ngay cho tất cả players hiện tại",
-        Callback = function()
-            if HUD.customHUDEnabled then
-                HUD.applyToAllOtherPlayers()
-            end
-        end
-    })
-
     HUDTab:AddSection("Visibility Settings")
 
     HUDTab:AddToggle("TitleVisible", {
