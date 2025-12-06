@@ -125,11 +125,38 @@ function UI.createCombatTab()
         Callback = function(Value) Config.trigerSkillDupeEnabled = Value end
     })
 
+    CombatTab:AddToggle("TrigerSkillAutoDupeEnabled", {
+        Title = "Auto Dupe Until Death",
+        Description = "Khi bắn trúng zombie, tự động dupe liên tục cho đến khi chết",
+        Default = Config.trigerSkillAutoDupeEnabled,
+        Callback = function(Value)
+            Config.trigerSkillAutoDupeEnabled = Value
+            print("[ZombieHyperloot] Auto-dupe:", Value and "BẬT" or "TẮT")
+        end
+    })
+
     CombatTab:AddSlider("TrigerSkillDupeCount", {
-        Title = "Dupe Count",
+        Title = "Dupe Count Per Burst",
+        Description = "Số gói dupe mỗi lần gửi",
         Default = Config.trigerSkillDupeCount,
         Min = 1, Max = 20, Rounding = 0,
         Callback = function(Value) Config.trigerSkillDupeCount = Value end
+    })
+
+    CombatTab:AddSlider("TrigerSkillAutoDupeDelay", {
+        Title = "Auto Dupe Delay",
+        Description = "Delay giữa các lần dupe (giây)",
+        Default = Config.trigerSkillAutoDupeDelay,
+        Min = 0.01, Max = 1, Rounding = 2,
+        Callback = function(Value) Config.trigerSkillAutoDupeDelay = Value end
+    })
+
+    CombatTab:AddSlider("TrigerSkillAutoDupeMaxDuration", {
+        Title = "Auto Dupe Max Duration",
+        Description = "Thời gian tối đa dupe cho 1 zombie (giây)",
+        Default = Config.trigerSkillAutoDupeMaxDuration,
+        Min = 5, Max = 30, Rounding = 0,
+        Callback = function(Value) Config.trigerSkillAutoDupeMaxDuration = Value end
     })
 
     CombatTab:AddSection("Auto Skill")
