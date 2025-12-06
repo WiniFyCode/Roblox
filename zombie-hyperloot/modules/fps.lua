@@ -221,51 +221,63 @@ end
 function FPS.removeWeaponEffects()
     if FPS.weaponEffectsConnection then return end
     
-    -- Xóa effects hiện tại trong character
-    local function cleanCharacterEffects(character)
-        if not character then return end
+    -- Xóa effects trong character và workspace
+    local function cleanEffects()
+        if not FPS.removeWeaponEffectsEnabled then return end
         
-        for _, obj in ipairs(character:GetDescendants()) do
-            if obj:IsA("ParticleEmitter") or 
-               obj:IsA("Trail") or 
-               obj:IsA("Beam") or 
-               obj:IsA("PointLight") or 
-               obj:IsA("SpotLight") then
-                
+        local character = Config.localPlayer.Character
+        
+        -- Clean character effects
+        if character then
+            for _, obj in ipairs(character:GetDescendants()) do
                 if obj:IsA("ParticleEmitter") then
                     obj.Enabled = false
-                else
+                elseif obj:IsA("Trail") or 
+                       obj:IsA("Beam") or 
+                       obj:IsA("PointLight") or 
+                       obj:IsA("SpotLight") or
+                       obj:IsA("Fire") or
+                       obj:IsA("Smoke") then
                     pcall(function() obj:Destroy() end)
+                end
+            end
+        end
+        
+        -- Clean workspace weapon effects (muzzle flash, bullet trails)
+        for _, obj in ipairs(Config.Workspace:GetChildren()) do
+            local name = obj.Name:lower()
+            
+            -- Detect weapon effects by name
+            if name:find("muzzle") or 
+               name:find("flash") or 
+               name:find("effect") or
+               name:find("trail") or
+               name:find("beam") then
+                
+                -- Xóa hoặc disable effects
+                for _, child in ipairs(obj:GetDescendants()) do
+                    if child:IsA("ParticleEmitter") then
+                        child.Enabled = false
+                    elseif child:IsA("Trail") or 
+                           child:IsA("Beam") or 
+                           child:IsA("PointLight") or
+                           child:IsA("Fire") then
+                        pcall(function() child:Destroy() end)
+                    end
                 end
             end
         end
     end
     
-    -- Clean character hiện tại
-    cleanCharacterEffects(Config.localPlayer.Character)
+    -- Clean ngay lập tức
+    cleanEffects()
     
-    -- Monitor và xóa effects mới
+    -- Monitor liên tục (chạy mỗi frame)
     FPS.weaponEffectsConnection = Config.RunService.Heartbeat:Connect(function()
-        if not FPS.removeWeaponEffectsEnabled then return end
-        
-        local character = Config.localPlayer.Character
-        if not character then return end
-        
-        -- Xóa effects trong tools/weapons
-        for _, tool in ipairs(character:GetChildren()) do
-            if tool:IsA("Tool") then
-                for _, obj in ipairs(tool:GetDescendants()) do
-                    if obj:IsA("ParticleEmitter") then
-                        obj.Enabled = false
-                    elseif obj:IsA("Trail") or obj:IsA("Beam") then
-                        pcall(function() obj:Destroy() end)
-                    end
-                end
-            end
-        end
+        cleanEffects()
     end)
     
-    print("[FPS Booster] Weapon effects removal enabled")
+    print("[FPS Booster] Weapon effects removal enabled (monitoring every frame)")
 end
 
 function FPS.stopRemoveWeaponEffects()
