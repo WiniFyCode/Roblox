@@ -176,55 +176,20 @@ function Map.createSupplyUI()
     Map.supplyScreenGui.ResetOnSpawn = false
     Map.supplyScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     
-    -- Tạo Frame chứa
+    -- Tạo Frame chứa (không có title, không scroll)
     Map.supplyFrame = Instance.new("Frame")
     Map.supplyFrame.Name = "SupplyFrame"
-    Map.supplyFrame.Size = UDim2.new(0, 250, 0, 400)
-    Map.supplyFrame.Position = UDim2.new(0, 10, 0.5, -200) -- Bên trái giữa màn hình
-    Map.supplyFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    Map.supplyFrame.BackgroundTransparency = 0.3
-    Map.supplyFrame.BorderSizePixel = 2
-    Map.supplyFrame.BorderColor3 = Color3.fromRGB(255, 255, 0)
+    Map.supplyFrame.Size = UDim2.new(0, 200, 0, 100) -- Sẽ tự động resize theo số lượng
+    Map.supplyFrame.Position = UDim2.new(0, 10, 0.5, -50) -- Bên trái giữa màn hình
+    Map.supplyFrame.BackgroundTransparency = 1 -- Trong suốt hoàn toàn
+    Map.supplyFrame.BorderSizePixel = 0
     Map.supplyFrame.Parent = Map.supplyScreenGui
     
-    -- Corner
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = Map.supplyFrame
-    
-    -- Title
-    local title = Instance.new("TextLabel")
-    title.Name = "Title"
-    title.Size = UDim2.new(1, 0, 0, 30)
-    title.Position = UDim2.new(0, 0, 0, 0)
-    title.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
-    title.BackgroundTransparency = 0.2
-    title.BorderSizePixel = 0
-    title.Text = "=== SUPPLIES ==="
-    title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    title.TextSize = 16
-    title.Font = Enum.Font.SourceSansBold
-    title.Parent = Map.supplyFrame
-    
-    local titleCorner = Instance.new("UICorner")
-    titleCorner.CornerRadius = UDim.new(0, 8)
-    titleCorner.Parent = title
-    
-    -- ScrollingFrame cho danh sách supplies
-    local scrollFrame = Instance.new("ScrollingFrame")
-    scrollFrame.Name = "ScrollFrame"
-    scrollFrame.Size = UDim2.new(1, -10, 1, -40)
-    scrollFrame.Position = UDim2.new(0, 5, 0, 35)
-    scrollFrame.BackgroundTransparency = 1
-    scrollFrame.BorderSizePixel = 0
-    scrollFrame.ScrollBarThickness = 6
-    scrollFrame.Parent = Map.supplyFrame
-    
-    -- UIListLayout
+    -- UIListLayout để tự động sắp xếp buttons
     local listLayout = Instance.new("UIListLayout")
     listLayout.SortOrder = Enum.SortOrder.LayoutOrder
     listLayout.Padding = UDim.new(0, 5)
-    listLayout.Parent = scrollFrame
+    listLayout.Parent = Map.supplyFrame
     
     Map.supplyScreenGui.Parent = game:GetService("CoreGui")
     
@@ -235,9 +200,6 @@ function Map.updateSupplyDisplay()
     if not Map.supplyScreenGui or not Map.supplyFrame then
         Map.createSupplyUI()
     end
-    
-    local scrollFrame = Map.supplyFrame:FindFirstChild("ScrollFrame")
-    if not scrollFrame then return end
     
     -- Xóa buttons cũ
     for _, button in ipairs(Map.supplyButtons) do
@@ -251,24 +213,18 @@ function Map.updateSupplyDisplay()
     Map.supplyItems = Map.findAllSupplies()
     
     if #Map.supplyItems == 0 then
-        -- Hiển thị thông báo không có supply
-        local noSupplyLabel = Instance.new("TextLabel")
-        noSupplyLabel.Size = UDim2.new(1, 0, 0, 30)
-        noSupplyLabel.BackgroundTransparency = 1
-        noSupplyLabel.Text = "No supplies found"
-        noSupplyLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-        noSupplyLabel.TextSize = 14
-        noSupplyLabel.Font = Enum.Font.SourceSans
-        noSupplyLabel.Parent = scrollFrame
-        table.insert(Map.supplyButtons, noSupplyLabel)
+        -- Ẩn frame nếu không có supply
+        Map.supplyFrame.Visible = false
         return
     end
+    
+    Map.supplyFrame.Visible = true
     
     -- Tạo button cho mỗi supply
     for i, supply in ipairs(Map.supplyItems) do
         local button = Instance.new("TextButton")
         button.Name = "Supply_" .. i
-        button.Size = UDim2.new(1, -10, 0, 35)
+        button.Size = UDim2.new(0, 200, 0, 35)
         button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
         button.BackgroundTransparency = 0.2
         button.BorderSizePixel = 1
@@ -277,7 +233,7 @@ function Map.updateSupplyDisplay()
         button.TextSize = 14
         button.TextColor3 = Color3.fromRGB(255, 255, 255)
         button.TextXAlignment = Enum.TextXAlignment.Left
-        button.Parent = scrollFrame
+        button.Parent = Map.supplyFrame
         
         local buttonCorner = Instance.new("UICorner")
         buttonCorner.CornerRadius = UDim.new(0, 6)
@@ -305,8 +261,10 @@ function Map.updateSupplyDisplay()
         table.insert(Map.supplyButtons, button)
     end
     
-    -- Update canvas size
-    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, #Map.supplyItems * 40)
+    -- Tự động resize frame theo số lượng buttons
+    local totalHeight = #Map.supplyItems * 35 + (#Map.supplyItems - 1) * 5 -- 35px mỗi button + 5px padding
+    Map.supplyFrame.Size = UDim2.new(0, 200, 0, totalHeight)
+    Map.supplyFrame.Position = UDim2.new(0, 10, 0.5, -totalHeight / 2) -- Center vertically
 end
 
 function Map.updateSupplyDistances()
