@@ -500,6 +500,16 @@ function UI.createMapTab()
         end
     })
 
+    MapTab:AddDropdown("SupplyESPPosition", {
+        Title = "Supply Position",
+        Values = {"Left", "Right"},
+        Default = Config.supplyESPPosition,
+        Callback = function(Value)
+            Config.supplyESPPosition = Value
+            Map.updateSupplyPosition()
+        end
+    })
+
     MapTab:AddButton({
         Title = "Refresh Supply List",
         Description = "Tìm lại tất cả Supply items ngay lập tức",

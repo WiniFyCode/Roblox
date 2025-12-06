@@ -144,6 +144,7 @@ Config.autoReplayEnabled = false
 ----------------------------------------------------------
 -- 🔹 Supply ESP
 Config.supplyESPEnabled = true
+Config.supplyESPPosition = "Left" -- "Left" hoặc "Right"
 
 ----------------------------------------------------------
 -- 🔹 Connection Storage (để cleanup)

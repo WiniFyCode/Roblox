@@ -180,7 +180,6 @@ function Map.createSupplyUI()
     Map.supplyFrame = Instance.new("Frame")
     Map.supplyFrame.Name = "SupplyFrame"
     Map.supplyFrame.Size = UDim2.new(0, 200, 0, 100) -- Sẽ tự động resize theo số lượng
-    Map.supplyFrame.Position = UDim2.new(0, 10, 0.5, -50) -- Bên trái giữa màn hình
     Map.supplyFrame.BackgroundTransparency = 1 -- Trong suốt hoàn toàn
     Map.supplyFrame.BorderSizePixel = 0
     Map.supplyFrame.Parent = Map.supplyScreenGui
@@ -193,7 +192,24 @@ function Map.createSupplyUI()
     
     Map.supplyScreenGui.Parent = game:GetService("CoreGui")
     
+    -- Set vị trí ban đầu
+    Map.updateSupplyPosition()
+    
     return true
+end
+
+function Map.updateSupplyPosition()
+    if not Map.supplyFrame then return end
+    
+    local totalHeight = Map.supplyFrame.Size.Y.Offset
+    
+    if Config.supplyESPPosition == "Right" then
+        -- Bên phải màn hình
+        Map.supplyFrame.Position = UDim2.new(1, -210, 0.5, -totalHeight / 2)
+    else
+        -- Bên trái màn hình (mặc định)
+        Map.supplyFrame.Position = UDim2.new(0, 10, 0.5, -totalHeight / 2)
+    end
 end
 
 function Map.updateSupplyDisplay()
@@ -264,7 +280,9 @@ function Map.updateSupplyDisplay()
     -- Tự động resize frame theo số lượng buttons
     local totalHeight = #Map.supplyItems * 35 + (#Map.supplyItems - 1) * 5 -- 35px mỗi button + 5px padding
     Map.supplyFrame.Size = UDim2.new(0, 200, 0, totalHeight)
-    Map.supplyFrame.Position = UDim2.new(0, 10, 0.5, -totalHeight / 2) -- Center vertically
+    
+    -- Update vị trí theo config
+    Map.updateSupplyPosition()
 end
 
 function Map.updateSupplyDistances()
