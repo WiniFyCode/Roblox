@@ -524,6 +524,7 @@ function UI.createInfoTab()
             T Key - Auto Open All Chests  
             X Key - Camera Teleport to Zombies
             M Key - Toggle Anti-Zombie
+            N Key - Toggle Noclip Cam
             Right Shift - Open/Close Menu
         ]]
     })
@@ -533,9 +534,31 @@ function UI.createInfoTab()
         Content = [[
             • Combine Aimbot + Hitbox for maximum efficiency
             • Use ESP to track zombies through walls
+            • ESP Player shows enemies through walls with boxes
             • Anti-Zombie keeps you safe from attacks
             • Auto Skill provides continuous damage
             • Camera Teleport is great for farming
+            • Auto Chest collects all loot instantly
+            • Aimbot targets both zombies and players
+        ]]
+    })
+
+    InfoTab:AddParagraph({
+        Title = "Cleanup",
+        Content = [[
+            • End key - Unload script & cleanup everything
+            • Right Shift - Toggle menu
+            • Camera Teleport (X) tự tắt aimbot, tự bật lại khi kết thúc
+        ]]
+    })
+
+    InfoTab:AddParagraph({
+        Title = "Important",
+        Content = [[
+            • Some features may not work in all games
+            • Use responsibly to avoid detection
+            • Adjust settings based on your playstyle
+            • Disable features if experiencing lag
         ]]
     })
 

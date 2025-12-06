@@ -186,7 +186,7 @@ function Movement.toggleNoclipCam()
     local sc = (debug and debug.setconstant) or setconstant
     local gc = (debug and debug.getconstants) or getconstants
     if not sc or not getgc or not gc then
-        warn("Exploit không hỗ trợ Noclip Cam")
+        warn("Exploit không hỗ trợ Noclip Cam (thiếu setconstant hoặc getconstants)")
         return false
     end
     
@@ -213,12 +213,14 @@ end
 function Movement.applyNoclipCam()
     if Config.noclipCamEnabled then
         local success = Movement.toggleNoclipCam()
-        if not success then
+        if success then
+            -- Success, noclip cam is now enabled
+        else
             warn("Noclip Cam: FAILED - Exploit không tương thích")
             Config.noclipCamEnabled = false
         end
     else
-        Movement.toggleNoclipCam()
+        Movement.toggleNoclipCam() -- Toggles back to normal
     end
 end
 
