@@ -113,6 +113,49 @@ function Map.startAutoReplayLoop()
 end
 
 ----------------------------------------------------------
+-- 🔹 Pre-load Map Objects (di chuyển để load Exit Door, Supply, Ammo)
+function Map.preloadMapObjects()
+    local char = Config.localPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return {}, {}, {} end
+    
+    local originalPos = hrp.Position
+    local map = Config.Workspace:FindFirstChild("Map")
+    if not map then return {}, {}, {} end
+    
+    -- Tìm tất cả EItem positions để visit
+    local visitPositions = {}
+    for _, mapChild in ipairs(map:GetChildren()) do
+        local eItem = mapChild:FindFirstChild("EItem")
+        if eItem then
+            -- Lấy vị trí trung tâm của EItem
+            local ok, cf = pcall(function() return eItem:GetBoundingBox() end)
+            if ok and cf then
+                table.insert(visitPositions, cf.Position)
+            end
+        end
+    end
+    
+    -- Di chuyển đến từng vị trí để load objects
+    for _, pos in ipairs(visitPositions) do
+        if Config.scriptUnloaded then break end
+        hrp.CFrame = CFrame.new(pos + Vector3.new(0, 10, 0))
+        task.wait(0.3) -- Đợi game load
+    end
+    
+    -- Quay về vị trí ban đầu
+    hrp.CFrame = CFrame.new(originalPos)
+    task.wait(0.2)
+    
+    -- Bây giờ tìm lại tất cả objects
+    local exitDoors = Map.findAllExitDoors()
+    local supplies = Map.findAllSupplyPiles()
+    local ammos = Map.findAllAmmo()
+    
+    return exitDoors, supplies, ammos
+end
+
+----------------------------------------------------------
 -- 🔹 Quick Teleport Helpers
 function Map.findTaskPosition()
     local map = Config.Workspace:FindFirstChild("Map")

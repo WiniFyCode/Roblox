@@ -590,11 +590,8 @@ end
 
 ----------------------------------------------------------
 -- 🔹 Quick Teleport Buttons (2 cột: Exit Door | Ammo/Supply)
--- Load 1 lần khi vào map, tự động cập nhật khi có item mới
+-- Load 1 lần khi vào map, chỉ hiện nút có vị trí thật
 UI.quickTeleportGui = nil
-UI.mapWatcherConnection = nil
-UI.supplyButtons = {}
-UI.ammoButtons = {}
 
 function UI.createQuickTeleportButtons()
     local ScreenGui = Instance.new("ScreenGui")
@@ -688,79 +685,56 @@ function UI.createQuickTeleportButtons()
     local leftOrder = 1
     local rightOrder = 1
 
-    -- === TÌM VÀ TẠO NÚT EXIT DOOR ===
-    local exitDoors = Map.findAllExitDoors()
-    for i, pos in ipairs(exitDoors) do
-        createBtn("Exit" .. i, "🚪 Exit " .. i, Color3.fromRGB(155, 89, 182), leftOrder, LeftColumn, pos)
-        leftOrder = leftOrder + 1
-    end
-    
-    -- === TÌM VÀ TẠO NÚT TASK ===
-    local taskPos = Map.findTaskPosition()
-    if taskPos then
-        createBtn("Task", "📍 Task", Color3.fromRGB(52, 152, 219), leftOrder, LeftColumn, taskPos)
-        leftOrder = leftOrder + 1
-    end
+    -- Hiển thị loading message
+    local loadingText = Instance.new("TextLabel")
+    loadingText.Size = UDim2.new(1, 0, 1, 0)
+    loadingText.BackgroundTransparency = 1
+    loadingText.Text = "Loading map...\nPlease wait"
+    loadingText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    loadingText.TextSize = 14
+    loadingText.Font = Enum.Font.GothamBold
+    loadingText.Parent = MainContainer
 
-    -- === TÌM VÀ TẠO NÚT SUPPLY ===
-    local supplies = Map.findAllSupplyPiles()
-    for i, pos in ipairs(supplies) do
-        local btn = createBtn("Sup" .. i, "📦 Sup " .. i, Color3.fromRGB(241, 196, 15), rightOrder, RightColumn, pos)
-        UI.supplyButtons[i] = btn
-        rightOrder = rightOrder + 1
-    end
-    
-    -- === TÌM VÀ TẠO NÚT AMMO ===
-    local ammos = Map.findAllAmmo()
-    for i, pos in ipairs(ammos) do
-        local btn = createBtn("Ammo" .. i, "🔫 Ammo " .. i, Color3.fromRGB(230, 126, 34), rightOrder, RightColumn, pos)
-        UI.ammoButtons[i] = btn
-        rightOrder = rightOrder + 1
-    end
-
-    -- Hàm cập nhật vị trí Supply/Ammo
-    local function updateSupplyAmmoPositions()
-        -- Update Supply
-        local newSupplies = Map.findAllSupplyPiles()
-        for i, btn in pairs(UI.supplyButtons) do
-            if newSupplies[i] then
-                btn:SetAttribute("TargetX", newSupplies[i].X)
-                btn:SetAttribute("TargetY", newSupplies[i].Y)
-                btn:SetAttribute("TargetZ", newSupplies[i].Z)
-            end
+    -- Pre-load map objects (di chuyển để load)
+    task.spawn(function()
+        local exitDoors, supplies, ammos = Map.preloadMapObjects()
+        
+        -- Xóa loading text
+        loadingText:Destroy()
+        
+        -- === TẠO NÚT EXIT DOOR ===
+        for i, pos in ipairs(exitDoors) do
+            createBtn("Exit" .. i, "🚪 Exit " .. i, Color3.fromRGB(155, 89, 182), leftOrder, LeftColumn, pos)
+            leftOrder = leftOrder + 1
         end
         
-        -- Update Ammo
-        local newAmmos = Map.findAllAmmo()
-        for i, btn in pairs(UI.ammoButtons) do
-            if newAmmos[i] then
-                btn:SetAttribute("TargetX", newAmmos[i].X)
-                btn:SetAttribute("TargetY", newAmmos[i].Y)
-                btn:SetAttribute("TargetZ", newAmmos[i].Z)
-            end
+        -- === TẠO NÚT TASK ===
+        local taskPos = Map.findTaskPosition()
+        if taskPos then
+            createBtn("Task", "📍 Task", Color3.fromRGB(52, 152, 219), leftOrder, LeftColumn, taskPos)
+            leftOrder = leftOrder + 1
         end
-    end
 
-    -- Lắng nghe Map thay đổi để cập nhật vị trí
-    local map = Config.Workspace:FindFirstChild("Map")
-    if map then
-        UI.mapWatcherConnection = map.DescendantAdded:Connect(function(descendant)
-            if Config.scriptUnloaded then return end
-            -- Chỉ cập nhật khi có Ammo hoặc Supply spawn
-            if descendant.Name == "Ammo" or tonumber(descendant.Name) then
-                task.wait(0.5) -- Đợi object load xong
-                updateSupplyAmmoPositions()
-            end
-        end)
-    end
-
-    -- Cập nhật kích thước container
-    local leftCount = leftOrder - 1
-    local rightCount = rightOrder - 1
-    local maxCount = math.max(leftCount, rightCount, 1)
-    local containerHeight = maxCount * 24 + 8
-    MainContainer.Size = UDim2.new(0, 170, 0, containerHeight)
-    MainContainer.Position = UDim2.new(1, -180, 0.5, -containerHeight / 2)
+        -- === TẠO NÚT SUPPLY ===
+        for i, pos in ipairs(supplies) do
+            createBtn("Sup" .. i, "📦 Sup " .. i, Color3.fromRGB(241, 196, 15), rightOrder, RightColumn, pos)
+            rightOrder = rightOrder + 1
+        end
+        
+        -- === TẠO NÚT AMMO ===
+        for i, pos in ipairs(ammos) do
+            createBtn("Ammo" .. i, "🔫 Ammo " .. i, Color3.fromRGB(230, 126, 34), rightOrder, RightColumn, pos)
+            rightOrder = rightOrder + 1
+        end
+        
+        -- Cập nhật kích thước container
+        local leftCount = leftOrder - 1
+        local rightCount = rightOrder - 1
+        local maxCount = math.max(leftCount, rightCount, 1)
+        local containerHeight = maxCount * 24 + 8
+        MainContainer.Size = UDim2.new(0, 170, 0, containerHeight)
+        MainContainer.Position = UDim2.new(1, -180, 0.5, -containerHeight / 2)
+    end)
 
     UI.quickTeleportGui = ScreenGui
     return ScreenGui
@@ -785,16 +759,6 @@ function UI.cleanup()
     if UI.Window and UI.Window.Destroy then
         pcall(function() UI.Window:Destroy() end)
     end
-    
-    -- Disconnect map watcher
-    if UI.mapWatcherConnection then
-        pcall(function() UI.mapWatcherConnection:Disconnect() end)
-        UI.mapWatcherConnection = nil
-    end
-    
-    -- Clear button references
-    UI.supplyButtons = {}
-    UI.ammoButtons = {}
     
     -- Xóa quick teleport buttons
     if UI.quickTeleportGui then
