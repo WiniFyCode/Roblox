@@ -92,19 +92,13 @@ function Movement.applyAntiZombie()
 end
 
 ----------------------------------------------------------
--- 🔹 NoClip (riêng biệt với Anti-Zombie)
-Movement.noClipOnlyConnection = nil
-
+-- 🔹 NoClip
 function Movement.enableNoClip()
-    -- Disconnect cũ nếu có
-    if Movement.noClipOnlyConnection then
-        Movement.noClipOnlyConnection:Disconnect()
-        Movement.noClipOnlyConnection = nil
-    end
+    if Movement.noClipConnection then return end
     
-    Movement.noClipOnlyConnection = Config.RunService.Stepped:Connect(function()
+    Movement.noClipConnection = Config.RunService.Stepped:Connect(function()
         local char = Config.localPlayer.Character
-        if char then
+        if char and Config.noClipEnabled then
             for _, descendant in ipairs(char:GetDescendants()) do
                 if descendant:IsA("BasePart") then
                     descendant.CanCollide = false
@@ -115,13 +109,10 @@ function Movement.enableNoClip()
 end
 
 function Movement.disableNoClip()
-    if Movement.noClipOnlyConnection then
-        Movement.noClipOnlyConnection:Disconnect()
-        Movement.noClipOnlyConnection = nil
-    end
-    
-    -- Chỉ restore collision nếu Anti-Zombie không bật
-    if not Config.antiZombieEnabled then
+    if Movement.noClipConnection then
+        Movement.noClipConnection:Disconnect()
+        Movement.noClipConnection = nil
+        
         local char = Config.localPlayer.Character
         if char then
             for _, descendant in ipairs(char:GetDescendants()) do
@@ -130,8 +121,8 @@ function Movement.disableNoClip()
                 end
             end
         end
-        restoreOriginalCollisions()
     end
+    restoreOriginalCollisions()
 end
 
 function Movement.applyNoClip()
@@ -191,7 +182,7 @@ end
 
 ----------------------------------------------------------
 -- 🔹 Noclip Cam
-function Movement.toggleNoclipCam()
+function Movement.setNoclipCam(enabled)
     local sc = (debug and debug.setconstant) or setconstant
     local gc = (debug and debug.getconstants) or getconstants
     if not sc or not getgc or not gc then
@@ -202,14 +193,16 @@ function Movement.toggleNoclipCam()
     local success = false
     local pop = Config.localPlayer:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule"):WaitForChild("CameraModule"):WaitForChild("ZoomController"):WaitForChild("Popper")
     
+    -- enabled = true → set 0 (noclip cam bật)
+    -- enabled = false → set 0.25 (noclip cam tắt, camera bình thường)
+    local targetValue = enabled and 0 or 0.25
+    
     for _, v in pairs(getgc()) do
         if type(v) == 'function' and getfenv(v).script == pop then
             for i, v1 in pairs(gc(v)) do
-                if tonumber(v1) == 0.25 then
-                    sc(v, i, 0)
-                    success = true
-                elseif tonumber(v1) == 0 then
-                    sc(v, i, 0.25)
+                local numVal = tonumber(v1)
+                if numVal == 0 or numVal == 0.25 then
+                    sc(v, i, targetValue)
                     success = true
                 end
             end
@@ -220,16 +213,10 @@ function Movement.toggleNoclipCam()
 end
 
 function Movement.applyNoclipCam()
-    if Config.noclipCamEnabled then
-        local success = Movement.toggleNoclipCam()
-        if success then
-            -- Success, noclip cam is now enabled
-        else
-            warn("Noclip Cam: FAILED - Exploit không tương thích")
-            Config.noclipCamEnabled = false
-        end
-    else
-        Movement.toggleNoclipCam() -- Toggles back to normal
+    local success = Movement.setNoclipCam(Config.noclipCamEnabled)
+    if not success and Config.noclipCamEnabled then
+        warn("Noclip Cam: FAILED - Exploit không tương thích")
+        Config.noclipCamEnabled = false
     end
 end
 
@@ -373,12 +360,11 @@ end
 -- 🔹 Cleanup
 function Movement.cleanup()
     Movement.disableAntiZombie()
-    Config.noClipEnabled = false
     Movement.disableNoClip()
     Movement.stopSpeedBoost()
     if Config.noclipCamEnabled then
         Config.noclipCamEnabled = false
-        Movement.toggleNoclipCam()
+        Movement.setNoclipCam(false) -- Tắt noclip cam khi cleanup
     end
 end
 

@@ -43,7 +43,7 @@ end
 function UI.createCombatTab()
     local CombatTab = UI.Window:AddTab({ Title = "Combat" })
 
-    CombatTab:AddToggle("AimbotEnabled", {
+    CombatTab:AddToggle("Aimbot", {
         Title = "Aimbot",
         Default = Config.aimbotEnabled,
         Callback = function(Value) Config.aimbotEnabled = Value end
@@ -100,7 +100,7 @@ function UI.createCombatTab()
 
     CombatTab:AddSection("Hitbox Settings")
 
-    CombatTab:AddToggle("HitboxEnabled", {
+    CombatTab:AddToggle("Hitbox", {
         Title = "Hitbox Expander",
         Default = Config.hitboxEnabled,
         Callback = function(Value)
@@ -134,7 +134,7 @@ function UI.createCombatTab()
 
     CombatTab:AddSection("Auto Skill")
 
-    CombatTab:AddToggle("AutoSkillEnabled", {
+    CombatTab:AddToggle("AutoSkill", {
         Title = "Auto Skill",
         Default = Config.autoSkillEnabled,
         Callback = function(Value)
@@ -304,7 +304,7 @@ end
 function UI.createMovementTab()
     local MovementTab = UI.Window:AddTab({ Title = "Movement" })
 
-    MovementTab:AddToggle("SpeedEnabled", {
+    MovementTab:AddToggle("Speed", {
         Title = "Speed Boost",
         Default = Config.speedEnabled,
         Callback = function(Value)
@@ -323,7 +323,7 @@ function UI.createMovementTab()
         end
     })
 
-    MovementTab:AddToggle("NoClipEnabled", {
+    MovementTab:AddToggle("NoClip", {
         Title = "NoClip",
         Default = Config.noClipEnabled,
         Callback = function(Value)
@@ -332,7 +332,7 @@ function UI.createMovementTab()
         end
     })
 
-    MovementTab:AddToggle("AntiZombieEnabled", {
+    MovementTab:AddToggle("AntiZombie", {
         Title = "Anti-Zombie",
         Default = Config.antiZombieEnabled,
         Callback = function(Value)
@@ -351,7 +351,7 @@ function UI.createMovementTab()
         end
     })
 
-    MovementTab:AddToggle("NoclipCamEnabled", {
+    MovementTab:AddToggle("NoclipCam", {
         Title = "Noclip Cam",
         Default = Config.noclipCamEnabled,
         Callback = function(Value)
@@ -362,7 +362,7 @@ function UI.createMovementTab()
 
     MovementTab:AddSection("Camera Teleport")
 
-    MovementTab:AddToggle("CameraTeleportEnabled", {
+    MovementTab:AddToggle("CameraTeleport", {
         Title = "Camera Teleport (X)",
         Default = Config.cameraTeleportEnabled,
         Callback = function(Value) Config.cameraTeleportEnabled = Value end
@@ -386,6 +386,29 @@ function UI.createMovementTab()
         Title = "Teleport to Last Zombie",
         Default = Config.teleportToLastZombie,
         Callback = function(Value) Config.teleportToLastZombie = Value end
+    })
+
+    MovementTab:AddSection("Camera Offset")
+
+    MovementTab:AddSlider("CameraOffsetX", {
+        Title = "Camera Offset X",
+        Default = Config.cameraOffsetX,
+        Min = -20, Max = 20, Rounding = 1,
+        Callback = function(Value) Config.cameraOffsetX = Value end
+    })
+
+    MovementTab:AddSlider("CameraOffsetY", {
+        Title = "Camera Offset Y",
+        Default = Config.cameraOffsetY,
+        Min = 0, Max = 50, Rounding = 1,
+        Callback = function(Value) Config.cameraOffsetY = Value end
+    })
+
+    MovementTab:AddSlider("CameraOffsetZ", {
+        Title = "Camera Offset Z",
+        Default = Config.cameraOffsetZ,
+        Min = -20, Max = 20, Rounding = 1,
+        Callback = function(Value) Config.cameraOffsetZ = Value end
     })
 
     return MovementTab
@@ -415,44 +438,34 @@ function UI.createMapTab()
         ["Raid Mode [201]"] = 201,
     }
 
-    local displayByMapId = {
-        [1001] = "Exclusion [1001]",
-        [1002] = "Virus Laboratory [1002]",
-        [1003] = "Biology Laboratory [1003]",
-        [102] = "Wave Mode [102]",
-        [201] = "Raid Mode [201]",
-    }
-
-    local difficultyDisplayNames = {"1 - Normal", "2 - Hard", "3 - Nightmare"}
-
-    MapTab:AddDropdown("SelectedMapWorld", {
+    MapTab:AddDropdown("MapWorld", {
         Title = "Map",
         Values = mapDisplayNames,
-        Default = displayByMapId[Config.selectedWorldId] or mapDisplayNames[1],
+        Default = mapDisplayNames[1],
         Callback = function(Value)
             local id = mapIdByDisplay[Value]
             if id then Config.selectedWorldId = id end
         end
     })
 
-    MapTab:AddDropdown("SelectedMapDifficulty", {
+    MapTab:AddDropdown("MapDifficulty", {
         Title = "Difficulty",
-        Values = difficultyDisplayNames,
-        Default = difficultyDisplayNames[Config.selectedDifficulty] or "1 - Normal",
+        Values = {"1 - Normal", "2 - Hard", "3 - Nightmare"},
+        Default = "1 - Normal",
         Callback = function(Value)
             local num = tonumber(string.match(Value, "^(%d+)"))
             if num then Config.selectedDifficulty = num end
         end
     })
 
-    MapTab:AddSlider("SelectedMaxPlayers", {
+    MapTab:AddSlider("MapMaxCount", {
         Title = "Max Players",
         Default = Config.selectedMaxCount,
         Min = 1, Max = 4, Rounding = 0,
         Callback = function(Value) Config.selectedMaxCount = Value end
     })
 
-    MapTab:AddToggle("SelectedFriendOnly", {
+    MapTab:AddToggle("MapFriendOnly", {
         Title = "Friend Only",
         Default = Config.selectedFriendOnly,
         Callback = function(Value) Config.selectedFriendOnly = Value end
@@ -463,7 +476,7 @@ function UI.createMapTab()
         Callback = function() Map.teleportToWaitAreaAndStart() end
     })
 
-    MapTab:AddToggle("AutoReplayEnabled", {
+    MapTab:AddToggle("AutoReplay", {
         Title = "Auto Replay Match",
         Description = "Tự động replay khi kết thúc trận",
         Default = Config.autoReplayEnabled,
@@ -478,13 +491,13 @@ end
 function UI.createFarmTab()
     local FarmTab = UI.Window:AddTab({ Title = "Farm" })
 
-    FarmTab:AddToggle("AutoBulletBoxEnabled", {
+    FarmTab:AddToggle("AutoBulletBox", {
         Title = "Auto BulletBox + Items",
         Default = Config.autoBulletBoxEnabled,
         Callback = function(Value) Config.autoBulletBoxEnabled = Value end
     })
 
-    FarmTab:AddToggle("AutoChestEnabled", {
+    FarmTab:AddToggle("Teleport", {
         Title = "Auto Chest (T Key)",
         Default = Config.teleportEnabled,
         Callback = function(Value) Config.teleportEnabled = Value end
@@ -576,7 +589,12 @@ function UI.createInfoTab()
 end
 
 ----------------------------------------------------------
--- 🔹 Quick Teleport Buttons (2 cột: Exit Doors bên trái, Supplies bên phải)
+-- 🔹 Quick Teleport Buttons (2 cột: Exit Door | Ammo/Supply)
+UI.quickTeleportGui = nil
+UI.leftColumn = nil
+UI.rightColumn = nil
+UI.createdButtons = {}
+
 function UI.createQuickTeleportButtons()
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "QuickTeleportButtons"
@@ -584,19 +602,19 @@ function UI.createQuickTeleportButtons()
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     ScreenGui.Parent = Config.localPlayer:WaitForChild("PlayerGui")
 
-    -- Main Container
+    -- Main container chứa 2 cột
     local MainContainer = Instance.new("Frame")
     MainContainer.Name = "MainContainer"
     MainContainer.BackgroundTransparency = 1
-    MainContainer.Size = UDim2.new(0, 340, 0, 300)
-    MainContainer.Position = UDim2.new(1, -360, 0.5, -150)
+    MainContainer.Size = UDim2.new(0, 320, 0, 300)
+    MainContainer.Position = UDim2.new(1, -340, 0.5, -150)
     MainContainer.Parent = ScreenGui
 
-    -- Left Column (Exit Doors)
+    -- Cột trái (Exit Door + Task)
     local LeftColumn = Instance.new("Frame")
     LeftColumn.Name = "LeftColumn"
     LeftColumn.BackgroundTransparency = 1
-    LeftColumn.Size = UDim2.new(0, 160, 1, 0)
+    LeftColumn.Size = UDim2.new(0, 150, 1, 0)
     LeftColumn.Position = UDim2.new(0, 0, 0, 0)
     LeftColumn.Parent = MainContainer
 
@@ -605,12 +623,16 @@ function UI.createQuickTeleportButtons()
     LeftLayout.SortOrder = Enum.SortOrder.LayoutOrder
     LeftLayout.Parent = LeftColumn
 
-    -- Right Column (Supplies)
+    local LeftPadding = Instance.new("UIPadding")
+    LeftPadding.PaddingTop = UDim.new(0, 10)
+    LeftPadding.Parent = LeftColumn
+
+    -- Cột phải (Supply + Ammo)
     local RightColumn = Instance.new("Frame")
     RightColumn.Name = "RightColumn"
     RightColumn.BackgroundTransparency = 1
-    RightColumn.Size = UDim2.new(0, 160, 1, 0)
-    RightColumn.Position = UDim2.new(0, 175, 0, 0)
+    RightColumn.Size = UDim2.new(0, 150, 1, 0)
+    RightColumn.Position = UDim2.new(0, 160, 0, 0)
     RightColumn.Parent = MainContainer
 
     local RightLayout = Instance.new("UIListLayout")
@@ -618,70 +640,153 @@ function UI.createQuickTeleportButtons()
     RightLayout.SortOrder = Enum.SortOrder.LayoutOrder
     RightLayout.Parent = RightColumn
 
-    local function createButton(parent, name, text, color, callback)
-        local button = Instance.new("TextButton")
-        button.Name = name
-        button.Size = UDim2.new(0, 150, 0, 30)
-        button.BackgroundColor3 = color
-        button.BorderSizePixel = 0
-        button.Text = text
-        button.TextColor3 = Color3.fromRGB(255, 255, 255)
-        button.TextSize = 14
-        button.Font = Enum.Font.GothamBold
-        button.AutoButtonColor = false
-        button.Parent = parent
-        
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0, 6)
-        corner.Parent = button
-        
-        local hoverColor = color:Lerp(Color3.fromRGB(255, 255, 255), 0.35)
-        button.MouseEnter:Connect(function() button.BackgroundColor3 = hoverColor end)
-        button.MouseLeave:Connect(function() button.BackgroundColor3 = color end)
-        button.MouseButton1Click:Connect(callback)
-        
-        return button
-    end
+    local RightPadding = Instance.new("UIPadding")
+    RightPadding.PaddingTop = UDim.new(0, 10)
+    RightPadding.Parent = RightColumn
 
-    local function teleportTo(pos)
-        local char = Config.localPlayer.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if hrp and pos then hrp.CFrame = CFrame.new(pos) end
-    end
-
-    -- Task Button (ở trên cùng bên trái)
-    createButton(LeftColumn, "TaskBtn", "📍 Task", Color3.fromRGB(100, 150, 255), function()
-        local pos = Map.findTaskPosition()
-        if pos then teleportTo(pos) end
+    UI.quickTeleportGui = ScreenGui
+    UI.mainContainer = MainContainer
+    UI.leftColumn = LeftColumn
+    UI.rightColumn = RightColumn
+    
+    -- Tạo buttons lần đầu
+    UI.refreshQuickTeleportButtons()
+    
+    -- Auto refresh mỗi 15 giây
+    task.spawn(function()
+        while task.wait(15) do
+            if Config.scriptUnloaded then break end
+            UI.refreshQuickTeleportButtons()
+        end
     end)
-
-    -- Tạo nút cho TẤT CẢ Exit Doors
-    local doors = Map.findAllExitDoors()
-    for i, doorPos in ipairs(doors) do
-        createButton(LeftColumn, "ExitBtn" .. i, "🚪 Exit " .. i, Color3.fromRGB(255, 100, 100), function()
-            teleportTo(doorPos)
-        end)
-    end
-
-    -- Tạo nút cho TẤT CẢ Supplies
-    local supplies = Map.findAllSupplyPiles()
-    for i, supplyPos in ipairs(supplies) do
-        createButton(RightColumn, "SupplyBtn" .. i, "📦 Supply " .. i, Color3.fromRGB(100, 255, 100), function()
-            teleportTo(supplyPos)
-        end)
-    end
 
     return ScreenGui
 end
 
--- Refresh Quick Teleport Buttons (gọi khi vào map mới)
-function UI.refreshQuickTeleportButtons()
-    local playerGui = Config.localPlayer:FindFirstChild("PlayerGui")
-    if playerGui then
-        local oldGui = playerGui:FindFirstChild("QuickTeleportButtons")
-        if oldGui then oldGui:Destroy() end
+function UI.createTeleportButton(name, text, color, layoutOrder, parent)
+    local button = Instance.new("TextButton")
+    button.Name = name
+    button.Size = UDim2.new(0, 140, 0, 34)
+    button.BackgroundColor3 = color
+    button.BorderSizePixel = 0
+    button.Text = text
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.TextStrokeColor3 = Color3.fromRGB(15, 15, 15)
+    button.TextSize = 14
+    button.Font = Enum.Font.GothamBold
+    button.AutoButtonColor = false
+    button.LayoutOrder = layoutOrder
+    button.Parent = parent
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = button
+    
+    local stroke = Instance.new("UIStroke")
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    stroke.Color = color:Lerp(Color3.fromRGB(255, 255, 255), 0.4)
+    stroke.Thickness = 1
+    stroke.Transparency = 0.2
+    stroke.Parent = button
+    
+    local hoverColor = color:Lerp(Color3.fromRGB(255, 255, 255), 0.35)
+    button.MouseEnter:Connect(function() button.BackgroundColor3 = hoverColor end)
+    button.MouseLeave:Connect(function() button.BackgroundColor3 = color end)
+    
+    return button
+end
+
+function UI.clearAllQuickButtons()
+    for _, button in pairs(UI.createdButtons) do
+        if button and button.Parent then
+            button:Destroy()
+        end
     end
-    UI.createQuickTeleportButtons()
+    UI.createdButtons = {}
+end
+
+function UI.refreshQuickTeleportButtons()
+    if not UI.leftColumn or not UI.rightColumn then return end
+    
+    UI.clearAllQuickButtons()
+    local leftOrder = 1
+    local rightOrder = 1
+    
+    -- === CỘT TRÁI: Exit Door + Task ===
+    
+    -- Exit Door buttons
+    local exitDoors = Map.findAllExitDoors()
+    for i, doorPos in ipairs(exitDoors) do
+        local btn = UI.createTeleportButton("ExitDoor" .. i, "🚪 Exit " .. i, Color3.fromRGB(155, 89, 182), leftOrder, UI.leftColumn)
+        leftOrder = leftOrder + 1
+        UI.createdButtons["ExitDoor" .. i] = btn
+        
+        btn.MouseButton1Click:Connect(function()
+            local allDoors = Map.findAllExitDoors()
+            if allDoors[i] then
+                Map.teleportToPosition(allDoors[i])
+            end
+        end)
+    end
+    
+    -- Task button (cột trái)
+    local taskPos = Map.findTaskPosition()
+    if taskPos then
+        local btn = UI.createTeleportButton("Task", "📍 Final Task", Color3.fromRGB(52, 152, 219), leftOrder, UI.leftColumn)
+        leftOrder = leftOrder + 1
+        UI.createdButtons["Task"] = btn
+        
+        btn.MouseButton1Click:Connect(function()
+            local pos = Map.findTaskPosition()
+            Map.teleportToPosition(pos)
+        end)
+    end
+    
+    -- === CỘT PHẢI: Supply + Ammo ===
+    
+    -- Supply buttons
+    local supplies = Map.findAllSupplyPiles()
+    for i, supplyPos in ipairs(supplies) do
+        local btn = UI.createTeleportButton("Supply" .. i, "📦 Supply " .. i, Color3.fromRGB(241, 196, 15), rightOrder, UI.rightColumn)
+        rightOrder = rightOrder + 1
+        UI.createdButtons["Supply" .. i] = btn
+        
+        btn.MouseButton1Click:Connect(function()
+            local allSupplies = Map.findAllSupplyPiles()
+            if allSupplies[i] then
+                Map.teleportToPosition(allSupplies[i])
+            end
+        end)
+    end
+    
+    -- Ammo buttons
+    local ammos = Map.findAllAmmo()
+    for i, ammoPos in ipairs(ammos) do
+        local btn = UI.createTeleportButton("Ammo" .. i, "🔫 Ammo " .. i, Color3.fromRGB(230, 126, 34), rightOrder, UI.rightColumn)
+        rightOrder = rightOrder + 1
+        UI.createdButtons["Ammo" .. i] = btn
+        
+        btn.MouseButton1Click:Connect(function()
+            local allAmmos = Map.findAllAmmo()
+            if allAmmos[i] then
+                Map.teleportToPosition(allAmmos[i])
+            end
+        end)
+    end
+    
+    -- Cập nhật kích thước container dựa trên cột cao nhất
+    local leftCount = leftOrder - 1
+    local rightCount = rightOrder - 1
+    local maxCount = math.max(leftCount, rightCount)
+    
+    if maxCount > 0 then
+        local containerHeight = maxCount * 38 + 20
+        UI.mainContainer.Size = UDim2.new(0, 320, 0, containerHeight)
+        UI.mainContainer.Position = UDim2.new(1, -340, 0.5, -containerHeight / 2)
+        UI.mainContainer.Visible = true
+    else
+        UI.mainContainer.Visible = false
+    end
 end
 
 ----------------------------------------------------------
@@ -702,6 +807,16 @@ end
 function UI.cleanup()
     if UI.Window and UI.Window.Destroy then
         pcall(function() UI.Window:Destroy() end)
+    end
+    
+    -- Xóa quick teleport buttons
+    UI.clearAllQuickButtons()
+    if UI.quickTeleportGui then
+        pcall(function() UI.quickTeleportGui:Destroy() end)
+        UI.quickTeleportGui = nil
+        UI.mainContainer = nil
+        UI.leftColumn = nil
+        UI.rightColumn = nil
     end
     
     local playerGui = Config.localPlayer:FindFirstChild("PlayerGui")

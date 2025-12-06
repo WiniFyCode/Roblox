@@ -224,4 +224,75 @@ function Map.findAllSupplyPiles()
     return uniqueSupplies
 end
 
+function Map.findAllAmmo()
+    local ammos = {}
+    local map = Config.Workspace:FindFirstChild("Map")
+    if not map then return ammos end
+    
+    for _, mapChild in ipairs(map:GetChildren()) do
+        local eItem = mapChild:FindFirstChild("EItem")
+        if eItem then
+            for _, child in ipairs(eItem:GetChildren()) do
+                if child.Name == "Ammo" and child:IsA("Model") then
+                    local part = child:FindFirstChildWhichIsA("BasePart")
+                    if part then
+                        table.insert(ammos, part.Position + Vector3.new(0, 3, 0))
+                    end
+                end
+            end
+        end
+    end
+    
+    -- Remove duplicates
+    local uniqueAmmos = {}
+    for i, pos1 in ipairs(ammos) do
+        local isDuplicate = false
+        for j, pos2 in ipairs(uniqueAmmos) do
+            if (pos1 - pos2).Magnitude < 5 then
+                isDuplicate = true
+                break
+            end
+        end
+        if not isDuplicate then
+            table.insert(uniqueAmmos, pos1)
+        end
+    end
+    
+    return uniqueAmmos
+end
+
+-- Teleport helper
+function Map.teleportToPosition(position)
+    if not position then return end
+    
+    local char = Config.localPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    hrp.CFrame = CFrame.new(position)
+end
+
+-- Find nearest position from list
+function Map.findNearestPosition(positions)
+    if #positions == 0 then return nil end
+    
+    local char = Config.localPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return positions[1] end
+    
+    local playerPos = hrp.Position
+    local nearestPos = positions[1]
+    local nearestDistance = (playerPos - nearestPos).Magnitude
+    
+    for _, pos in ipairs(positions) do
+        local distance = (playerPos - pos).Magnitude
+        if distance < nearestDistance then
+            nearestDistance = distance
+            nearestPos = pos
+        end
+    end
+    
+    return nearestPos
+end
+
 return Map
