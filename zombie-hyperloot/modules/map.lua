@@ -179,7 +179,7 @@ function Map.createSupplyUI()
     -- Tạo Frame chứa (không có title, không scroll)
     Map.supplyFrame = Instance.new("Frame")
     Map.supplyFrame.Name = "SupplyFrame"
-    Map.supplyFrame.Size = UDim2.new(0, 200, 0, 100) -- Sẽ tự động resize theo số lượng
+    Map.supplyFrame.Size = UDim2.new(0, 140, 0, 100) -- Sẽ tự động resize theo số lượng
     Map.supplyFrame.BackgroundTransparency = 1 -- Trong suốt hoàn toàn
     Map.supplyFrame.BorderSizePixel = 0
     Map.supplyFrame.Parent = Map.supplyScreenGui
@@ -205,7 +205,7 @@ function Map.updateSupplyPosition()
     
     if Config.supplyESPPosition == "Right" then
         -- Bên phải màn hình
-        Map.supplyFrame.Position = UDim2.new(1, -210, 0.5, -totalHeight / 2)
+        Map.supplyFrame.Position = UDim2.new(1, -150, 0.5, -totalHeight / 2)
     else
         -- Bên trái màn hình (mặc định)
         Map.supplyFrame.Position = UDim2.new(0, 10, 0.5, -totalHeight / 2)
@@ -240,7 +240,7 @@ function Map.updateSupplyDisplay()
     for i, supply in ipairs(Map.supplyItems) do
         local button = Instance.new("TextButton")
         button.Name = "Supply_" .. i
-        button.Size = UDim2.new(0, 200, 0, 35)
+        button.Size = UDim2.new(0, 140, 0, 35)
         button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
         button.BackgroundTransparency = 0.2
         button.BorderSizePixel = 1
@@ -256,8 +256,8 @@ function Map.updateSupplyDisplay()
         buttonCorner.Parent = button
         
         local padding = Instance.new("UIPadding")
-        padding.PaddingLeft = UDim.new(0, 8)
-        padding.PaddingRight = UDim.new(0, 8)
+        padding.PaddingLeft = UDim.new(0, 4)
+        padding.PaddingRight = UDim.new(0, 4)
         padding.Parent = button
         
         -- Click event
@@ -278,8 +278,8 @@ function Map.updateSupplyDisplay()
     end
     
     -- Tự động resize frame theo số lượng buttons
-    local totalHeight = #Map.supplyItems * 35 + (#Map.supplyItems - 1) * 5 -- 35px mỗi button + 5px padding
-    Map.supplyFrame.Size = UDim2.new(0, 200, 0, totalHeight)
+    local totalHeight = #Map.supplyItems * 32 + (#Map.supplyItems - 1) * 5 -- 32px mỗi button + 5px padding
+    Map.supplyFrame.Size = UDim2.new(0, 140, 0, totalHeight)
     
     -- Update vị trí theo config
     Map.updateSupplyPosition()
