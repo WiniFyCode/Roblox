@@ -689,6 +689,17 @@ function UI.createHUDTab()
         end
     })
 
+    HUDTab:AddSection("Lobby UI")
+
+    HUDTab:AddToggle("LobbyPlayerInfoVisible", {
+        Title = "Show Lobby PlayerInfo",
+        Description = "Hiện/ẩn PlayerInfo trong Lobby",
+        Default = true,
+        Callback = function(Value)
+            HUD.toggleLobbyPlayerInfo(Value)
+        end
+    })
+
     HUDTab:AddSection("Text Customization")
 
     HUDTab:AddInput("CustomTitle", {

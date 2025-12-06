@@ -146,6 +146,10 @@ Map.startAutoReplayLoop()
 Map.startSupplyESP()
 
 ----------------------------------------------------------
+-- 🔹 Setup HUD
+HUD.applyLobbyPlayerInfoVisibility()
+
+----------------------------------------------------------
 -- 🔹 Entity Folder Listeners (Hitbox)
 entityChildAddedConnection = Config.entityFolder.ChildAdded:Connect(function(zombie)
     if zombie:IsA("Model") then
