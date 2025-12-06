@@ -14,7 +14,7 @@ HUD.customClass = ""
 HUD.customLevel = ""
 
 -- EXP Display Settings
-HUD.expDisplayEnabled = false
+HUD.expDisplayEnabled = true
 HUD.expScreenGui = nil
 HUD.expLabel = nil
 HUD.expUpdateConnection = nil

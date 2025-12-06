@@ -705,7 +705,7 @@ function UI.createHUDTab()
     HUDTab:AddToggle("ExpDisplay", {
         Title = "Show EXP Display",
         Description = "Hiển thị EXP ở góc phải dưới màn hình",
-        Default = false,
+        Default = true,
         Callback = function(Value)
             HUD.toggleExpDisplay(Value)
         end

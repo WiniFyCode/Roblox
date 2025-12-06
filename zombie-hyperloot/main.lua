@@ -150,6 +150,7 @@ Map.startSupplyESP()
 task.wait(1) -- Đợi HUD load
 HUD.backupOriginalValues() -- Backup và set default colors
 HUD.applyLobbyPlayerInfoVisibility()
+HUD.startExpDisplay() -- Bật EXP display mặc định
 
 ----------------------------------------------------------
 -- 🔹 Entity Folder Listeners (Hitbox)
