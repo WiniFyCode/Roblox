@@ -119,13 +119,6 @@ Config.trigerSkillDupeEnabled = true
 Config.trigerSkillDupeCount = 5
 
 ----------------------------------------------------------
--- 🔹 Zombie Magnet
-Config.zombieMagnetEnabled = false
-Config.zombieMagnetDistance = 10 -- Khoảng cách trước mặt player
-Config.zombieMagnetHeight = 0 -- Độ cao so với player
-Config.zombieMagnetInterval = 0.5 -- Tần suất teleport (giây)
-
-----------------------------------------------------------
 -- 🔹 Aimbot Configuration
 Config.aimbotEnabled = true
 Config.aimbotHoldMouse2 = false -- Giữ chuột phải để aim

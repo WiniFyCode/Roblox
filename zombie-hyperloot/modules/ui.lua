@@ -99,31 +99,6 @@ function UI.createCombatTab()
         Callback = function(Value) Config.aimbotPrediction = Value end
     })
 
-    CombatTab:AddSection("Zombie Magnet")
-
-    CombatTab:AddToggle("ZombieMagnet", {
-        Title = "Zombie Magnet",
-        Description = "Teleport all zombies in front of you",
-        Default = Config.zombieMagnetEnabled,
-        Callback = function(Value) Config.zombieMagnetEnabled = Value end
-    })
-
-    CombatTab:AddSlider("ZombieMagnetDistance", {
-        Title = "Distance",
-        Description = "Distance in front of player",
-        Default = Config.zombieMagnetDistance,
-        Min = 5, Max = 30, Rounding = 0,
-        Callback = function(Value) Config.zombieMagnetDistance = Value end
-    })
-
-    CombatTab:AddSlider("ZombieMagnetInterval", {
-        Title = "Update Interval",
-        Description = "How often to teleport (seconds)",
-        Default = Config.zombieMagnetInterval,
-        Min = 0.1, Max = 2, Rounding = 1,
-        Callback = function(Value) Config.zombieMagnetInterval = Value end
-    })
-
     CombatTab:AddSection("Hitbox Settings")
 
     CombatTab:AddToggle("Hitbox", {

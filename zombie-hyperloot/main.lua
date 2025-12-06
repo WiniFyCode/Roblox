@@ -116,7 +116,6 @@ end
 Combat.initFOVCircle()
 Combat.setupMouseInput()
 Combat.startAllSkillLoops()
-Combat.startZombieMagnetLoop()
 
 ----------------------------------------------------------
 -- 🔹 Setup Movement
