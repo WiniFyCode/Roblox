@@ -457,10 +457,6 @@ function HUD.createExpDisplay()
     frame.Name = "ExpFrame"
     frame.Size = UDim2.new(0, 150, 0, 40)
     frame.Position = UDim2.new(1, -160, 1, -50) -- Góc phải dưới
-    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    frame.BackgroundTransparency = 0.3
-    frame.BorderSizePixel = 2
-    frame.BorderColor3 = Color3.fromRGB(255, 215, 0) -- Gold border
     frame.Parent = HUD.expScreenGui
     
     local corner = Instance.new("UICorner")
