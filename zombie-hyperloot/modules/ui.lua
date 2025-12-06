@@ -937,21 +937,14 @@ function UI.createFPSTab()
         end
     })
 
-    FPSTab:AddSection("Quick Actions")
+    FPSTab:AddSection("Weapon Effects")
 
-    FPSTab:AddButton({
-        Title = "Apply All Optimizations",
-        Description = "Áp dụng tất cả optimizations đang bật",
-        Callback = function()
-            FPS.applyAll()
-        end
-    })
-
-    FPSTab:AddButton({
-        Title = "Restore All",
-        Description = "Khôi phục lại settings gốc",
-        Callback = function()
-            FPS.cleanup()
+    FPSTab:AddToggle("RemoveWeaponEffects", {
+        Title = "Remove Weapon Effects",
+        Description = "Xóa hiệu ứng từ vũ khí (muzzle flash, bullet trails, etc.)",
+        Default = false,
+        Callback = function(Value)
+            FPS.toggleRemoveWeaponEffects(Value)
         end
     })
 

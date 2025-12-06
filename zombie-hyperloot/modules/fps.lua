@@ -10,10 +10,12 @@ local Config = nil
 FPS.removeEffectsEnabled = false
 FPS.reduceLightingEnabled = false
 FPS.reduceTextureEnabled = false
+FPS.removeWeaponEffectsEnabled = false
 
 -- Backup
 FPS.originalLighting = {}
 FPS.removedEffects = {}
+FPS.weaponEffectsConnection = nil
 
 function FPS.init(config)
     Config = config
@@ -207,18 +209,73 @@ function FPS.toggleReduceTextures(enabled)
 end
 
 ----------------------------------------------------------
--- 🔹 Apply All Optimizations
-function FPS.applyAll()
-    if FPS.removeEffectsEnabled then
-        FPS.removeEffects()
+-- 🔹 Remove Weapon Effects
+function FPS.removeWeaponEffects()
+    if FPS.weaponEffectsConnection then return end
+    
+    -- Xóa effects hiện tại trong character
+    local function cleanCharacterEffects(character)
+        if not character then return end
+        
+        for _, obj in ipairs(character:GetDescendants()) do
+            if obj:IsA("ParticleEmitter") or 
+               obj:IsA("Trail") or 
+               obj:IsA("Beam") or 
+               obj:IsA("PointLight") or 
+               obj:IsA("SpotLight") then
+                
+                if obj:IsA("ParticleEmitter") then
+                    obj.Enabled = false
+                else
+                    pcall(function() obj:Destroy() end)
+                end
+            end
+        end
     end
     
-    if FPS.reduceLightingEnabled then
-        FPS.reduceLighting()
+    -- Clean character hiện tại
+    cleanCharacterEffects(Config.localPlayer.Character)
+    
+    -- Monitor và xóa effects mới
+    FPS.weaponEffectsConnection = Config.RunService.Heartbeat:Connect(function()
+        if not FPS.removeWeaponEffectsEnabled then return end
+        
+        local character = Config.localPlayer.Character
+        if not character then return end
+        
+        -- Xóa effects trong tools/weapons
+        for _, tool in ipairs(character:GetChildren()) do
+            if tool:IsA("Tool") then
+                for _, obj in ipairs(tool:GetDescendants()) do
+                    if obj:IsA("ParticleEmitter") then
+                        obj.Enabled = false
+                    elseif obj:IsA("Trail") or obj:IsA("Beam") then
+                        pcall(function() obj:Destroy() end)
+                    end
+                end
+            end
+        end
+    end)
+    
+    print("[FPS Booster] Weapon effects removal enabled")
+end
+
+function FPS.stopRemoveWeaponEffects()
+    if FPS.weaponEffectsConnection then
+        FPS.weaponEffectsConnection:Disconnect()
+        FPS.weaponEffectsConnection = nil
     end
     
-    if FPS.reduceTextureEnabled then
-        FPS.reduceTextures()
+    print("[FPS Booster] Weapon effects removal disabled")
+end
+
+function FPS.toggleRemoveWeaponEffects(enabled)
+    FPS.removeWeaponEffectsEnabled = enabled
+    
+    if enabled then
+        FPS.removeWeaponEffects()
+    else
+        FPS.stopRemoveWeaponEffects()
     end
 end
 
@@ -227,6 +284,7 @@ end
 function FPS.cleanup()
     FPS.restoreEffects()
     FPS.restoreLighting()
+    FPS.stopRemoveWeaponEffects()
 end
 
 return FPS
