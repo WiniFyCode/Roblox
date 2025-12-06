@@ -86,8 +86,9 @@ function UI.createCombatTab()
 
     CombatTab:AddSlider("AimbotSmoothness", {
         Title = "Smoothness",
+        Description = "0 = Instant Lock | Higher = Smoother/Slower",
         Default = Config.aimbotSmoothness,
-        Min = 0, Max = 1, Rounding = 2,
+        Min = 0, Max = 0.9, Rounding = 2,
         Callback = function(Value) Config.aimbotSmoothness = Value end
     })
 

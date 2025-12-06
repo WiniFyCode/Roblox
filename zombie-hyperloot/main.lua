@@ -234,40 +234,43 @@ renderSteppedConnection = Config.RunService.RenderStepped:Connect(function()
     end
     
     -- Aimbot
-    if not Config.aimbotEnabled then return end
-    
-    local active = true
-    if Config.aimbotHoldMouse2 and not Combat.holdingMouse2 then
-        active = false
-    end
-    
-    if active then
-        local char, part = Combat.getClosestAimbotTarget()
-        if char and part then
-            local targetPos = part.Position
-            if Config.aimbotPrediction > 0 then
-                local vel = part.AssemblyLinearVelocity or part.Velocity
-                targetPos = targetPos + (vel * Config.aimbotPrediction)
-            end
-            
-            local camera = Config.Workspace.CurrentCamera
-            local cf = camera.CFrame
-            local desired = CFrame.new(cf.Position, targetPos)
-            
-            if Config.aimbotSmoothness > 0 then
-                camera.CFrame = cf:Lerp(desired, Config.aimbotSmoothness)
+    if Config.aimbotEnabled then
+        local active = true
+        if Config.aimbotHoldMouse2 and not Combat.holdingMouse2 then
+            active = false
+        end
+        
+        if active then
+            local char, part = Combat.getClosestAimbotTarget()
+            if char and part then
+                local targetPos = part.Position
+                if Config.aimbotPrediction > 0 then
+                    local vel = part.AssemblyLinearVelocity or part.Velocity or Vector3.new(0, 0, 0)
+                    targetPos = targetPos + (vel * Config.aimbotPrediction)
+                end
+                
+                local camera = Config.Workspace.CurrentCamera
+                local cf = camera.CFrame
+                local desired = CFrame.new(cf.Position, targetPos)
+                
+                -- Smoothness: 0 = instant, higher = smoother/slower
+                if Config.aimbotSmoothness > 0 then
+                    local alpha = 1 - Config.aimbotSmoothness
+                    alpha = math.clamp(alpha, 0.01, 1)
+                    camera.CFrame = cf:Lerp(desired, alpha)
+                else
+                    camera.CFrame = desired
+                end
+                
+                if Combat.FOVCircle then
+                    Combat.FOVCircle.Color = Color3.fromRGB(255, 0, 0)
+                    Combat.FOVCircle.Thickness = 2.5
+                end
             else
-                camera.CFrame = desired
-            end
-            
-            if Combat.FOVCircle then
-                Combat.FOVCircle.Color = Color3.fromRGB(255, 0, 0)
-                Combat.FOVCircle.Thickness = 2.5
-            end
-        else
-            if Combat.FOVCircle then
-                Combat.FOVCircle.Color = Color3.fromRGB(0, 255, 0)
-                Combat.FOVCircle.Thickness = 2
+                if Combat.FOVCircle then
+                    Combat.FOVCircle.Color = Color3.fromRGB(0, 255, 0)
+                    Combat.FOVCircle.Thickness = 2
+                end
             end
         end
     end
