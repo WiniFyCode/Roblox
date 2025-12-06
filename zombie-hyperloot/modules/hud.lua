@@ -337,23 +337,79 @@ function HUD.restoreHUDForPlayer(player)
     local elements = HUD.getHUDElements(player)
     if not elements then return end
     
-    -- Restore về tên gốc của player
+    -- Restore PlayerName về tên gốc
     if elements.playerName then
         elements.playerName.Text = player.Name
         elements.playerName.Visible = true
+        
+        -- Restore gradient về mặc định (nếu có)
+        local gradient = elements.playerName:FindFirstChild("UIGradient")
+        if gradient and HUD.originalValues.playerName and HUD.originalValues.playerName.gradientColor1 then
+            gradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, HUD.originalValues.playerName.gradientColor1),
+                ColorSequenceKeypoint.new(1, HUD.originalValues.playerName.gradientColor2)
+            })
+        end
     end
     
-    -- Restore các elements khác về visible
+    -- Restore Title
     if elements.title then
         elements.title.Visible = true
+        
+        -- Restore gradient về mặc định
+        local gradient = elements.title:FindFirstChild("UIGradient")
+        if gradient and HUD.originalValues.title and HUD.originalValues.title.gradientColor1 then
+            gradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, HUD.originalValues.title.gradientColor1),
+                ColorSequenceKeypoint.new(1, HUD.originalValues.title.gradientColor2)
+            })
+        end
+        
+        -- Restore text về mặc định (nếu có backup)
+        if HUD.originalValues.title and HUD.originalValues.title.text then
+            elements.title.Text = HUD.originalValues.title.text
+        end
     end
     
+    -- Restore Class
     if elements.class then
         elements.class.Visible = true
+        
+        -- Restore gradient về mặc định
+        local gradient = elements.class:FindFirstChild("UIGradient")
+        if gradient and HUD.originalValues.class and HUD.originalValues.class.gradientColor1 then
+            gradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, HUD.originalValues.class.gradientColor1),
+                ColorSequenceKeypoint.new(1, HUD.originalValues.class.gradientColor2)
+            })
+        end
+        
+        -- Restore text về mặc định (nếu có backup)
+        if HUD.originalValues.class and HUD.originalValues.class.text then
+            elements.class.Text = HUD.originalValues.class.text
+        end
     end
     
+    -- Restore Level
     if elements.level then
         elements.level.Visible = true
+        
+        local lvlText = elements.level:FindFirstChild("Lvl")
+        if lvlText then
+            -- Restore gradient về mặc định
+            local gradient = lvlText:FindFirstChild("UIGradient")
+            if gradient and HUD.originalValues.level and HUD.originalValues.level.gradientColor1 then
+                gradient.Color = ColorSequence.new({
+                    ColorSequenceKeypoint.new(0, HUD.originalValues.level.gradientColor1),
+                    ColorSequenceKeypoint.new(1, HUD.originalValues.level.gradientColor2)
+                })
+            end
+            
+            -- Restore text về mặc định (nếu có backup)
+            if HUD.originalValues.level and HUD.originalValues.level.text then
+                lvlText.Text = HUD.originalValues.level.text
+            end
+        end
     end
 end
 
