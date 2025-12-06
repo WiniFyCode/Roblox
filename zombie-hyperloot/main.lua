@@ -42,7 +42,6 @@ local function cleanupScript()
     Config.noClipEnabled = false
     Config.speedEnabled = false
     Config.antiZombieEnabled = false
-    Config.autoAttackEnabled = false
 
     -- Cleanup modules
     Combat.cleanup()
@@ -89,7 +88,6 @@ end
 Combat.initFOVCircle()
 Combat.setupMouseInput()
 Combat.startAllSkillLoops()
-Combat.startAutoAttackLoop()
 
 ----------------------------------------------------------
 -- 🔹 Setup Movement

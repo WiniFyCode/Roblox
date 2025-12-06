@@ -124,25 +124,6 @@ function Combat.triggerSkill(skillId)
     end)
 end
 
-function Combat.triggerGunFireAtk(targetInstance, targetVector)
-    local char = Config.localPlayer.Character
-    if not char then return end
-    
-    local netMessage = char:FindFirstChild("NetMessage")
-    if not netMessage then return end
-    
-    local args = {
-        "GunFire",
-        "Atk",
-        targetInstance or Instance.new("Part"),
-        targetVector or Vector3.new(0, 0, 0)
-    }
-    
-    pcall(function()
-        netMessage:WaitForChild("TrigerSkill"):FireServer(unpack(args))
-    end)
-end
-
 function Combat.activateSkill1010()
     Combat.triggerSkill(1010)
 end
@@ -170,61 +151,6 @@ end
 function Combat.startAllSkillLoops()
     Combat.startSkillLoop(function() return Config.skill1010Interval end, Combat.activateSkill1010)
     Combat.startSkillLoop(function() return Config.skill1002Interval end, Combat.activateSkill1002)
-end
-
-----------------------------------------------------------
--- 🔹 Auto Attack Functions
-function Combat.autoAttackNearestZombie()
-    local char = Config.localPlayer.Character
-    if not char then return end
-    
-    local nearestZombie, distance = Combat.findNearestZombie()
-    if not nearestZombie or (distance and distance > Config.autoAttackRange) then return end
-    
-    local head = nearestZombie:FindFirstChild("Head")
-    if head then
-        Combat.triggerGunFireAtk(head, head.Position)
-    end
-end
-
-function Combat.findNearestZombie()
-    local char = Config.localPlayer.Character
-    if not char then return nil end
-    
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return nil end
-    
-    local nearestZombie = nil
-    local nearestDistance = math.huge
-    
-    for _, zombie in ipairs(Config.entityFolder:GetChildren()) do
-        if zombie:IsA("Model") then
-            local hum = zombie:FindFirstChildWhichIsA("Humanoid")
-            if hum and hum.Health > 0 then
-                local zombieHrp = zombie:FindFirstChild("HumanoidRootPart") or zombie:FindFirstChild("Torso") or zombie:FindFirstChild("Head")
-                if zombieHrp then
-                    local distance = (hrp.Position - zombieHrp.Position).Magnitude
-                    if distance < nearestDistance then
-                        nearestDistance = distance
-                        nearestZombie = zombie
-                    end
-                end
-            end
-        end
-    end
-    
-    return nearestZombie, nearestDistance
-end
-
-function Combat.startAutoAttackLoop()
-    task.spawn(function()
-        while task.wait(Config.autoAttackDelay or 0.1) do
-            if Config.scriptUnloaded then break end
-            if Config.autoAttackEnabled then
-                Combat.autoAttackNearestZombie()
-            end
-        end
-    end)
 end
 
 ----------------------------------------------------------
@@ -335,7 +261,6 @@ function Combat.cleanup()
         Combat.FOVCircle = nil
     end
     Combat.processedZombies = {}
-    Combat.holdingMouse2 = false
 end
 
 return Combat
