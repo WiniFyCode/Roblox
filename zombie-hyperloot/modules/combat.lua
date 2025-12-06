@@ -154,6 +154,47 @@ function Combat.startAllSkillLoops()
 end
 
 ----------------------------------------------------------
+-- 🔹 Zombie Magnet
+function Combat.teleportAllZombiesToPlayer()
+    local char = Config.localPlayer.Character
+    if not char then return end
+    
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    local playerPos = hrp.Position
+    local frontOffset = hrp.CFrame.LookVector * Config.zombieMagnetDistance
+    local targetPos = playerPos + frontOffset + Vector3.new(0, Config.zombieMagnetHeight, 0)
+    
+    local count = 0
+    for _, zombie in ipairs(Config.entityFolder:GetChildren()) do
+        if zombie:IsA("Model") then
+            local hum = zombie:FindFirstChildWhichIsA("Humanoid")
+            local zombieHrp = zombie:FindFirstChild("HumanoidRootPart")
+            
+            if hum and hum.Health > 0 and zombieHrp then
+                -- Teleport tất cả zombie về cùng 1 vị trí (chồng lên nhau)
+                zombieHrp.CFrame = CFrame.new(targetPos)
+                count = count + 1
+            end
+        end
+    end
+    
+    return count
+end
+
+function Combat.startZombieMagnetLoop()
+    task.spawn(function()
+        while task.wait(Config.zombieMagnetInterval) do
+            if Config.scriptUnloaded then break end
+            if Config.zombieMagnetEnabled then
+                Combat.teleportAllZombiesToPlayer()
+            end
+        end
+    end)
+end
+
+----------------------------------------------------------
 -- 🔹 Aimbot Functions
 Combat.holdingMouse2 = false
 Combat.FOVCircle = nil
