@@ -590,8 +590,11 @@ end
 
 ----------------------------------------------------------
 -- 🔹 Quick Teleport Buttons (2 cột: Exit Door | Ammo/Supply)
--- Load 1 lần khi vào map, chỉ hiện nút có vị trí thật
+-- Load 1 lần khi vào map, tự động cập nhật khi có item mới
 UI.quickTeleportGui = nil
+UI.mapWatcherConnection = nil
+UI.supplyButtons = {}
+UI.ammoButtons = {}
 
 function UI.createQuickTeleportButtons()
     local ScreenGui = Instance.new("ScreenGui")
@@ -600,19 +603,19 @@ function UI.createQuickTeleportButtons()
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     ScreenGui.Parent = Config.localPlayer:WaitForChild("PlayerGui")
 
-    -- Main container chứa 2 cột
+    -- Main container chứa 2 cột (nhỏ hơn)
     local MainContainer = Instance.new("Frame")
     MainContainer.Name = "MainContainer"
     MainContainer.BackgroundTransparency = 1
-    MainContainer.Size = UDim2.new(0, 230, 0, 200)
-    MainContainer.Position = UDim2.new(1, -245, 0.5, -100)
+    MainContainer.Size = UDim2.new(0, 170, 0, 200)
+    MainContainer.Position = UDim2.new(1, -180, 0.5, -100)
     MainContainer.Parent = ScreenGui
 
     -- Cột trái (Exit Door + Task)
     local LeftColumn = Instance.new("Frame")
     LeftColumn.Name = "LeftColumn"
     LeftColumn.BackgroundTransparency = 1
-    LeftColumn.Size = UDim2.new(0, 105, 1, 0)
+    LeftColumn.Size = UDim2.new(0, 80, 1, 0)
     LeftColumn.Position = UDim2.new(0, 0, 0, 0)
     LeftColumn.Parent = MainContainer
 
@@ -629,8 +632,8 @@ function UI.createQuickTeleportButtons()
     local RightColumn = Instance.new("Frame")
     RightColumn.Name = "RightColumn"
     RightColumn.BackgroundTransparency = 1
-    RightColumn.Size = UDim2.new(0, 105, 1, 0)
-    RightColumn.Position = UDim2.new(0, 110, 0, 0)
+    RightColumn.Size = UDim2.new(0, 80, 1, 0)
+    RightColumn.Position = UDim2.new(0, 85, 0, 0)
     RightColumn.Parent = MainContainer
 
     local RightLayout = Instance.new("UIListLayout")
@@ -646,12 +649,12 @@ function UI.createQuickTeleportButtons()
     local function createBtn(name, text, color, order, parent, position)
         local btn = Instance.new("TextButton")
         btn.Name = name
-        btn.Size = UDim2.new(0, 100, 0, 22)
+        btn.Size = UDim2.new(0, 75, 0, 22)
         btn.BackgroundColor3 = color
         btn.BorderSizePixel = 0
         btn.Text = text
         btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        btn.TextSize = 12
+        btn.TextSize = 11
         btn.Font = Enum.Font.GothamBold
         btn.AutoButtonColor = false
         btn.LayoutOrder = order
@@ -702,15 +705,53 @@ function UI.createQuickTeleportButtons()
     -- === TÌM VÀ TẠO NÚT SUPPLY ===
     local supplies = Map.findAllSupplyPiles()
     for i, pos in ipairs(supplies) do
-        createBtn("Sup" .. i, "📦 Sup " .. i, Color3.fromRGB(241, 196, 15), rightOrder, RightColumn, pos)
+        local btn = createBtn("Sup" .. i, "📦 Sup " .. i, Color3.fromRGB(241, 196, 15), rightOrder, RightColumn, pos)
+        UI.supplyButtons[i] = btn
         rightOrder = rightOrder + 1
     end
     
     -- === TÌM VÀ TẠO NÚT AMMO ===
     local ammos = Map.findAllAmmo()
     for i, pos in ipairs(ammos) do
-        createBtn("Ammo" .. i, "🔫 Ammo " .. i, Color3.fromRGB(230, 126, 34), rightOrder, RightColumn, pos)
+        local btn = createBtn("Ammo" .. i, "🔫 Ammo " .. i, Color3.fromRGB(230, 126, 34), rightOrder, RightColumn, pos)
+        UI.ammoButtons[i] = btn
         rightOrder = rightOrder + 1
+    end
+
+    -- Hàm cập nhật vị trí Supply/Ammo
+    local function updateSupplyAmmoPositions()
+        -- Update Supply
+        local newSupplies = Map.findAllSupplyPiles()
+        for i, btn in pairs(UI.supplyButtons) do
+            if newSupplies[i] then
+                btn:SetAttribute("TargetX", newSupplies[i].X)
+                btn:SetAttribute("TargetY", newSupplies[i].Y)
+                btn:SetAttribute("TargetZ", newSupplies[i].Z)
+            end
+        end
+        
+        -- Update Ammo
+        local newAmmos = Map.findAllAmmo()
+        for i, btn in pairs(UI.ammoButtons) do
+            if newAmmos[i] then
+                btn:SetAttribute("TargetX", newAmmos[i].X)
+                btn:SetAttribute("TargetY", newAmmos[i].Y)
+                btn:SetAttribute("TargetZ", newAmmos[i].Z)
+            end
+        end
+    end
+
+    -- Lắng nghe Map thay đổi để cập nhật vị trí
+    local map = Config.Workspace:FindFirstChild("Map")
+    if map then
+        UI.mapWatcherConnection = map.DescendantAdded:Connect(function(descendant)
+            if Config.scriptUnloaded then return end
+            -- Chỉ cập nhật khi có Ammo hoặc Supply spawn
+            if descendant.Name == "Ammo" or tonumber(descendant.Name) then
+                task.wait(0.5) -- Đợi object load xong
+                updateSupplyAmmoPositions()
+            end
+        end)
     end
 
     -- Cập nhật kích thước container
@@ -718,8 +759,8 @@ function UI.createQuickTeleportButtons()
     local rightCount = rightOrder - 1
     local maxCount = math.max(leftCount, rightCount, 1)
     local containerHeight = maxCount * 24 + 8
-    MainContainer.Size = UDim2.new(0, 220, 0, containerHeight)
-    MainContainer.Position = UDim2.new(1, -230, 0.5, -containerHeight / 2)
+    MainContainer.Size = UDim2.new(0, 170, 0, containerHeight)
+    MainContainer.Position = UDim2.new(1, -180, 0.5, -containerHeight / 2)
 
     UI.quickTeleportGui = ScreenGui
     return ScreenGui
@@ -744,6 +785,16 @@ function UI.cleanup()
     if UI.Window and UI.Window.Destroy then
         pcall(function() UI.Window:Destroy() end)
     end
+    
+    -- Disconnect map watcher
+    if UI.mapWatcherConnection then
+        pcall(function() UI.mapWatcherConnection:Disconnect() end)
+        UI.mapWatcherConnection = nil
+    end
+    
+    -- Clear button references
+    UI.supplyButtons = {}
+    UI.ammoButtons = {}
     
     -- Xóa quick teleport buttons
     if UI.quickTeleportGui then
