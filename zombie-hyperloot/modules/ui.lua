@@ -4,14 +4,14 @@
 ]]
 
 local UI = {}
-local Config, Combat, ESP, Movement, Map, Farm, HUD = nil, nil, nil, nil, nil, nil, nil
+local Config, Combat, ESP, Movement, Map, Farm, HUD, FPS = nil, nil, nil, nil, nil, nil, nil, nil
 
 UI.Window = nil
 UI.Fluent = nil
 UI.SaveManager = nil
 UI.InterfaceManager = nil
 
-function UI.init(config, combat, esp, movement, map, farm, hud)
+function UI.init(config, combat, esp, movement, map, farm, hud, fps)
     Config = config
     Combat = combat
     ESP = esp
@@ -19,6 +19,7 @@ function UI.init(config, combat, esp, movement, map, farm, hud)
     Map = map
     Farm = farm
     HUD = hud
+    FPS = fps
 end
 
 function UI.loadLibraries()
@@ -894,6 +895,83 @@ function UI.createHUDTab()
 end
 
 ----------------------------------------------------------
+-- 🔹 FPS Booster Tab
+function UI.createFPSTab()
+    local FPSTab = UI.Window:AddTab({ Title = "FPS Booster" })
+
+    FPSTab:AddParagraph({
+        Title = "FPS Optimization",
+        Content = "Tăng FPS bằng cách xóa effects, giảm lighting và texture quality"
+    })
+
+    FPSTab:AddSection("Effects & Particles")
+
+    FPSTab:AddToggle("RemoveEffects", {
+        Title = "Remove Effects/Particles",
+        Description = "Xóa tất cả ParticleEmitter, Trail, Beam, Fire, Smoke, Sparkles, Lights",
+        Default = false,
+        Callback = function(Value)
+            FPS.toggleRemoveEffects(Value)
+        end
+    })
+
+    FPSTab:AddSection("Lighting Optimization")
+
+    FPSTab:AddToggle("ReduceLighting", {
+        Title = "Reduce Lighting Quality",
+        Description = "Tắt shadows, giảm brightness, tắt bloom/blur effects",
+        Default = false,
+        Callback = function(Value)
+            FPS.toggleReduceLighting(Value)
+        end
+    })
+
+    FPSTab:AddSection("Texture Optimization")
+
+    FPSTab:AddToggle("ReduceTextures", {
+        Title = "Reduce Texture Quality",
+        Description = "Đơn giản hóa materials, xóa decals/textures",
+        Default = false,
+        Callback = function(Value)
+            FPS.toggleReduceTextures(Value)
+        end
+    })
+
+    FPSTab:AddSection("Quick Actions")
+
+    FPSTab:AddButton({
+        Title = "Apply All Optimizations",
+        Description = "Áp dụng tất cả optimizations đang bật",
+        Callback = function()
+            FPS.applyAll()
+        end
+    })
+
+    FPSTab:AddButton({
+        Title = "Restore All",
+        Description = "Khôi phục lại settings gốc",
+        Callback = function()
+            FPS.cleanup()
+        end
+    })
+
+    FPSTab:AddSection("Info")
+
+    FPSTab:AddParagraph({
+        Title = "Performance Tips",
+        Content = [[
+            • Remove Effects: Tăng FPS 10-20%
+            • Reduce Lighting: Tăng FPS 15-30%
+            • Reduce Textures: Tăng FPS 5-15%
+            
+            Kết hợp cả 3 có thể tăng FPS 30-60%!
+        ]]
+    })
+
+    return FPSTab
+end
+
+----------------------------------------------------------
 -- 🔹 Build All Tabs
 function UI.buildAllTabs(cleanupCallback)
     UI.createCombatTab()
@@ -902,6 +980,7 @@ function UI.buildAllTabs(cleanupCallback)
     UI.createMapTab()
     UI.createFarmTab()
     UI.createHUDTab()
+    UI.createFPSTab()
     UI.createSettingsTab(cleanupCallback)
     UI.createInfoTab()
     UI.Window:SelectTab(1)
