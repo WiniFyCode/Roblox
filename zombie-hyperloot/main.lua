@@ -24,6 +24,12 @@ UI.init(Config, Combat, ESP, Movement, Map, Farm)
 
 ----------------------------------------------------------
 -- 🔹 Cleanup Function
+local renderSteppedConnection = nil
+local entityChildAddedConnection = nil
+local entityChildRemovedConnection = nil
+local inputBeganConnection = nil
+local characterAddedConnection = nil
+
 local function cleanupScript()
     if Config.scriptUnloaded then return end
     Config.scriptUnloaded = true
@@ -42,6 +48,28 @@ local function cleanupScript()
     Config.noClipEnabled = false
     Config.speedEnabled = false
     Config.antiZombieEnabled = false
+
+    -- Disconnect all connections
+    if renderSteppedConnection then
+        renderSteppedConnection:Disconnect()
+        renderSteppedConnection = nil
+    end
+    if entityChildAddedConnection then
+        entityChildAddedConnection:Disconnect()
+        entityChildAddedConnection = nil
+    end
+    if entityChildRemovedConnection then
+        entityChildRemovedConnection:Disconnect()
+        entityChildRemovedConnection = nil
+    end
+    if inputBeganConnection then
+        inputBeganConnection:Disconnect()
+        inputBeganConnection = nil
+    end
+    if characterAddedConnection then
+        characterAddedConnection:Disconnect()
+        characterAddedConnection = nil
+    end
 
     -- Cleanup modules
     Combat.cleanup()
@@ -97,7 +125,7 @@ if Config.noclipCamEnabled then
 end
 
 -- Character respawn handler
-Config.localPlayer.CharacterAdded:Connect(Movement.onCharacterAdded)
+characterAddedConnection = Config.localPlayer.CharacterAdded:Connect(Movement.onCharacterAdded)
 
 ----------------------------------------------------------
 -- 🔹 Setup Farm
@@ -110,7 +138,7 @@ Map.startAutoReplayLoop()
 
 ----------------------------------------------------------
 -- 🔹 Entity Folder Listeners (Hitbox)
-Config.entityFolder.ChildAdded:Connect(function(zombie)
+entityChildAddedConnection = Config.entityFolder.ChildAdded:Connect(function(zombie)
     if zombie:IsA("Model") then
         local head = zombie:WaitForChild("Head", 3)
         if head then
@@ -122,7 +150,7 @@ Config.entityFolder.ChildAdded:Connect(function(zombie)
     end
 end)
 
-Config.entityFolder.ChildRemoved:Connect(function(zombie)
+entityChildRemovedConnection = Config.entityFolder.ChildRemoved:Connect(function(zombie)
     Combat.processedZombies[zombie] = nil
     local highlight = zombie:FindFirstChild("ESP_Highlight")
     if highlight then highlight:Destroy() end
@@ -130,7 +158,6 @@ end)
 
 ----------------------------------------------------------
 -- 🔹 Main Render Loop (Aimbot + ESP)
-local renderSteppedConnection = nil
 renderSteppedConnection = Config.RunService.RenderStepped:Connect(function()
     if Config.scriptUnloaded then return end
 
@@ -249,7 +276,7 @@ end)
 
 ----------------------------------------------------------
 -- 🔹 Camera Teleport Input Handler
-Config.UserInputService.InputBegan:Connect(function(input, gameProcessed)
+inputBeganConnection = Config.UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed or Config.scriptUnloaded then return end
     
     -- HipHeight Toggle (M key)

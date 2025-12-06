@@ -617,12 +617,12 @@ function UI.createQuickTeleportButtons()
     LeftColumn.Parent = MainContainer
 
     local LeftLayout = Instance.new("UIListLayout")
-    LeftLayout.Padding = UDim.new(0, 4)
+    LeftLayout.Padding = UDim.new(0, 2)
     LeftLayout.SortOrder = Enum.SortOrder.LayoutOrder
     LeftLayout.Parent = LeftColumn
 
     local LeftPadding = Instance.new("UIPadding")
-    LeftPadding.PaddingTop = UDim.new(0, 5)
+    LeftPadding.PaddingTop = UDim.new(0, 2)
     LeftPadding.Parent = LeftColumn
 
     -- Cột phải (Supply + Ammo)
@@ -630,23 +630,23 @@ function UI.createQuickTeleportButtons()
     RightColumn.Name = "RightColumn"
     RightColumn.BackgroundTransparency = 1
     RightColumn.Size = UDim2.new(0, 105, 1, 0)
-    RightColumn.Position = UDim2.new(0, 115, 0, 0)
+    RightColumn.Position = UDim2.new(0, 110, 0, 0)
     RightColumn.Parent = MainContainer
 
     local RightLayout = Instance.new("UIListLayout")
-    RightLayout.Padding = UDim.new(0, 4)
+    RightLayout.Padding = UDim.new(0, 2)
     RightLayout.SortOrder = Enum.SortOrder.LayoutOrder
     RightLayout.Parent = RightColumn
 
     local RightPadding = Instance.new("UIPadding")
-    RightPadding.PaddingTop = UDim.new(0, 5)
+    RightPadding.PaddingTop = UDim.new(0, 2)
     RightPadding.Parent = RightColumn
 
     -- Helper tạo button
     local function createBtn(name, text, color, order, parent, position)
         local btn = Instance.new("TextButton")
         btn.Name = name
-        btn.Size = UDim2.new(0, 100, 0, 26)
+        btn.Size = UDim2.new(0, 100, 0, 22)
         btn.BackgroundColor3 = color
         btn.BorderSizePixel = 0
         btn.Text = text
@@ -717,9 +717,9 @@ function UI.createQuickTeleportButtons()
     local leftCount = leftOrder - 1
     local rightCount = rightOrder - 1
     local maxCount = math.max(leftCount, rightCount, 1)
-    local containerHeight = maxCount * 30 + 15
-    MainContainer.Size = UDim2.new(0, 230, 0, containerHeight)
-    MainContainer.Position = UDim2.new(1, -245, 0.5, -containerHeight / 2)
+    local containerHeight = maxCount * 24 + 8
+    MainContainer.Size = UDim2.new(0, 220, 0, containerHeight)
+    MainContainer.Position = UDim2.new(1, -230, 0.5, -containerHeight / 2)
 
     UI.quickTeleportGui = ScreenGui
     return ScreenGui
