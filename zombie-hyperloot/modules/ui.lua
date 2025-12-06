@@ -43,7 +43,7 @@ end
 function UI.createCombatTab()
     local CombatTab = UI.Window:AddTab({ Title = "Combat" })
 
-    CombatTab:AddToggle("Aimbot", {
+    CombatTab:AddToggle("AimbotEnabled", {
         Title = "Aimbot",
         Default = Config.aimbotEnabled,
         Callback = function(Value) Config.aimbotEnabled = Value end
@@ -100,7 +100,7 @@ function UI.createCombatTab()
 
     CombatTab:AddSection("Hitbox Settings")
 
-    CombatTab:AddToggle("Hitbox", {
+    CombatTab:AddToggle("HitboxEnabled", {
         Title = "Hitbox Expander",
         Default = Config.hitboxEnabled,
         Callback = function(Value)
@@ -134,7 +134,7 @@ function UI.createCombatTab()
 
     CombatTab:AddSection("Auto Skill")
 
-    CombatTab:AddToggle("AutoSkill", {
+    CombatTab:AddToggle("AutoSkillEnabled", {
         Title = "Auto Skill",
         Default = Config.autoSkillEnabled,
         Callback = function(Value)
@@ -304,7 +304,7 @@ end
 function UI.createMovementTab()
     local MovementTab = UI.Window:AddTab({ Title = "Movement" })
 
-    MovementTab:AddToggle("Speed", {
+    MovementTab:AddToggle("SpeedEnabled", {
         Title = "Speed Boost",
         Default = Config.speedEnabled,
         Callback = function(Value)
@@ -323,7 +323,7 @@ function UI.createMovementTab()
         end
     })
 
-    MovementTab:AddToggle("NoClip", {
+    MovementTab:AddToggle("NoClipEnabled", {
         Title = "NoClip",
         Default = Config.noClipEnabled,
         Callback = function(Value)
@@ -332,7 +332,7 @@ function UI.createMovementTab()
         end
     })
 
-    MovementTab:AddToggle("AntiZombie", {
+    MovementTab:AddToggle("AntiZombieEnabled", {
         Title = "Anti-Zombie",
         Default = Config.antiZombieEnabled,
         Callback = function(Value)
@@ -351,7 +351,7 @@ function UI.createMovementTab()
         end
     })
 
-    MovementTab:AddToggle("NoclipCam", {
+    MovementTab:AddToggle("NoclipCamEnabled", {
         Title = "Noclip Cam",
         Default = Config.noclipCamEnabled,
         Callback = function(Value)
@@ -362,7 +362,7 @@ function UI.createMovementTab()
 
     MovementTab:AddSection("Camera Teleport")
 
-    MovementTab:AddToggle("CameraTeleport", {
+    MovementTab:AddToggle("CameraTeleportEnabled", {
         Title = "Camera Teleport (X)",
         Default = Config.cameraTeleportEnabled,
         Callback = function(Value) Config.cameraTeleportEnabled = Value end
@@ -415,34 +415,44 @@ function UI.createMapTab()
         ["Raid Mode [201]"] = 201,
     }
 
-    MapTab:AddDropdown("MapWorld", {
+    local displayByMapId = {
+        [1001] = "Exclusion [1001]",
+        [1002] = "Virus Laboratory [1002]",
+        [1003] = "Biology Laboratory [1003]",
+        [102] = "Wave Mode [102]",
+        [201] = "Raid Mode [201]",
+    }
+
+    local difficultyDisplayNames = {"1 - Normal", "2 - Hard", "3 - Nightmare"}
+
+    MapTab:AddDropdown("SelectedMapWorld", {
         Title = "Map",
         Values = mapDisplayNames,
-        Default = mapDisplayNames[1],
+        Default = displayByMapId[Config.selectedWorldId] or mapDisplayNames[1],
         Callback = function(Value)
             local id = mapIdByDisplay[Value]
             if id then Config.selectedWorldId = id end
         end
     })
 
-    MapTab:AddDropdown("MapDifficulty", {
+    MapTab:AddDropdown("SelectedMapDifficulty", {
         Title = "Difficulty",
-        Values = {"1 - Normal", "2 - Hard", "3 - Nightmare"},
-        Default = "1 - Normal",
+        Values = difficultyDisplayNames,
+        Default = difficultyDisplayNames[Config.selectedDifficulty] or "1 - Normal",
         Callback = function(Value)
             local num = tonumber(string.match(Value, "^(%d+)"))
             if num then Config.selectedDifficulty = num end
         end
     })
 
-    MapTab:AddSlider("MapMaxCount", {
+    MapTab:AddSlider("SelectedMaxPlayers", {
         Title = "Max Players",
         Default = Config.selectedMaxCount,
         Min = 1, Max = 4, Rounding = 0,
         Callback = function(Value) Config.selectedMaxCount = Value end
     })
 
-    MapTab:AddToggle("MapFriendOnly", {
+    MapTab:AddToggle("SelectedFriendOnly", {
         Title = "Friend Only",
         Default = Config.selectedFriendOnly,
         Callback = function(Value) Config.selectedFriendOnly = Value end
@@ -453,7 +463,7 @@ function UI.createMapTab()
         Callback = function() Map.teleportToWaitAreaAndStart() end
     })
 
-    MapTab:AddToggle("AutoReplay", {
+    MapTab:AddToggle("AutoReplayEnabled", {
         Title = "Auto Replay Match",
         Description = "Tự động replay khi kết thúc trận",
         Default = Config.autoReplayEnabled,
@@ -468,13 +478,13 @@ end
 function UI.createFarmTab()
     local FarmTab = UI.Window:AddTab({ Title = "Farm" })
 
-    FarmTab:AddToggle("AutoBulletBox", {
+    FarmTab:AddToggle("AutoBulletBoxEnabled", {
         Title = "Auto BulletBox + Items",
         Default = Config.autoBulletBoxEnabled,
         Callback = function(Value) Config.autoBulletBoxEnabled = Value end
     })
 
-    FarmTab:AddToggle("Teleport", {
+    FarmTab:AddToggle("AutoChestEnabled", {
         Title = "Auto Chest (T Key)",
         Default = Config.teleportEnabled,
         Callback = function(Value) Config.teleportEnabled = Value end
