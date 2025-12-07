@@ -2,29 +2,63 @@
     Zombie Hyperloot - Main Entry Point
     by WiniFy
     
-    Modular version - Load tất cả modules
+    Modular version - Load từng modules để giảm lag
 ]]
 
--- Load Modules
-local Config = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/config.lua"))()
-local Combat = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/combat.lua"))()
-local ESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/esp.lua"))()
-local Movement = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/movement.lua"))()
-local Map = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/map.lua"))()
-local Farm = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/farm.lua"))()
-local HUD = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/hud.lua"))()
-local Visuals = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/visuals.lua"))()
-local UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/ui.lua"))()
+print("[ZombieHyperloot] Đang load modules...")
 
--- Initialize Modules
+-- Load Config trước
+print("[1/9] Loading Config...")
+local Config = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/config.lua"))()
+task.wait(0.1)
+
+-- Load Visuals
+print("[2/9] Loading Visuals...")
+local Visuals = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/visuals.lua"))()
 Visuals.init(Config)
+task.wait(0.1)
+
+-- Load Combat
+print("[3/9] Loading Combat...")
+local Combat = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/combat.lua"))()
 Combat.init(Config, Visuals)
+task.wait(0.1)
+
+-- Load ESP
+print("[4/9] Loading ESP...")
+local ESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/esp.lua"))()
 ESP.init(Config)
+task.wait(0.1)
+
+-- Load Movement
+print("[5/9] Loading Movement...")
+local Movement = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/movement.lua"))()
 Movement.init(Config)
+task.wait(0.1)
+
+-- Load Map
+print("[6/9] Loading Map...")
+local Map = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/map.lua"))()
 Map.init(Config)
+task.wait(0.1)
+
+-- Load Farm
+print("[7/9] Loading Farm...")
+local Farm = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/farm.lua"))()
 Farm.init(Config, ESP)
+task.wait(0.1)
+
+-- Load HUD
+print("[8/9] Loading HUD...")
+local HUD = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/hud.lua"))()
 HUD.init(Config)
+task.wait(0.1)
+
+-- Load UI
+print("[9/9] Loading UI...")
+local UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/ui.lua"))()
 UI.init(Config, Combat, ESP, Movement, Map, Farm, HUD, Visuals)
+task.wait(0.1)
 
 ----------------------------------------------------------
 -- 🔹 Cleanup Function
@@ -112,7 +146,6 @@ end
 pcall(function()
     local args = {1469938953, "MouseLock", true}
     game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
-    print("[ZombieHyperloot] MouseLock enabled")
 end)
 
 ----------------------------------------------------------

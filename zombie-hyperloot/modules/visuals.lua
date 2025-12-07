@@ -44,8 +44,6 @@ function Visuals.removeFog()
             v:Destroy()
         end
     end
-    
-    print("[Visuals] Fog and atmosphere removed")
 end
 
 function Visuals.restoreFog()
@@ -60,8 +58,6 @@ function Visuals.restoreFog()
         restored.Parent = lighting
     end
     Visuals.removedAtmospheres = {}
-    
-    print("[Visuals] Fog restored")
 end
 
 function Visuals.toggleRemoveFog(enabled)
@@ -93,8 +89,6 @@ function Visuals.enableFullbright()
     lighting.Ambient = Color3.fromRGB(255, 255, 255)
     lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
     lighting.GlobalShadows = false
-    
-    print("[Visuals] Fullbright enabled")
 end
 
 function Visuals.disableFullbright()
@@ -105,8 +99,6 @@ function Visuals.disableFullbright()
     lighting.Ambient = Visuals.originalLighting.Ambient
     lighting.OutdoorAmbient = Visuals.originalLighting.OutdoorAmbient
     lighting.GlobalShadows = Visuals.originalLighting.GlobalShadows
-    
-    print("[Visuals] Fullbright disabled")
 end
 
 function Visuals.toggleFullbright(enabled)
@@ -132,8 +124,6 @@ function Visuals.setCustomTime(timeValue)
     
     lighting.ClockTime = timeValue
     Visuals.customTimeValue = timeValue
-    
-    print(string.format("[Visuals] Time set to %d:00", timeValue))
 end
 
 function Visuals.restoreTime()
@@ -141,8 +131,6 @@ function Visuals.restoreTime()
     
     local lighting = game:GetService("Lighting")
     lighting.ClockTime = Visuals.originalLighting.ClockTime
-    
-    print("[Visuals] Time restored")
 end
 
 function Visuals.toggleCustomTime(enabled)
@@ -161,16 +149,12 @@ function Visuals.applyAll()
     Visuals.toggleRemoveFog(true)
     Visuals.toggleFullbright(true)
     Visuals.toggleCustomTime(true)
-    
-    print("[Visuals] Applied all visual enhancements")
 end
 
 function Visuals.disableAll()
     Visuals.toggleRemoveFog(false)
     Visuals.toggleFullbright(false)
     Visuals.toggleCustomTime(false)
-    
-    print("[Visuals] Disabled all visual enhancements")
 end
 
 ----------------------------------------------------------
@@ -203,14 +187,10 @@ function Visuals.removeAllEffects()
                 
                 -- Xóa effect
                 effect:Destroy()
-                print(string.format("[Visuals] Đã xóa %s", effectName))
-            else
-                warn(string.format("[Visuals] Không tìm thấy %s", effectName))
             end
         end
         
         Visuals.effectsRemoved = true
-        print("[Visuals] Đã xóa tất cả effects thành công!")
     end)
     
     if not success then
@@ -220,7 +200,6 @@ end
 
 function Visuals.restoreAllEffects()
     if #Visuals.removedEffects == 0 then
-        print("[Visuals] Không có effect nào để khôi phục")
         return
     end
     
@@ -229,12 +208,10 @@ function Visuals.restoreAllEffects()
         for _, effectData in ipairs(Visuals.removedEffects) do
             local restored = effectData.clone:Clone()
             restored.Parent = effectData.parent
-            print(string.format("[Visuals] Đã khôi phục %s", effectData.name))
         end
         
         Visuals.removedEffects = {}
         Visuals.effectsRemoved = false
-        print("[Visuals] Đã khôi phục tất cả effects!")
     end)
     
     if not success then

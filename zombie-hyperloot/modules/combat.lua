@@ -44,7 +44,6 @@ function Combat.setupTrigerSkillDupe()
                         if Visuals and Visuals.removeAllEffects then
                             task.spawn(function()
                                 Visuals.removeAllEffects()
-                                print("[Combat] Remove effects kích hoạt lần đầu tiên!")
                             end)
                         end
                     end
