@@ -105,6 +105,14 @@ local function cleanupScript()
 end
 
 ----------------------------------------------------------
+-- 🔹 Enable MouseLock (Auto-enable on script start)
+pcall(function()
+    local args = {1469938953, "MouseLock", true}
+    game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
+    print("[ZombieHyperloot] MouseLock enabled")
+end)
+
+----------------------------------------------------------
 -- 🔹 Setup TrigerSkill Dupe
 Combat.setupTrigerSkillDupe()
 
