@@ -119,6 +119,10 @@ Config.trigerSkillDupeEnabled = true
 Config.trigerSkillDupeCount = 5
 
 ----------------------------------------------------------
+-- 🔹 Remove Shot Effects
+Config.removeShotEffectsEnabled = false
+
+----------------------------------------------------------
 -- 🔹 Aimbot Configuration
 Config.aimbotEnabled = true
 Config.aimbotHoldMouse2 = false -- Giữ chuột phải để aim

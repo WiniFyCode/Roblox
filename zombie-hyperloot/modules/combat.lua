@@ -255,7 +255,96 @@ function Combat.setupMouseInput()
     end)
 end
 
+----------------------------------------------------------
+-- 🔹 Remove Shot Effects
+Combat.removeShotEffectsEnabled = false
+Combat.originalShotHitEffect = nil
+Combat.originalHitEffect = nil
+
+function Combat.removeShotEffects()
+    if Combat.removeShotEffectsEnabled then return end
+    
+    local ReplicatedFirst = game:GetService("ReplicatedFirst")
+    local baseEffectPath = ReplicatedFirst:FindFirstChild("Scripts")
+    
+    if baseEffectPath then
+        baseEffectPath = baseEffectPath:FindFirstChild("Object")
+        if baseEffectPath then
+            baseEffectPath = baseEffectPath:FindFirstChild("Data")
+            if baseEffectPath then
+                baseEffectPath = baseEffectPath:FindFirstChild("BaseEffect")
+                
+                if baseEffectPath then
+                    -- Backup original effects
+                    local shotHitEffect = baseEffectPath:FindFirstChild("ShotHitEffect")
+                    local hitEffect = baseEffectPath:FindFirstChild("HitEffect")
+                    
+                    if shotHitEffect then
+                        Combat.originalShotHitEffect = shotHitEffect:Clone()
+                        shotHitEffect:Destroy()
+                        print("[Combat] Removed ShotHitEffect")
+                    end
+                    
+                    if hitEffect then
+                        Combat.originalHitEffect = hitEffect:Clone()
+                        hitEffect:Destroy()
+                        print("[Combat] Removed HitEffect")
+                    end
+                    
+                    Combat.removeShotEffectsEnabled = true
+                else
+                    warn("[Combat] BaseEffect not found")
+                end
+            end
+        end
+    end
+end
+
+function Combat.restoreShotEffects()
+    if not Combat.removeShotEffectsEnabled then return end
+    
+    local ReplicatedFirst = game:GetService("ReplicatedFirst")
+    local baseEffectPath = ReplicatedFirst:FindFirstChild("Scripts")
+    
+    if baseEffectPath then
+        baseEffectPath = baseEffectPath:FindFirstChild("Object")
+        if baseEffectPath then
+            baseEffectPath = baseEffectPath:FindFirstChild("Data")
+            if baseEffectPath then
+                baseEffectPath = baseEffectPath:FindFirstChild("BaseEffect")
+                
+                if baseEffectPath then
+                    -- Restore original effects
+                    if Combat.originalShotHitEffect then
+                        local restored = Combat.originalShotHitEffect:Clone()
+                        restored.Parent = baseEffectPath
+                        print("[Combat] Restored ShotHitEffect")
+                    end
+                    
+                    if Combat.originalHitEffect then
+                        local restored = Combat.originalHitEffect:Clone()
+                        restored.Parent = baseEffectPath
+                        print("[Combat] Restored HitEffect")
+                    end
+                    
+                    Combat.removeShotEffectsEnabled = false
+                end
+            end
+        end
+    end
+end
+
+function Combat.toggleRemoveShotEffects(enabled)
+    if enabled then
+        Combat.removeShotEffects()
+    else
+        Combat.restoreShotEffects()
+    end
+end
+
 function Combat.cleanup()
+    Combat.restoreShotEffects()
+    
     if Combat.FOVCircle then
         pcall(function() Combat.FOVCircle:Remove() end)
         Combat.FOVCircle = nil

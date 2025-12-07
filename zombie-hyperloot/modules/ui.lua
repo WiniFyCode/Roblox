@@ -166,6 +166,18 @@ function UI.createCombatTab()
         Callback = function(Value) Config.skill1002Interval = Value end
     })
 
+    CombatTab:AddSection("Visual Effects")
+
+    CombatTab:AddToggle("RemoveShotEffects", {
+        Title = "Remove Shot Effects",
+        Description = "Xóa hiệu ứng bắn (ShotHitEffect, HitEffect)",
+        Default = Config.removeShotEffectsEnabled,
+        Callback = function(Value)
+            Config.removeShotEffectsEnabled = Value
+            Combat.toggleRemoveShotEffects(Value)
+        end
+    })
+
     return CombatTab
 end
 
