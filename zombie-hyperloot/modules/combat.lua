@@ -258,8 +258,8 @@ end
 ----------------------------------------------------------
 -- 🔹 Remove Shot Effects
 Combat.removeShotEffectsEnabled = false
-Combat.originalShotHitEffect = nil
-Combat.originalHitEffect = nil
+Combat.originalShotHitEffectSource = nil
+Combat.originalHitEffectSource = nil
 
 function Combat.removeShotEffects()
     if Combat.removeShotEffectsEnabled then return end
@@ -299,17 +299,17 @@ function Combat.removeShotEffects()
         local shotHitEffect = baseEffect:WaitForChild("ShotHitEffect", 10)
         local hitEffect = baseEffect:WaitForChild("HitEffect", 10)
         
-        -- Backup and remove
-        if shotHitEffect then
-            Combat.originalShotHitEffect = shotHitEffect:Clone()
-            shotHitEffect:Destroy()
-            print("[Combat] Removed ShotHitEffect")
+        -- Backup original source and replace with empty module
+        if shotHitEffect and shotHitEffect:IsA("ModuleScript") then
+            Combat.originalShotHitEffectSource = shotHitEffect.Source
+            shotHitEffect.Source = "return {new = function() return {} end}"
+            print("[Combat] Disabled ShotHitEffect")
         end
         
-        if hitEffect then
-            Combat.originalHitEffect = hitEffect:Clone()
-            hitEffect:Destroy()
-            print("[Combat] Removed HitEffect")
+        if hitEffect and hitEffect:IsA("ModuleScript") then
+            Combat.originalHitEffectSource = hitEffect.Source
+            hitEffect.Source = "return {new = function() return {} end}"
+            print("[Combat] Disabled HitEffect")
         end
         
         Combat.removeShotEffectsEnabled = true
@@ -320,26 +320,26 @@ function Combat.restoreShotEffects()
     if not Combat.removeShotEffectsEnabled then return end
     
     local ReplicatedFirst = game:GetService("ReplicatedFirst")
-    local baseEffectPath = ReplicatedFirst:FindFirstChild("Scripts")
+    local scripts = ReplicatedFirst:FindFirstChild("Scripts")
     
-    if baseEffectPath then
-        baseEffectPath = baseEffectPath:FindFirstChild("Object")
-        if baseEffectPath then
-            baseEffectPath = baseEffectPath:FindFirstChild("Data")
-            if baseEffectPath then
-                baseEffectPath = baseEffectPath:FindFirstChild("BaseEffect")
+    if scripts then
+        local object = scripts:FindFirstChild("Object")
+        if object then
+            local data = object:FindFirstChild("Data")
+            if data then
+                local baseEffect = data:FindFirstChild("BaseEffect")
                 
-                if baseEffectPath then
-                    -- Restore original effects
-                    if Combat.originalShotHitEffect then
-                        local restored = Combat.originalShotHitEffect:Clone()
-                        restored.Parent = baseEffectPath
+                if baseEffect then
+                    -- Restore original source code
+                    local shotHitEffect = baseEffect:FindFirstChild("ShotHitEffect")
+                    if shotHitEffect and shotHitEffect:IsA("ModuleScript") and Combat.originalShotHitEffectSource then
+                        shotHitEffect.Source = Combat.originalShotHitEffectSource
                         print("[Combat] Restored ShotHitEffect")
                     end
                     
-                    if Combat.originalHitEffect then
-                        local restored = Combat.originalHitEffect:Clone()
-                        restored.Parent = baseEffectPath
+                    local hitEffect = baseEffect:FindFirstChild("HitEffect")
+                    if hitEffect and hitEffect:IsA("ModuleScript") and Combat.originalHitEffectSource then
+                        hitEffect.Source = Combat.originalHitEffectSource
                         print("[Combat] Restored HitEffect")
                     end
                     
