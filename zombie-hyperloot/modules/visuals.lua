@@ -15,17 +15,14 @@ Visuals.customTimeValue = 14 -- 14 = day, 0 = midnight
 -- Backup
 Visuals.originalLighting = {}
 
--- Connections
-Visuals.fogConnection = nil
-Visuals.fullbrightConnection = nil
-Visuals.timeConnection = nil
-
 function Visuals.init(config)
     Config = config
 end
 
 ----------------------------------------------------------
--- 🔹 Remove Fog (with continuous monitoring)
+-- 🔹 Remove Fog
+Visuals.removedAtmospheres = {}
+
 function Visuals.removeFog()
     local lighting = game:GetService("Lighting")
     
@@ -36,35 +33,33 @@ function Visuals.removeFog()
         Visuals.originalLighting.fogBackup = true
     end
     
-    -- Remove fog immediately
+    -- Remove fog
     lighting.FogEnd = 100000
-    lighting.FogStart = 100000
     
-    -- Monitor and force remove fog every frame
-    if not Visuals.fogConnection then
-        Visuals.fogConnection = Config.RunService.Heartbeat:Connect(function()
-            if Visuals.removeFogEnabled then
-                lighting.FogEnd = 100000
-                lighting.FogStart = 100000
-            end
-        end)
+    -- Remove all Atmosphere objects
+    for _, v in pairs(lighting:GetDescendants()) do
+        if v:IsA("Atmosphere") then
+            -- Backup atmosphere
+            table.insert(Visuals.removedAtmospheres, v:Clone())
+            v:Destroy()
+        end
     end
     
-    print("[Visuals] Fog removed (monitoring)")
+    print("[Visuals] Fog and atmosphere removed")
 end
 
 function Visuals.restoreFog()
-    -- Stop monitoring
-    if Visuals.fogConnection then
-        Visuals.fogConnection:Disconnect()
-        Visuals.fogConnection = nil
-    end
-    
     if not Visuals.originalLighting.fogBackup then return end
     
     local lighting = game:GetService("Lighting")
     lighting.FogEnd = Visuals.originalLighting.FogEnd
-    lighting.FogStart = Visuals.originalLighting.FogStart
+    
+    -- Restore atmospheres
+    for _, atmosphere in ipairs(Visuals.removedAtmospheres) do
+        local restored = atmosphere:Clone()
+        restored.Parent = lighting
+    end
+    Visuals.removedAtmospheres = {}
     
     print("[Visuals] Fog restored")
 end
@@ -80,7 +75,7 @@ function Visuals.toggleRemoveFog(enabled)
 end
 
 ----------------------------------------------------------
--- 🔹 Fullbright (with continuous monitoring)
+-- 🔹 Fullbright
 function Visuals.enableFullbright()
     local lighting = game:GetService("Lighting")
     
@@ -93,34 +88,16 @@ function Visuals.enableFullbright()
         Visuals.originalLighting.fullbrightBackup = true
     end
     
-    -- Enable fullbright immediately
+    -- Enable fullbright
     lighting.Brightness = 2
     lighting.Ambient = Color3.fromRGB(255, 255, 255)
     lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
     lighting.GlobalShadows = false
     
-    -- Monitor and force fullbright
-    if not Visuals.fullbrightConnection then
-        Visuals.fullbrightConnection = Config.RunService.Heartbeat:Connect(function()
-            if Visuals.fullbrightEnabled then
-                lighting.Brightness = 2
-                lighting.Ambient = Color3.fromRGB(255, 255, 255)
-                lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
-                lighting.GlobalShadows = false
-            end
-        end)
-    end
-    
-    print("[Visuals] Fullbright enabled (monitoring)")
+    print("[Visuals] Fullbright enabled")
 end
 
 function Visuals.disableFullbright()
-    -- Stop monitoring
-    if Visuals.fullbrightConnection then
-        Visuals.fullbrightConnection:Disconnect()
-        Visuals.fullbrightConnection = nil
-    end
-    
     if not Visuals.originalLighting.fullbrightBackup then return end
     
     local lighting = game:GetService("Lighting")
@@ -143,7 +120,7 @@ function Visuals.toggleFullbright(enabled)
 end
 
 ----------------------------------------------------------
--- 🔹 Custom Time (Day/Night) (with continuous monitoring)
+-- 🔹 Custom Time (Day/Night)
 function Visuals.setCustomTime(timeValue)
     local lighting = game:GetService("Lighting")
     
@@ -156,25 +133,10 @@ function Visuals.setCustomTime(timeValue)
     lighting.ClockTime = timeValue
     Visuals.customTimeValue = timeValue
     
-    -- Monitor and force time
-    if not Visuals.timeConnection then
-        Visuals.timeConnection = Config.RunService.Heartbeat:Connect(function()
-            if Visuals.customTimeEnabled then
-                lighting.ClockTime = Visuals.customTimeValue
-            end
-        end)
-    end
-    
-    print(string.format("[Visuals] Time set to %d:00 (monitoring)", timeValue))
+    print(string.format("[Visuals] Time set to %d:00", timeValue))
 end
 
 function Visuals.restoreTime()
-    -- Stop monitoring
-    if Visuals.timeConnection then
-        Visuals.timeConnection:Disconnect()
-        Visuals.timeConnection = nil
-    end
-    
     if not Visuals.originalLighting.timeBackup then return end
     
     local lighting = game:GetService("Lighting")
@@ -217,22 +179,6 @@ function Visuals.cleanup()
     Visuals.restoreFog()
     Visuals.disableFullbright()
     Visuals.restoreTime()
-    
-    -- Disconnect all connections
-    if Visuals.fogConnection then
-        Visuals.fogConnection:Disconnect()
-        Visuals.fogConnection = nil
-    end
-    
-    if Visuals.fullbrightConnection then
-        Visuals.fullbrightConnection:Disconnect()
-        Visuals.fullbrightConnection = nil
-    end
-    
-    if Visuals.timeConnection then
-        Visuals.timeConnection:Disconnect()
-        Visuals.timeConnection = nil
-    end
 end
 
 return Visuals
