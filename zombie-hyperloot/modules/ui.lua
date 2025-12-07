@@ -4,14 +4,14 @@
 ]]
 
 local UI = {}
-local Config, Combat, ESP, Movement, Map, Farm, HUD = nil, nil, nil, nil, nil, nil, nil
+local Config, Combat, ESP, Movement, Map, Farm, HUD, Visuals = nil, nil, nil, nil, nil, nil, nil, nil
 
 UI.Window = nil
 UI.Fluent = nil
 UI.SaveManager = nil
 UI.InterfaceManager = nil
 
-function UI.init(config, combat, esp, movement, map, farm, hud)
+function UI.init(config, combat, esp, movement, map, farm, hud, visuals)
     Config = config
     Combat = combat
     ESP = esp
@@ -19,6 +19,7 @@ function UI.init(config, combat, esp, movement, map, farm, hud)
     Map = map
     Farm = farm
     HUD = hud
+    Visuals = visuals
 end
 
 function UI.loadLibraries()
@@ -908,6 +909,87 @@ end
 
 
 ----------------------------------------------------------
+-- 🔹 Visuals Tab
+function UI.createVisualsTab()
+    local VisualsTab = UI.Window:AddTab({ Title = "Visuals" })
+
+    VisualsTab:AddSection("Fog")
+
+    VisualsTab:AddToggle("RemoveFog", {
+        Title = "Remove Fog",
+        Description = "Xóa sương mù để nhìn xa hơn",
+        Default = Config.removeFogEnabled,
+        Callback = function(Value)
+            Config.removeFogEnabled = Value
+            Visuals.toggleRemoveFog(Value)
+        end
+    })
+
+    VisualsTab:AddSection("Lighting")
+
+    VisualsTab:AddToggle("Fullbright", {
+        Title = "Fullbright",
+        Description = "Làm sáng toàn bộ map",
+        Default = Config.fullbrightEnabled,
+        Callback = function(Value)
+            Config.fullbrightEnabled = Value
+            Visuals.toggleFullbright(Value)
+        end
+    })
+
+    VisualsTab:AddSection("Time Control")
+
+    VisualsTab:AddToggle("CustomTime", {
+        Title = "Custom Time",
+        Description = "Tùy chỉnh thời gian trong game",
+        Default = Config.customTimeEnabled,
+        Callback = function(Value)
+            Config.customTimeEnabled = Value
+            Visuals.toggleCustomTime(Value)
+        end
+    })
+
+    VisualsTab:AddSlider("TimeValue", {
+        Title = "Time (Hour)",
+        Description = "0 = Midnight, 12 = Noon, 14 = Afternoon",
+        Default = Config.customTimeValue,
+        Min = 0, Max = 24, Rounding = 0,
+        Callback = function(Value)
+            Config.customTimeValue = Value
+            if Config.customTimeEnabled then
+                Visuals.setCustomTime(Value)
+            end
+        end
+    })
+
+    VisualsTab:AddSection("Quick Actions")
+
+    VisualsTab:AddButton({
+        Title = "Apply All",
+        Description = "Bật tất cả visual enhancements",
+        Callback = function()
+            Visuals.applyAll()
+            Config.removeFogEnabled = true
+            Config.fullbrightEnabled = true
+            Config.customTimeEnabled = true
+        end
+    })
+
+    VisualsTab:AddButton({
+        Title = "Disable All",
+        Description = "Tắt tất cả và restore về ban đầu",
+        Callback = function()
+            Visuals.disableAll()
+            Config.removeFogEnabled = false
+            Config.fullbrightEnabled = false
+            Config.customTimeEnabled = false
+        end
+    })
+
+    return VisualsTab
+end
+
+----------------------------------------------------------
 -- 🔹 Build All Tabs
 function UI.buildAllTabs(cleanupCallback)
     UI.createCombatTab()
@@ -915,6 +997,7 @@ function UI.buildAllTabs(cleanupCallback)
     UI.createMovementTab()
     UI.createMapTab()
     UI.createFarmTab()
+    UI.createVisualsTab()
     UI.createHUDTab()
     UI.createSettingsTab(cleanupCallback)
     UI.createInfoTab()

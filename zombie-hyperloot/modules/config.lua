@@ -151,6 +151,13 @@ Config.supplyESPEnabled = true
 Config.supplyESPPosition = "Left" -- "Left" hoặc "Right"
 
 ----------------------------------------------------------
+-- 🔹 Visuals
+Config.removeFogEnabled = false
+Config.fullbrightEnabled = false
+Config.customTimeEnabled = false
+Config.customTimeValue = 14 -- 14 = day, 0 = midnight
+
+----------------------------------------------------------
 -- 🔹 Connection Storage (để cleanup)
 Config.connections = {}
 

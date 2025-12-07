@@ -310,19 +310,13 @@ function Combat.removeShotEffects()
             Combat.originalHitEffect = hitEffect:Clone()
         end
         
-        -- Create dummy modules with full structure
+        -- Create dummy modules that return empty functions
         if shotHitEffect and shotHitEffect:IsA("ModuleScript") then
-            -- Clone structure but clear source
-            Combat.dummyShotHitEffect = shotHitEffect:Clone()
+            Combat.dummyShotHitEffect = Instance.new("ModuleScript")
+            Combat.dummyShotHitEffect.Name = "ShotHitEffect"
             Combat.dummyShotHitEffect.Source = [[
                 local module = {}
-                function module.new(...)
-                    local obj = {}
-                    function obj:Show(...) end
-                    function obj:Hide(...) end
-                    function obj:Destroy(...) end
-                    return obj
-                end
+                function module.new(...) return setmetatable({}, {__index = function() return function() end end}) end
                 return module
             ]]
             shotHitEffect:Destroy()
@@ -331,17 +325,11 @@ function Combat.removeShotEffects()
         end
         
         if hitEffect and hitEffect:IsA("ModuleScript") then
-            -- Clone structure including Holes folder
-            Combat.dummyHitEffect = hitEffect:Clone()
+            Combat.dummyHitEffect = Instance.new("ModuleScript")
+            Combat.dummyHitEffect.Name = "HitEffect"
             Combat.dummyHitEffect.Source = [[
                 local module = {}
-                function module.new(...)
-                    local obj = {}
-                    function obj:Show(...) end
-                    function obj:Hide(...) end
-                    function obj:Destroy(...) end
-                    return obj
-                end
+                function module.new(...) return setmetatable({}, {__index = function() return function() end end}) end
                 return module
             ]]
             hitEffect:Destroy()

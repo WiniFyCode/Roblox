@@ -13,6 +13,7 @@ local Movement = loadstring(game:HttpGet("https://raw.githubusercontent.com/Wini
 local Map = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/map.lua"))()
 local Farm = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/farm.lua"))()
 local HUD = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/hud.lua"))()
+local Visuals = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/visuals.lua"))()
 local UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/ui.lua"))()
 
 -- Initialize Modules
@@ -22,7 +23,8 @@ Movement.init(Config)
 Map.init(Config)
 Farm.init(Config, ESP)
 HUD.init(Config)
-UI.init(Config, Combat, ESP, Movement, Map, Farm, HUD)
+Visuals.init(Config)
+UI.init(Config, Combat, ESP, Movement, Map, Farm, HUD, Visuals)
 
 ----------------------------------------------------------
 -- 🔹 Cleanup Function
@@ -80,6 +82,7 @@ local function cleanupScript()
     Movement.cleanup()
     Map.cleanup()
     HUD.cleanup()
+    Visuals.cleanup()
     UI.cleanup()
 
     -- Khôi phục hitbox
@@ -182,6 +185,7 @@ end)
 
 ----------------------------------------------------------
 -- 🔹 Main Render Loop (Aimbot + ESP)
+local highlightUpdateTick = 0
 renderSteppedConnection = Config.RunService.RenderStepped:Connect(function()
     if Config.scriptUnloaded then return end
 
@@ -194,6 +198,14 @@ renderSteppedConnection = Config.RunService.RenderStepped:Connect(function()
         Combat.FOVCircle.Visible = Config.aimbotEnabled and Config.aimbotFOVEnabled
         Combat.FOVCircle.Color = Config.aimbotEnabled and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 255, 255)
         Combat.FOVCircle.Thickness = Config.aimbotEnabled and 2 or 1.5
+    end
+    
+    -- Update Highlights (every 0.5s to reduce lag)
+    highlightUpdateTick = highlightUpdateTick + 1
+    if highlightUpdateTick >= 30 then
+        highlightUpdateTick = 0
+        ESP.updateZombieHighlights()
+        ESP.updatePlayerHighlights()
     end
     
     -- ESP Update Loop

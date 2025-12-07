@@ -51,6 +51,8 @@ end
 
 ----------------------------------------------------------
 -- 🔹 Player ESP
+ESP.playerHighlights = {}
+
 function ESP.createPlayerESPElements()
     return {
         Box       = newDrawing("Square", {Visible = false, Thickness = 2, Filled = false, Color = Config.espColorPlayer}),
@@ -66,6 +68,56 @@ function ESP.hidePlayerESP(data)
     data.Name.Visible = false
     data.Tracer.Visible = false
     data.HealthBar.Visible = false
+end
+
+function ESP.addPlayerHighlight(player)
+    local char = player.Character
+    if not char or ESP.playerHighlights[player] then return end
+    
+    local isEnemy = Config.espPlayerTeamCheck and player.Team ~= Config.localPlayer.Team
+    local color = isEnemy and Config.espColorEnemy or Config.espColorPlayer
+    
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "PlayerESP_Highlight"
+    highlight.Adornee = char
+    highlight.FillColor = color
+    highlight.OutlineColor = color
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.Parent = char
+    
+    ESP.playerHighlights[player] = highlight
+end
+
+function ESP.removePlayerHighlight(player)
+    local highlight = ESP.playerHighlights[player]
+    if highlight then
+        highlight:Destroy()
+        ESP.playerHighlights[player] = nil
+    end
+end
+
+function ESP.updatePlayerHighlights()
+    for _, player in ipairs(Config.Players:GetPlayers()) do
+        if player ~= Config.localPlayer then
+            local char = player.Character
+            local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+            
+            if char and humanoid and humanoid.Health > 0 then
+                if Config.espPlayerEnabled then
+                    if Config.espPlayerTeamCheck and player.Team == Config.localPlayer.Team then
+                        ESP.removePlayerHighlight(player)
+                    else
+                        ESP.addPlayerHighlight(player)
+                    end
+                else
+                    ESP.removePlayerHighlight(player)
+                end
+            else
+                ESP.removePlayerHighlight(player)
+            end
+        end
+    end
 end
 
 function ESP.drawPlayerESP(plr, cf, size, humanoid)
@@ -186,6 +238,8 @@ end
 
 ----------------------------------------------------------
 -- 🔹 Zombie ESP
+ESP.zombieHighlights = {}
+
 function ESP.createZombieESPElements()
     return {
         Box       = Drawing.new("Square"),
@@ -201,6 +255,46 @@ function ESP.hideZombieESP(data)
     data.Name.Visible = false
     data.Tracer.Visible = false
     data.HealthBar.Visible = false
+end
+
+function ESP.addZombieHighlight(zombie)
+    if ESP.zombieHighlights[zombie] then return end
+    
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "ZombieESP_Highlight"
+    highlight.Adornee = zombie
+    highlight.FillColor = Config.espColorZombie
+    highlight.OutlineColor = Config.espColorZombie
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.Parent = zombie
+    
+    ESP.zombieHighlights[zombie] = highlight
+end
+
+function ESP.removeZombieHighlight(zombie)
+    local highlight = ESP.zombieHighlights[zombie]
+    if highlight then
+        highlight:Destroy()
+        ESP.zombieHighlights[zombie] = nil
+    end
+end
+
+function ESP.updateZombieHighlights()
+    for _, zombie in ipairs(Config.entityFolder:GetChildren()) do
+        if zombie:IsA("Model") then
+            local humanoid = zombie:FindFirstChildOfClass("Humanoid")
+            if humanoid and humanoid.Health > 0 then
+                if Config.espZombieEnabled then
+                    ESP.addZombieHighlight(zombie)
+                else
+                    ESP.removeZombieHighlight(zombie)
+                end
+            else
+                ESP.removeZombieHighlight(zombie)
+            end
+        end
+    end
 end
 
 function ESP.drawZombieESP(zombieModel, cf, size, humanoid)
@@ -433,6 +527,17 @@ function ESP.cleanup()
         if data.HealthBar and data.HealthBar.Remove then pcall(function() data.HealthBar:Remove() end) end
     end
     ESP.zombieESPObjects = {}
+
+    -- Clear highlights
+    for _, highlight in pairs(ESP.zombieHighlights) do
+        pcall(function() highlight:Destroy() end)
+    end
+    ESP.zombieHighlights = {}
+    
+    for _, highlight in pairs(ESP.playerHighlights) do
+        pcall(function() highlight:Destroy() end)
+    end
+    ESP.playerHighlights = {}
 
     -- Clear chest ESP
     ESP.clearChestESP()
