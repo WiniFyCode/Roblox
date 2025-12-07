@@ -5,60 +5,164 @@
     Modular version - Load từng modules để giảm lag
 ]]
 
-print("[ZombieHyperloot] Đang load modules...")
+----------------------------------------------------------
+-- 🔹 Loading Screen UI
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
--- Load Config trước
-print("[1/9] Loading Config...")
-local Config = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/config.lua"))()
-task.wait(0.1)
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ZombieHyperlootLoader"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
--- Load Visuals
-print("[2/9] Loading Visuals...")
-local Visuals = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/visuals.lua"))()
+-- Background
+local background = Instance.new("Frame")
+background.Name = "Background"
+background.Size = UDim2.new(1, 0, 1, 0)
+background.Position = UDim2.new(0, 0, 0, 0)
+background.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+background.BackgroundTransparency = 0.5
+background.BorderSizePixel = 0
+background.Parent = screenGui
+
+-- Main Frame
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 400, 0, 150)
+mainFrame.Position = UDim2.new(0.5, -200, 0.5, -75)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = mainFrame
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Size = UDim2.new(1, -40, 0, 40)
+title.Position = UDim2.new(0, 20, 0, 15)
+title.BackgroundTransparency = 1
+title.Text = "Zombie Hyperloot"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 24
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = mainFrame
+
+-- Subtitle
+local subtitle = Instance.new("TextLabel")
+subtitle.Name = "Subtitle"
+subtitle.Size = UDim2.new(1, -40, 0, 20)
+subtitle.Position = UDim2.new(0, 20, 0, 50)
+subtitle.BackgroundTransparency = 1
+subtitle.Text = "by WiniFy"
+subtitle.TextColor3 = Color3.fromRGB(150, 150, 150)
+subtitle.TextSize = 14
+subtitle.Font = Enum.Font.Gotham
+subtitle.TextXAlignment = Enum.TextXAlignment.Left
+subtitle.Parent = mainFrame
+
+-- Progress Bar Background
+local progressBg = Instance.new("Frame")
+progressBg.Name = "ProgressBg"
+progressBg.Size = UDim2.new(1, -40, 0, 8)
+progressBg.Position = UDim2.new(0, 20, 0, 85)
+progressBg.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+progressBg.BorderSizePixel = 0
+progressBg.Parent = mainFrame
+
+local progressCorner = Instance.new("UICorner")
+progressCorner.CornerRadius = UDim.new(0, 4)
+progressCorner.Parent = progressBg
+
+-- Progress Bar Fill
+local progressFill = Instance.new("Frame")
+progressFill.Name = "ProgressFill"
+progressFill.Size = UDim2.new(0, 0, 1, 0)
+progressFill.BackgroundColor3 = Color3.fromRGB(100, 200, 255)
+progressFill.BorderSizePixel = 0
+progressFill.Parent = progressBg
+
+local fillCorner = Instance.new("UICorner")
+fillCorner.CornerRadius = UDim.new(0, 4)
+fillCorner.Parent = progressFill
+
+-- Status Text
+local statusText = Instance.new("TextLabel")
+statusText.Name = "StatusText"
+statusText.Size = UDim2.new(1, -40, 0, 30)
+statusText.Position = UDim2.new(0, 20, 0, 105)
+statusText.BackgroundTransparency = 1
+statusText.Text = "Initializing..."
+statusText.TextColor3 = Color3.fromRGB(200, 200, 200)
+statusText.TextSize = 13
+statusText.Font = Enum.Font.Gotham
+statusText.TextXAlignment = Enum.TextXAlignment.Left
+statusText.Parent = mainFrame
+
+-- Update Progress Function
+local function updateProgress(current, total, text)
+    local progress = current / total
+    progressFill:TweenSize(
+        UDim2.new(progress, 0, 1, 0),
+        Enum.EasingDirection.Out,
+        Enum.EasingStyle.Quad,
+        0.3,
+        true
+    )
+    statusText.Text = string.format("[%d/%d] %s", current, total, text)
+end
+
+----------------------------------------------------------
+-- 🔹 Load Modules with Progress
+local Config, Visuals, Combat, ESP, Movement, Map, Farm, HUD, UI
+
+updateProgress(1, 9, "Loading Config...")
+Config = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/config.lua"))()
+task.wait(0.15)
+
+updateProgress(2, 9, "Loading Visuals...")
+Visuals = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/visuals.lua"))()
 Visuals.init(Config)
-task.wait(0.1)
+task.wait(0.15)
 
--- Load Combat
-print("[3/9] Loading Combat...")
-local Combat = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/combat.lua"))()
+updateProgress(3, 9, "Loading Combat...")
+Combat = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/combat.lua"))()
 Combat.init(Config, Visuals)
-task.wait(0.1)
+task.wait(0.15)
 
--- Load ESP
-print("[4/9] Loading ESP...")
-local ESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/esp.lua"))()
+updateProgress(4, 9, "Loading ESP...")
+ESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/esp.lua"))()
 ESP.init(Config)
-task.wait(0.1)
+task.wait(0.15)
 
--- Load Movement
-print("[5/9] Loading Movement...")
-local Movement = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/movement.lua"))()
+updateProgress(5, 9, "Loading Movement...")
+Movement = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/movement.lua"))()
 Movement.init(Config)
-task.wait(0.1)
+task.wait(0.15)
 
--- Load Map
-print("[6/9] Loading Map...")
-local Map = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/map.lua"))()
+updateProgress(6, 9, "Loading Map...")
+Map = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/map.lua"))()
 Map.init(Config)
-task.wait(0.1)
+task.wait(0.15)
 
--- Load Farm
-print("[7/9] Loading Farm...")
-local Farm = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/farm.lua"))()
+updateProgress(7, 9, "Loading Farm...")
+Farm = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/farm.lua"))()
 Farm.init(Config, ESP)
-task.wait(0.1)
+task.wait(0.15)
 
--- Load HUD
-print("[8/9] Loading HUD...")
-local HUD = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/hud.lua"))()
+updateProgress(8, 9, "Loading HUD...")
+HUD = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/hud.lua"))()
 HUD.init(Config)
-task.wait(0.1)
+task.wait(0.15)
 
--- Load UI
-print("[9/9] Loading UI...")
-local UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/ui.lua"))()
+updateProgress(9, 9, "Loading UI...")
+UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/ui.lua"))()
 UI.init(Config, Combat, ESP, Movement, Map, Farm, HUD, Visuals)
-task.wait(0.1)
+task.wait(0.3)
 
 ----------------------------------------------------------
 -- 🔹 Cleanup Function
@@ -492,9 +596,30 @@ end)
 
 ----------------------------------------------------------
 -- 🔹 Load UI
+statusText.Text = "Finalizing..."
 UI.loadLibraries()
 UI.createWindow()
 UI.buildAllTabs(cleanupScript)
+
+-- Success message
+statusText.Text = "✓ Loaded successfully!"
+statusText.TextColor3 = Color3.fromRGB(100, 255, 100)
+progressFill.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+task.wait(1)
+
+-- Fade out loading screen
+for i = 0, 1, 0.1 do
+    background.BackgroundTransparency = 0.5 + (i * 0.5)
+    mainFrame.BackgroundTransparency = i
+    title.TextTransparency = i
+    subtitle.TextTransparency = i
+    progressBg.BackgroundTransparency = i
+    progressFill.BackgroundTransparency = i
+    statusText.TextTransparency = i
+    task.wait(0.05)
+end
+
+screenGui:Destroy()
 
 print("[ZombieHyperloot] Script loaded successfully!")
 print("[ZombieHyperloot] Press Right Shift to open menu")
