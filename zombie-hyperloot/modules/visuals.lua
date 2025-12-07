@@ -174,11 +174,93 @@ function Visuals.disableAll()
 end
 
 ----------------------------------------------------------
+-- 🔹 Remove Effects
+Visuals.removedEffects = {}
+Visuals.effectsRemoved = false
+
+function Visuals.removeAllEffects()
+    local success, err = pcall(function()
+        local replicatedFirst = game:GetService("ReplicatedFirst")
+        local baseEffectPath = replicatedFirst:WaitForChild("Scripts"):WaitForChild("Object"):WaitForChild("Data"):WaitForChild("BaseEffect")
+        
+        -- Danh sách các effect cần xóa
+        local effectNames = {
+            "ShotEntityEffect",
+            "ShotHitEffect",
+            "HitEffect"
+        }
+        
+        -- Xóa từng effect
+        for _, effectName in ipairs(effectNames) do
+            local effect = baseEffectPath:FindFirstChild(effectName)
+            if effect then
+                -- Backup effect trước khi xóa
+                table.insert(Visuals.removedEffects, {
+                    name = effectName,
+                    parent = effect.Parent,
+                    clone = effect:Clone()
+                })
+                
+                -- Xóa effect
+                effect:Destroy()
+                print(string.format("[Visuals] Đã xóa %s", effectName))
+            else
+                warn(string.format("[Visuals] Không tìm thấy %s", effectName))
+            end
+        end
+        
+        Visuals.effectsRemoved = true
+        print("[Visuals] Đã xóa tất cả effects thành công!")
+    end)
+    
+    if not success then
+        warn("[Visuals] Lỗi khi xóa effects: " .. tostring(err))
+    end
+end
+
+function Visuals.restoreAllEffects()
+    if #Visuals.removedEffects == 0 then
+        print("[Visuals] Không có effect nào để khôi phục")
+        return
+    end
+    
+    local success, err = pcall(function()
+        -- Khôi phục từng effect
+        for _, effectData in ipairs(Visuals.removedEffects) do
+            local restored = effectData.clone:Clone()
+            restored.Parent = effectData.parent
+            print(string.format("[Visuals] Đã khôi phục %s", effectData.name))
+        end
+        
+        Visuals.removedEffects = {}
+        Visuals.effectsRemoved = false
+        print("[Visuals] Đã khôi phục tất cả effects!")
+    end)
+    
+    if not success then
+        warn("[Visuals] Lỗi khi khôi phục effects: " .. tostring(err))
+    end
+end
+
+function Visuals.toggleRemoveEffects(enabled)
+    if enabled then
+        Visuals.removeAllEffects()
+    else
+        Visuals.restoreAllEffects()
+    end
+end
+
+----------------------------------------------------------
 -- 🔹 Cleanup
 function Visuals.cleanup()
     Visuals.restoreFog()
     Visuals.disableFullbright()
     Visuals.restoreTime()
+    
+    -- Khôi phục effects khi unload script
+    if Visuals.effectsRemoved then
+        Visuals.restoreAllEffects()
+    end
 end
 
 return Visuals

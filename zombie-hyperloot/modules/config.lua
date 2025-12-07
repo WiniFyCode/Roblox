@@ -121,10 +121,6 @@ Config.trigerSkillDupeEnabled = true
 Config.trigerSkillDupeCount = 5
 
 ----------------------------------------------------------
--- 🔹 Remove Shot Effects
-Config.removeShotEffectsEnabled = false
-
-----------------------------------------------------------
 -- 🔹 Aimbot Configuration
 Config.aimbotEnabled = true
 Config.aimbotHoldMouse2 = false -- Giữ chuột phải để aim
@@ -158,6 +154,10 @@ Config.removeFogEnabled = false
 Config.fullbrightEnabled = false
 Config.customTimeEnabled = false
 Config.customTimeValue = 14 -- 14 = day, 0 = midnight
+
+----------------------------------------------------------
+-- 🔹 Effects
+Config.removeEffectsEnabled = false
 
 ----------------------------------------------------------
 -- 🔹 Connection Storage (để cleanup)
