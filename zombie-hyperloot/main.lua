@@ -16,16 +16,6 @@ screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
--- Background
-local background = Instance.new("Frame")
-background.Name = "Background"
-background.Size = UDim2.new(1, 0, 1, 0)
-background.Position = UDim2.new(0, 0, 0, 0)
-background.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-background.BackgroundTransparency = 0.5
-background.BorderSizePixel = 0
-background.Parent = screenGui
-
 -- Main Frame
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
@@ -609,7 +599,6 @@ task.wait(1)
 
 -- Fade out loading screen
 for i = 0, 1, 0.1 do
-    background.BackgroundTransparency = 0.5 + (i * 0.5)
     mainFrame.BackgroundTransparency = i
     title.TextTransparency = i
     subtitle.TextTransparency = i

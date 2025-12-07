@@ -595,7 +595,8 @@ function UI.createSettingsTab(cleanupCallback)
     UI.SaveManager:SetFolder("ZombieHyperloot/Configs")
     UI.InterfaceManager:BuildInterfaceSection(SettingsTab)
     UI.SaveManager:BuildConfigSection(SettingsTab)
-    UI.SaveManager:LoadAutoloadConfig()
+    -- Tắt auto load để giảm lag khi khởi động
+    -- UI.SaveManager:LoadAutoloadConfig()
 
     return SettingsTab
 end
