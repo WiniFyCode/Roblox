@@ -264,40 +264,56 @@ Combat.originalHitEffect = nil
 function Combat.removeShotEffects()
     if Combat.removeShotEffectsEnabled then return end
     
-    local ReplicatedFirst = game:GetService("ReplicatedFirst")
-    local baseEffectPath = ReplicatedFirst:FindFirstChild("Scripts")
-    
-    if baseEffectPath then
-        baseEffectPath = baseEffectPath:FindFirstChild("Object")
-        if baseEffectPath then
-            baseEffectPath = baseEffectPath:FindFirstChild("Data")
-            if baseEffectPath then
-                baseEffectPath = baseEffectPath:FindFirstChild("BaseEffect")
-                
-                if baseEffectPath then
-                    -- Backup original effects
-                    local shotHitEffect = baseEffectPath:FindFirstChild("ShotHitEffect")
-                    local hitEffect = baseEffectPath:FindFirstChild("HitEffect")
-                    
-                    if shotHitEffect then
-                        Combat.originalShotHitEffect = shotHitEffect:Clone()
-                        shotHitEffect:Destroy()
-                        print("[Combat] Removed ShotHitEffect")
-                    end
-                    
-                    if hitEffect then
-                        Combat.originalHitEffect = hitEffect:Clone()
-                        hitEffect:Destroy()
-                        print("[Combat] Removed HitEffect")
-                    end
-                    
-                    Combat.removeShotEffectsEnabled = true
-                else
-                    warn("[Combat] BaseEffect not found")
-                end
-            end
+    task.spawn(function()
+        local ReplicatedFirst = game:GetService("ReplicatedFirst")
+        
+        -- Wait for Scripts folder
+        local scripts = ReplicatedFirst:WaitForChild("Scripts", 10)
+        if not scripts then
+            warn("[Combat] Scripts folder not found")
+            return
         end
-    end
+        
+        -- Wait for Object folder
+        local object = scripts:WaitForChild("Object", 10)
+        if not object then
+            warn("[Combat] Object folder not found")
+            return
+        end
+        
+        -- Wait for Data folder
+        local data = object:WaitForChild("Data", 10)
+        if not data then
+            warn("[Combat] Data folder not found")
+            return
+        end
+        
+        -- Wait for BaseEffect folder
+        local baseEffect = data:WaitForChild("BaseEffect", 10)
+        if not baseEffect then
+            warn("[Combat] BaseEffect folder not found")
+            return
+        end
+        
+        -- Wait for effects to exist
+        local shotHitEffect = baseEffect:WaitForChild("ShotHitEffect", 10)
+        local hitEffect = baseEffect:WaitForChild("HitEffect", 10)
+        
+        -- Backup and remove
+        if shotHitEffect then
+            Combat.originalShotHitEffect = shotHitEffect:Clone()
+            shotHitEffect:Destroy()
+            print("[Combat] Removed ShotHitEffect")
+        end
+        
+        if hitEffect then
+            Combat.originalHitEffect = hitEffect:Clone()
+            hitEffect:Destroy()
+            print("[Combat] Removed HitEffect")
+        end
+        
+        Combat.removeShotEffectsEnabled = true
+    end)
 end
 
 function Combat.restoreShotEffects()
