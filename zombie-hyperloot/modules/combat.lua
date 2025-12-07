@@ -5,13 +5,18 @@
 
 local Combat = {}
 local Config = nil
+local Visuals = nil
 
-function Combat.init(config)
+function Combat.init(config, visuals)
     Config = config
+    Visuals = visuals
 end
 
 -- Lưu zombie đã xử lý hitbox
 Combat.processedZombies = {}
+
+-- Biến để track lần đầu tiên dupe
+Combat.firstDupeTriggered = false
 
 ----------------------------------------------------------
 -- 🔹 TrigerSkill GunFire Dupe
@@ -33,6 +38,17 @@ function Combat.setupTrigerSkillDupe()
                 local secondArgument = remoteArguments[2]
 
                 if firstArgument == "GunFire" and secondArgument == "Atk" then
+                    -- Kích hoạt remove effects lần đầu tiên
+                    if not Combat.firstDupeTriggered and Config.removeEffectsEnabled then
+                        Combat.firstDupeTriggered = true
+                        if Visuals and Visuals.removeAllEffects then
+                            task.spawn(function()
+                                Visuals.removeAllEffects()
+                                print("[Combat] Remove effects kích hoạt lần đầu tiên!")
+                            end)
+                        end
+                    end
+                    
                     for i = 1, Config.trigerSkillDupeCount do
                         oldTrigerSkillNamecall(remoteInstance, table.unpack(remoteArguments))
                     end

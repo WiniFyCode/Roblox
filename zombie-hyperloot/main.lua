@@ -17,13 +17,13 @@ local Visuals = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniF
 local UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/ui.lua"))()
 
 -- Initialize Modules
-Combat.init(Config)
+Visuals.init(Config)
+Combat.init(Config, Visuals)
 ESP.init(Config)
 Movement.init(Config)
 Map.init(Config)
 Farm.init(Config, ESP)
 HUD.init(Config)
-Visuals.init(Config)
 UI.init(Config, Combat, ESP, Movement, Map, Farm, HUD, Visuals)
 
 ----------------------------------------------------------

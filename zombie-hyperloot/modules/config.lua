@@ -157,7 +157,7 @@ Config.customTimeValue = 14 -- 14 = day, 0 = midnight
 
 ----------------------------------------------------------
 -- 🔹 Effects
-Config.removeEffectsEnabled = false
+Config.removeEffectsEnabled = true -- Tự động xóa effects khi dupe lần đầu
 
 ----------------------------------------------------------
 -- 🔹 Connection Storage (để cleanup)

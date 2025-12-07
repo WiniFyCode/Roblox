@@ -976,18 +976,6 @@ function UI.createVisualsTab()
         end
     })
 
-    VisualsTab:AddSection("Effects")
-
-    VisualsTab:AddToggle("RemoveEffects", {
-        Title = "Remove Gun Effects",
-        Description = "Xóa hiệu ứng bắn súng (ShotEntityEffect, ShotHitEffect, HitEffect)",
-        Default = Config.removeEffectsEnabled,
-        Callback = function(Value)
-            Config.removeEffectsEnabled = Value
-            Visuals.toggleRemoveEffects(Value)
-        end
-    })
-
     return VisualsTab
 end
 
