@@ -299,16 +299,34 @@ function Combat.removeShotEffects()
         local shotHitEffect = baseEffect:WaitForChild("ShotHitEffect", 10)
         local hitEffect = baseEffect:WaitForChild("HitEffect", 10)
         
-        -- Backup original source and replace with empty module
+        -- Backup original source and replace with dummy module
         if shotHitEffect and shotHitEffect:IsA("ModuleScript") then
             Combat.originalShotHitEffectSource = shotHitEffect.Source
-            shotHitEffect.Source = "return {new = function() return {} end}"
+            shotHitEffect.Source = [[
+local module = {}
+function module.new()
+    return setmetatable({}, {
+        __index = function() return function() end end,
+        __newindex = function() end
+    })
+end
+return module
+]]
             print("[Combat] Disabled ShotHitEffect")
         end
         
         if hitEffect and hitEffect:IsA("ModuleScript") then
             Combat.originalHitEffectSource = hitEffect.Source
-            hitEffect.Source = "return {new = function() return {} end}"
+            hitEffect.Source = [[
+local module = {}
+function module.new()
+    return setmetatable({}, {
+        __index = function() return function() end end,
+        __newindex = function() end
+    })
+end
+return module
+]]
             print("[Combat] Disabled HitEffect")
         end
         
