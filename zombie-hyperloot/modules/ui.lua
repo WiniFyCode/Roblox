@@ -224,7 +224,6 @@ function UI.createESPTab()
 
     ESPTab:AddToggle("ESPZombieHighlight", {
         Title = "Zombie Highlight",
-        Description = "Highlight zombies through walls",
         Default = Config.espZombieHighlight,
         Callback = function(Value)
             Config.espZombieHighlight = Value
@@ -315,7 +314,6 @@ function UI.createESPTab()
 
     ESPTab:AddToggle("ESPPlayerHighlight", {
         Title = "Player Highlight",
-        Description = "Highlight players through walls",
         Default = Config.espPlayerHighlight,
         Callback = function(Value)
             Config.espPlayerHighlight = Value
