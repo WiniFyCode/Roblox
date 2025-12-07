@@ -234,6 +234,20 @@ function UI.createESPTab()
         Callback = function(Value) Config.espZombieHealth = Value end
     })
 
+    ESPTab:AddToggle("ESPZombieHighlight", {
+        Title = "Zombie Highlight",
+        Description = "Highlight zombies through walls",
+        Default = Config.espZombieHighlight,
+        Callback = function(Value)
+            Config.espZombieHighlight = Value
+            if not Value then
+                for zombie, highlight in pairs(ESP.zombieHighlights) do
+                    ESP.removeZombieHighlight(zombie)
+                end
+            end
+        end
+    })
+
     ESPTab:AddSection("Chest ESP")
 
     ESPTab:AddToggle("ESPChest", {
@@ -309,6 +323,20 @@ function UI.createESPTab()
         Title = "Team Check",
         Default = Config.espPlayerTeamCheck,
         Callback = function(Value) Config.espPlayerTeamCheck = Value end
+    })
+
+    ESPTab:AddToggle("ESPPlayerHighlight", {
+        Title = "Player Highlight",
+        Description = "Highlight players through walls",
+        Default = Config.espPlayerHighlight,
+        Callback = function(Value)
+            Config.espPlayerHighlight = Value
+            if not Value then
+                for player, highlight in pairs(ESP.playerHighlights) do
+                    ESP.removePlayerHighlight(player)
+                end
+            end
+        end
     })
 
     return ESPTab
@@ -959,30 +987,6 @@ function UI.createVisualsTab()
             if Config.customTimeEnabled then
                 Visuals.setCustomTime(Value)
             end
-        end
-    })
-
-    VisualsTab:AddSection("Quick Actions")
-
-    VisualsTab:AddButton({
-        Title = "Apply All",
-        Description = "Bật tất cả visual enhancements",
-        Callback = function()
-            Visuals.applyAll()
-            Config.removeFogEnabled = true
-            Config.fullbrightEnabled = true
-            Config.customTimeEnabled = true
-        end
-    })
-
-    VisualsTab:AddButton({
-        Title = "Disable All",
-        Description = "Tắt tất cả và restore về ban đầu",
-        Callback = function()
-            Visuals.disableAll()
-            Config.removeFogEnabled = false
-            Config.fullbrightEnabled = false
-            Config.customTimeEnabled = false
         end
     })
 

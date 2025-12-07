@@ -71,6 +71,7 @@ function ESP.hidePlayerESP(data)
 end
 
 function ESP.addPlayerHighlight(player)
+    if not Config.espPlayerHighlight then return end
     local char = player.Character
     if not char or ESP.playerHighlights[player] then return end
     
@@ -104,7 +105,7 @@ function ESP.updatePlayerHighlights()
             local humanoid = char and char:FindFirstChildOfClass("Humanoid")
             
             if char and humanoid and humanoid.Health > 0 then
-                if Config.espPlayerEnabled then
+                if Config.espPlayerEnabled and Config.espPlayerHighlight then
                     if Config.espPlayerTeamCheck and player.Team == Config.localPlayer.Team then
                         ESP.removePlayerHighlight(player)
                     else
@@ -258,6 +259,7 @@ function ESP.hideZombieESP(data)
 end
 
 function ESP.addZombieHighlight(zombie)
+    if not Config.espZombieHighlight then return end
     if ESP.zombieHighlights[zombie] then return end
     
     local highlight = Instance.new("Highlight")
@@ -285,7 +287,7 @@ function ESP.updateZombieHighlights()
         if zombie:IsA("Model") then
             local humanoid = zombie:FindFirstChildOfClass("Humanoid")
             if humanoid and humanoid.Health > 0 then
-                if Config.espZombieEnabled then
+                if Config.espZombieEnabled and Config.espZombieHighlight then
                     ESP.addZombieHighlight(zombie)
                 else
                     ESP.removeZombieHighlight(zombie)

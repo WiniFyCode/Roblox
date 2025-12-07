@@ -50,6 +50,7 @@ Config.espZombieBoxes = true
 Config.espZombieTracers = false
 Config.espZombieNames = true
 Config.espZombieHealth = true
+Config.espZombieHighlight = true
 
 ----------------------------------------------------------
 -- 🔹 ESP Player Configuration
@@ -58,6 +59,7 @@ Config.espPlayerTracers = false
 Config.espPlayerNames = true
 Config.espPlayerHealth = true
 Config.espPlayerTeamCheck = false
+Config.espPlayerHighlight = true
 
 ----------------------------------------------------------
 -- 🔹 Keybinds
