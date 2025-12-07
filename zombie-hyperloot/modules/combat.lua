@@ -258,8 +258,10 @@ end
 ----------------------------------------------------------
 -- 🔹 Remove Shot Effects
 Combat.removeShotEffectsEnabled = false
-Combat.originalShotHitEffectSource = nil
-Combat.originalHitEffectSource = nil
+Combat.originalShotHitEffect = nil
+Combat.originalHitEffect = nil
+Combat.dummyShotHitEffect = nil
+Combat.dummyHitEffect = nil
 
 function Combat.removeShotEffects()
     if Combat.removeShotEffectsEnabled then return end
@@ -299,35 +301,40 @@ function Combat.removeShotEffects()
         local shotHitEffect = baseEffect:WaitForChild("ShotHitEffect", 10)
         local hitEffect = baseEffect:WaitForChild("HitEffect", 10)
         
-        -- Backup original source and replace with dummy module
+        -- Backup original effects
+        if shotHitEffect then
+            Combat.originalShotHitEffect = shotHitEffect:Clone()
+        end
+        
+        if hitEffect then
+            Combat.originalHitEffect = hitEffect:Clone()
+        end
+        
+        -- Create dummy modules that return empty functions
         if shotHitEffect and shotHitEffect:IsA("ModuleScript") then
-            Combat.originalShotHitEffectSource = shotHitEffect.Source
-            shotHitEffect.Source = [[
-local module = {}
-function module.new()
-    return setmetatable({}, {
-        __index = function() return function() end end,
-        __newindex = function() end
-    })
-end
-return module
-]]
-            print("[Combat] Disabled ShotHitEffect")
+            Combat.dummyShotHitEffect = Instance.new("ModuleScript")
+            Combat.dummyShotHitEffect.Name = "ShotHitEffect"
+            Combat.dummyShotHitEffect.Source = [[
+                local module = {}
+                function module.new(...) return setmetatable({}, {__index = function() return function() end end}) end
+                return module
+            ]]
+            shotHitEffect:Destroy()
+            Combat.dummyShotHitEffect.Parent = baseEffect
+            print("[Combat] Replaced ShotHitEffect with dummy")
         end
         
         if hitEffect and hitEffect:IsA("ModuleScript") then
-            Combat.originalHitEffectSource = hitEffect.Source
-            hitEffect.Source = [[
-local module = {}
-function module.new()
-    return setmetatable({}, {
-        __index = function() return function() end end,
-        __newindex = function() end
-    })
-end
-return module
-]]
-            print("[Combat] Disabled HitEffect")
+            Combat.dummyHitEffect = Instance.new("ModuleScript")
+            Combat.dummyHitEffect.Name = "HitEffect"
+            Combat.dummyHitEffect.Source = [[
+                local module = {}
+                function module.new(...) return setmetatable({}, {__index = function() return function() end end}) end
+                return module
+            ]]
+            hitEffect:Destroy()
+            Combat.dummyHitEffect.Parent = baseEffect
+            print("[Combat] Replaced HitEffect with dummy")
         end
         
         Combat.removeShotEffectsEnabled = true
@@ -338,26 +345,37 @@ function Combat.restoreShotEffects()
     if not Combat.removeShotEffectsEnabled then return end
     
     local ReplicatedFirst = game:GetService("ReplicatedFirst")
-    local scripts = ReplicatedFirst:FindFirstChild("Scripts")
+    local baseEffectPath = ReplicatedFirst:FindFirstChild("Scripts")
     
-    if scripts then
-        local object = scripts:FindFirstChild("Object")
-        if object then
-            local data = object:FindFirstChild("Data")
-            if data then
-                local baseEffect = data:FindFirstChild("BaseEffect")
+    if baseEffectPath then
+        baseEffectPath = baseEffectPath:FindFirstChild("Object")
+        if baseEffectPath then
+            baseEffectPath = baseEffectPath:FindFirstChild("Data")
+            if baseEffectPath then
+                baseEffectPath = baseEffectPath:FindFirstChild("BaseEffect")
                 
-                if baseEffect then
-                    -- Restore original source code
-                    local shotHitEffect = baseEffect:FindFirstChild("ShotHitEffect")
-                    if shotHitEffect and shotHitEffect:IsA("ModuleScript") and Combat.originalShotHitEffectSource then
-                        shotHitEffect.Source = Combat.originalShotHitEffectSource
+                if baseEffectPath then
+                    -- Remove dummy modules
+                    if Combat.dummyShotHitEffect then
+                        Combat.dummyShotHitEffect:Destroy()
+                        Combat.dummyShotHitEffect = nil
+                    end
+                    
+                    if Combat.dummyHitEffect then
+                        Combat.dummyHitEffect:Destroy()
+                        Combat.dummyHitEffect = nil
+                    end
+                    
+                    -- Restore original effects
+                    if Combat.originalShotHitEffect then
+                        local restored = Combat.originalShotHitEffect:Clone()
+                        restored.Parent = baseEffectPath
                         print("[Combat] Restored ShotHitEffect")
                     end
                     
-                    local hitEffect = baseEffect:FindFirstChild("HitEffect")
-                    if hitEffect and hitEffect:IsA("ModuleScript") and Combat.originalHitEffectSource then
-                        hitEffect.Source = Combat.originalHitEffectSource
+                    if Combat.originalHitEffect then
+                        local restored = Combat.originalHitEffect:Clone()
+                        restored.Parent = baseEffectPath
                         print("[Combat] Restored HitEffect")
                     end
                     
