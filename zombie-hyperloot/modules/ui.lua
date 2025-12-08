@@ -36,7 +36,7 @@ function UI.createWindow()
         Size = UDim2.fromOffset(580, 460),
         Acrylic = false,
         Theme = "Dark",
-        MinimizeKey = Enum.KeyCode.RightShift
+        MinimizeKey = Enum.KeyCode.RightControl
     })
 end
 
@@ -613,7 +613,7 @@ function UI.createInfoTab()
             X Key - Camera Teleport to Zombies
             M Key - Toggle Anti-Zombie
             N Key - Toggle Noclip Cam
-            Right Shift - Open/Close Menu
+            Right Ctrl - Open/Close Menu
             
             Supply ESP - Hiển thị bên trái màn hình
             Auto refresh mỗi 15 giây
@@ -638,7 +638,7 @@ function UI.createInfoTab()
         Title = "Cleanup",
         Content = [[
             • End key - Unload script & cleanup everything
-            • Right Shift - Toggle menu
+            • Right Ctrl - Toggle menu
             • Camera Teleport (X) tự tắt aimbot, tự bật lại khi kết thúc
         ]]
     })

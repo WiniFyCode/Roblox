@@ -611,4 +611,4 @@ end
 screenGui:Destroy()
 
 print("[ZombieHyperloot] Script loaded successfully!")
-print("[ZombieHyperloot] Press Right Shift to open menu")
+print("[ZombieHyperloot] Press Right Ctrl to open menu")
