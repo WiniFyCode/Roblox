@@ -156,14 +156,14 @@ function UI.createCombatTab()
     CombatTab:AddSlider("Skill1010Interval", {
         Title = "Skill 1010 Interval (s)",
         Default = Config.skill1010Interval,
-        Min = 10, Max = 60, Rounding = 1,
+        Min = 10, Max = 60, Rounding = 0,
         Callback = function(Value) Config.skill1010Interval = Value end
     })
 
     CombatTab:AddSlider("Skill1002Interval", {
         Title = "Skill 1002 Interval (s)",
         Default = Config.skill1002Interval,
-        Min = 15, Max = 60, Rounding = 1,
+        Min = 15, Max = 60, Rounding = 0,
         Callback = function(Value) Config.skill1002Interval = Value end
     })
 
