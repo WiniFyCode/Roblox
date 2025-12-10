@@ -23,6 +23,9 @@ Combat.firstDupeTriggered = false
 local oldTrigerSkillNamecall = nil
 
 function Combat.setupTrigerSkillDupe()
+    local isEnabled = false
+    
+    -- Thử hookmetamethod trước (phổ biến nhất: KRNL, Electron, v.v.)
     if hookmetamethod and getnamecallmethod and checkcaller then
         oldTrigerSkillNamecall = hookmetamethod(game, "__namecall", function(remoteInstance, ...)
             local callMethod = getnamecallmethod()
@@ -57,8 +60,81 @@ function Combat.setupTrigerSkillDupe()
 
             return oldTrigerSkillNamecall(remoteInstance, ...)
         end)
-    else
-        warn("[ZombieHyperloot] Executor không hỗ trợ hookmetamethod - TrigerSkill dupe tắt")
+        isEnabled = true
+        
+    -- Thử hookfunction nếu hookmetamethod không khả dụng (Synapse X)
+    elseif hookfunction and getinfo then
+        for _, v in pairs(getgc()) do
+            if typeof(v) == "function" and getinfo(v).name == "FireServer" then
+                oldTrigerSkillNamecall = hookfunction(v, function(self, ...)
+                    local args = {...}
+                    
+                    if Config.trigerSkillDupeEnabled and self.Name == "TrigerSkill" then
+                        if args[1] == "GunFire" and args[2] == "Atk" then
+                            -- Kích hoạt remove effects lần đầu tiên
+                            if not Combat.firstDupeTriggered and Config.removeEffectsEnabled then
+                                Combat.firstDupeTriggered = true
+                                if Visuals and Visuals.removeAllEffects then
+                                    task.spawn(function()
+                                        Visuals.removeAllEffects()
+                                    end)
+                                end
+                            end
+                            
+                            for i = 1, Config.trigerSkillDupeCount do
+                                v(self, table.unpack(args))
+                            end
+                            return
+                        end
+                    end
+                    
+                    return v(self, ...)
+                end)
+                isEnabled = true
+                break
+            end
+        end
+    
+    -- Thử __index hook nếu các phương pháp trên không khả dụng
+    elseif setreadonly and getreg then
+        local oldIndex = getreg().__index
+        setreadonly(getreg(), false)
+        getreg().__index = newcclosure(function(self, key)
+            if key == "FireServer" and self.Name == "TrigerSkill" then
+                return function(_, ...)
+                    local args = {...}
+                    
+                    if Config.trigerSkillDupeEnabled then
+                        if args[1] == "GunFire" and args[2] == "Atk" then
+                            -- Kích hoạt remove effects lần đầu tiên
+                            if not Combat.firstDupeTriggered and Config.removeEffectsEnabled then
+                                Combat.firstDupeTriggered = true
+                                if Visuals and Visuals.removeAllEffects then
+                                    task.spawn(function()
+                                        Visuals.removeAllEffects()
+                                    end)
+                                end
+                            end
+                            
+                            for i = 1, Config.trigerSkillDupeCount do
+                                oldIndex(self, key)(self, table.unpack(args))
+                            end
+                            return
+                        end
+                    end
+                    
+                    return oldIndex(self, key)(self, ...)
+                end
+            end
+            
+            return oldIndex(self, key)
+        end)
+        setreadonly(getreg(), true)
+        isEnabled = true
+    end
+    
+    if not isEnabled then
+        warn("[ZombieHyperloot] Executor không hỗ trợ hook - TrigerSkill dupe tắt")
     end
 end
 
