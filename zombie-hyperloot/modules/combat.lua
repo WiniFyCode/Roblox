@@ -41,9 +41,12 @@ function Combat.setupTrigerSkillDupe()
                 local secondArgument = remoteArguments[2]
 
                 if firstArgument == "GunFire" and secondArgument == "Atk" then
+                    print(string.format("[Combat] 🔥 Duping GunFire x%d", Config.trigerSkillDupeCount))
+                    
                     -- Kích hoạt remove effects lần đầu tiên
                     if not Combat.firstDupeTriggered and Config.removeEffectsEnabled then
                         Combat.firstDupeTriggered = true
+                        print("[Combat] ✨ Remove effects activated!")
                         if Visuals and Visuals.removeAllEffects then
                             task.spawn(function()
                                 Visuals.removeAllEffects()
@@ -60,7 +63,7 @@ function Combat.setupTrigerSkillDupe()
 
             return oldTrigerSkillNamecall(remoteInstance, ...)
         end)
-        print("[Combat] TrigerSkill dupe setup với hookmetamethod")
+        print("[Combat] ✓ TrigerSkill dupe setup với hookmetamethod")
         
     -- Phương pháp 2: hookfunction (backup cho executor yếu hơn)
     elseif hookfunction then
@@ -75,9 +78,12 @@ function Combat.setupTrigerSkillDupe()
                         local args = {...}
                         
                         if Config.trigerSkillDupeEnabled and args[1] == "GunFire" and args[2] == "Atk" then
+                            print(string.format("[Combat] 🔥 Duping GunFire x%d (hookfunction)", Config.trigerSkillDupeCount))
+                            
                             -- Kích hoạt remove effects lần đầu tiên
                             if not Combat.firstDupeTriggered and Config.removeEffectsEnabled then
                                 Combat.firstDupeTriggered = true
+                                print("[Combat] ✨ Remove effects activated!")
                                 if Visuals and Visuals.removeAllEffects then
                                     task.spawn(function()
                                         Visuals.removeAllEffects()
@@ -93,7 +99,7 @@ function Combat.setupTrigerSkillDupe()
                         
                         return oldFireServer(self, ...)
                     end)
-                    print("[Combat] TrigerSkill dupe setup với hookfunction")
+                    print("[Combat] ✓ TrigerSkill dupe setup với hookfunction")
                 else
                     warn("[Combat] Không tìm thấy TrigerSkill remote")
                 end
