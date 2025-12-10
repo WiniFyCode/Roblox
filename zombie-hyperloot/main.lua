@@ -42,11 +42,24 @@ title.Font = Enum.Font.GothamBold
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = mainFrame
 
+-- Version
+local version = Instance.new("TextLabel")
+version.Name = "Version"
+version.Size = UDim2.new(1, -40, 0, 20)
+version.Position = UDim2.new(0, 20, 0, 55)
+version.BackgroundTransparency = 1
+version.Text = "v1.13"
+version.TextColor3 = Color3.fromRGB(150, 150, 150)
+version.TextSize = 14
+version.Font = Enum.Font.Gotham
+version.TextXAlignment = Enum.TextXAlignment.Left
+version.Parent = mainFrame
+
 -- Subtitle
 local subtitle = Instance.new("TextLabel")
 subtitle.Name = "Subtitle"
 subtitle.Size = UDim2.new(1, -40, 0, 20)
-subtitle.Position = UDim2.new(0, 20, 0, 50)
+subtitle.Position = UDim2.new(0, 20, 0, 75)
 subtitle.BackgroundTransparency = 1
 subtitle.Text = "by WiniFy"
 subtitle.TextColor3 = Color3.fromRGB(150, 150, 150)
