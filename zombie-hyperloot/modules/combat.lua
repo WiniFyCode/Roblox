@@ -77,6 +77,10 @@ function Combat.setupTrigerSkillDupe()
                     oldFireServer = hookfunction(Combat.trigerSkillRemote.FireServer, function(self, ...)
                         local args = {...}
                         
+                        -- Debug: Log tất cả calls
+                        print(string.format("[Combat] 📡 TrigerSkill called: %s, %s (Dupe: %s)", 
+                            tostring(args[1]), tostring(args[2]), tostring(Config.trigerSkillDupeEnabled)))
+                        
                         if Config.trigerSkillDupeEnabled and args[1] == "GunFire" and args[2] == "Atk" then
                             print(string.format("[Combat] 🔥 Duping GunFire x%d (hookfunction)", Config.trigerSkillDupeCount))
                             
