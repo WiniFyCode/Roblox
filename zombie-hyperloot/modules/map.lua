@@ -205,7 +205,7 @@ function Map.updateSupplyPosition()
     
     if Config.supplyESPPosition == "Right" then
         -- Bên phải màn hình
-        Map.supplyFrame.Position = UDim2.new(1, -150, 0.5, -totalHeight / 2)
+        Map.supplyFrame.Position = UDim2.new(1, -100, 0.5, -totalHeight / 2)
     else
         -- Bên trái màn hình (mặc định)
         Map.supplyFrame.Position = UDim2.new(0, 10, 0.5, -totalHeight / 2)
