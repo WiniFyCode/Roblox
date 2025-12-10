@@ -46,18 +46,18 @@ Config.espPlayerEnabled = true
 
 ----------------------------------------------------------
 -- 🔹 ESP Zombie Configuration
-Config.espZombieBoxes = true
+Config.espZombieBoxes = false
 Config.espZombieTracers = false
 Config.espZombieNames = true
-Config.espZombieHealth = true
+Config.espZombieHealth = false
 Config.espZombieHighlight = true
 
 ----------------------------------------------------------
 -- 🔹 ESP Player Configuration
-Config.espPlayerBoxes = true
+Config.espPlayerBoxes = false
 Config.espPlayerTracers = false
 Config.espPlayerNames = true
-Config.espPlayerHealth = true
+Config.espPlayerHealth = false
 Config.espPlayerTeamCheck = false
 Config.espPlayerHighlight = true
 
@@ -112,8 +112,8 @@ Config.autoBulletBoxEnabled = true
 ----------------------------------------------------------
 -- 🔹 Auto Skill
 Config.autoSkillEnabled = true
-Config.skill1010Interval = 15
-Config.skill1002Interval = 20
+Config.skill1010Interval = 10
+Config.skill1002Interval = 15
 
 ----------------------------------------------------------
 -- 🔹 TrigerSkill Dupe (GunFire)
@@ -146,7 +146,7 @@ Config.autoReplayEnabled = false
 ----------------------------------------------------------
 -- 🔹 Supply ESP
 Config.supplyESPEnabled = true
-Config.supplyESPPosition = "Left" -- "Left" hoặc "Right"
+Config.supplyESPPosition = "Right" -- "Left" hoặc "Right"
 
 ----------------------------------------------------------
 -- 🔹 Visuals
