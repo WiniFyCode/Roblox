@@ -21,11 +21,8 @@ Combat.firstDupeTriggered = false
 ----------------------------------------------------------
 -- 🔹 TrigerSkill GunFire Dupe
 local oldTrigerSkillNamecall = nil
-local oldFireServer = nil
-Combat.trigerSkillRemote = nil
 
 function Combat.setupTrigerSkillDupe()
-    -- Phương pháp 1: hookmetamethod (tốt nhất)
     if hookmetamethod and getnamecallmethod and checkcaller then
         oldTrigerSkillNamecall = hookmetamethod(game, "__namecall", function(remoteInstance, ...)
             local callMethod = getnamecallmethod()
@@ -41,12 +38,9 @@ function Combat.setupTrigerSkillDupe()
                 local secondArgument = remoteArguments[2]
 
                 if firstArgument == "GunFire" and secondArgument == "Atk" then
-                    print(string.format("[Combat] 🔥 Duping GunFire x%d", Config.trigerSkillDupeCount))
-                    
                     -- Kích hoạt remove effects lần đầu tiên
                     if not Combat.firstDupeTriggered and Config.removeEffectsEnabled then
                         Combat.firstDupeTriggered = true
-                        print("[Combat] ✨ Remove effects activated!")
                         if Visuals and Visuals.removeAllEffects then
                             task.spawn(function()
                                 Visuals.removeAllEffects()
@@ -63,57 +57,8 @@ function Combat.setupTrigerSkillDupe()
 
             return oldTrigerSkillNamecall(remoteInstance, ...)
         end)
-        print("[Combat] ✓ TrigerSkill dupe setup với hookmetamethod")
-        
-    -- Phương pháp 2: hookfunction (backup cho executor yếu hơn)
-    elseif hookfunction then
-        task.spawn(function()
-            -- Tìm TrigerSkill remote
-            local char = Config.localPlayer.Character or Config.localPlayer.CharacterAdded:Wait()
-            local netMessage = char:WaitForChild("NetMessage", 10)
-            if netMessage then
-                Combat.trigerSkillRemote = netMessage:WaitForChild("TrigerSkill", 5)
-                if Combat.trigerSkillRemote then
-                    oldFireServer = hookfunction(Combat.trigerSkillRemote.FireServer, function(self, ...)
-                        local args = {...}
-                        
-                        -- Debug: Log tất cả calls
-                        print(string.format("[Combat] 📡 TrigerSkill called: %s, %s (Dupe: %s)", 
-                            tostring(args[1]), tostring(args[2]), tostring(Config.trigerSkillDupeEnabled)))
-                        
-                        if Config.trigerSkillDupeEnabled and args[1] == "GunFire" and args[2] == "Atk" then
-                            print(string.format("[Combat] 🔥 Duping GunFire x%d (hookfunction)", Config.trigerSkillDupeCount))
-                            
-                            -- Kích hoạt remove effects lần đầu tiên
-                            if not Combat.firstDupeTriggered and Config.removeEffectsEnabled then
-                                Combat.firstDupeTriggered = true
-                                print("[Combat] ✨ Remove effects activated!")
-                                if Visuals and Visuals.removeAllEffects then
-                                    task.spawn(function()
-                                        Visuals.removeAllEffects()
-                                    end)
-                                end
-                            end
-                            
-                            for i = 1, Config.trigerSkillDupeCount do
-                                oldFireServer(self, table.unpack(args))
-                            end
-                            return
-                        end
-                        
-                        return oldFireServer(self, ...)
-                    end)
-                    print("[Combat] ✓ TrigerSkill dupe setup với hookfunction")
-                else
-                    warn("[Combat] Không tìm thấy TrigerSkill remote")
-                end
-            else
-                warn("[Combat] Không tìm thấy NetMessage")
-            end
-        end)
-        
     else
-        warn("[Combat] Executor không hỗ trợ hook functions - TrigerSkill dupe tắt")
+        warn("[ZombieHyperloot] Executor không hỗ trợ hookmetamethod - TrigerSkill dupe tắt")
     end
 end
 
@@ -330,14 +275,6 @@ function Combat.cleanup()
         pcall(function() Combat.FOVCircle:Remove() end)
         Combat.FOVCircle = nil
     end
-    
-    -- Cleanup hook functions
-    if oldFireServer and Combat.trigerSkillRemote then
-        pcall(function()
-            Combat.trigerSkillRemote.FireServer = oldFireServer
-        end)
-    end
-    
     Combat.processedZombies = {}
 end
 
