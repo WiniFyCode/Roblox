@@ -131,6 +131,8 @@ Config.aimbotFOVRadius = 50
 Config.aimbotTargetMode = "Zombies" -- "Zombies", "Players", "All"
 Config.aimbotAimPart = "Head" -- "Head", "UpperTorso", "HumanoidRootPart"
 Config.savedAimbotState = nil -- Lưu trạng thái aimbot khi camera teleport
+Config.aimbotPriorityMode = "Nearest" -- "Nearest", "Farthest", "LowestHealth", "HighestHealth"
+
 
 ----------------------------------------------------------
 -- 🔹 Map Selection

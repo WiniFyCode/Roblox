@@ -225,8 +225,23 @@ end
 function Combat.getClosestAimbotTarget()
     local camera = Config.Workspace.CurrentCamera
     local mousePos = Config.UserInputService:GetMouseLocation()
-    local closestChar, closestPart
-    local closestDist = math.huge
+    local bestChar, bestPart
+    local bestScore = nil
+    local priorityMode = Config.aimbotPriorityMode or "Nearest"
+
+    local function isBetter(score, currentBest)
+        if currentBest == nil then return true end
+        if priorityMode == "Nearest" then
+            return score < currentBest
+        elseif priorityMode == "Farthest" then
+            return score > currentBest
+        elseif priorityMode == "LowestHealth" then
+            return score < currentBest
+        elseif priorityMode == "HighestHealth" then
+            return score > currentBest
+        end
+        return score < currentBest
+    end
     
     for _, char in ipairs(Combat.getAimbotTargets()) do
         local hum = char:FindFirstChildWhichIsA("Humanoid")
@@ -240,10 +255,17 @@ function Combat.getClosestAimbotTarget()
                 if onScreen and screenPos.Z > 0 then
                     local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
                     if (not Config.aimbotFOVEnabled) or dist <= Config.aimbotFOVRadius then
-                        if dist < closestDist then
-                            closestDist = dist
-                            closestChar = char
-                            closestPart = part
+                        local score
+                        if priorityMode == "LowestHealth" or priorityMode == "HighestHealth" then
+                            score = hum.Health
+                        else
+                            score = dist
+                        end
+
+                        if isBetter(score, bestScore) then
+                            bestScore = score
+                            bestChar = char
+                            bestPart = part
                         end
                     end
                 end
@@ -251,8 +273,9 @@ function Combat.getClosestAimbotTarget()
         end
     end
     
-    return closestChar, closestPart
+    return bestChar, bestPart
 end
+
 
 function Combat.setupMouseInput()
     Config.UserInputService.InputBegan:Connect(function(input, gameProcessed)

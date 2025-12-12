@@ -54,13 +54,21 @@ function UI.createCombatTab()
     CombatTab:AddSection("Aimbot Settings")
 
     CombatTab:AddDropdown("AimbotTargetMode", {
-        Title = "Target Mode",
+        Title = "Target Type",
         Values = {"Zombies", "Players", "All"},
         Default = Config.aimbotTargetMode,
         Callback = function(Value) Config.aimbotTargetMode = Value end
     })
 
+    CombatTab:AddDropdown("AimbotPriorityMode", {
+        Title = "Priority",
+        Values = {"Nearest", "Farthest", "LowestHealth", "HighestHealth"},
+        Default = Config.aimbotPriorityMode,
+        Callback = function(Value) Config.aimbotPriorityMode = Value end
+    })
+
     CombatTab:AddDropdown("AimbotAimPart", {
+
         Title = "Aim Part",
         Values = {"Head", "UpperTorso", "HumanoidRootPart"},
         Default = Config.aimbotAimPart,
