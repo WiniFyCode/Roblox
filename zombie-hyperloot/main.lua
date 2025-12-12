@@ -397,6 +397,8 @@ renderSteppedConnection = Config.RunService.RenderStepped:Connect(function()
     end
     
     -- Aimbot
+    local shouldAutoFire = false
+
     if Config.aimbotEnabled then
         local active = true
         if Config.aimbotHoldMouse2 and not Combat.holdingMouse2 then
@@ -406,6 +408,7 @@ renderSteppedConnection = Config.RunService.RenderStepped:Connect(function()
         if active then
             local char, part = Combat.getClosestAimbotTarget()
             if char and part then
+                shouldAutoFire = true
                 local targetPos = part.Position
                 if Config.aimbotPrediction > 0 then
                     local vel = part.AssemblyLinearVelocity or part.Velocity or Vector3.new(0, 0, 0)
@@ -437,6 +440,11 @@ renderSteppedConnection = Config.RunService.RenderStepped:Connect(function()
             end
         end
     end
+
+    if Combat.setAutoFireActive then
+        Combat.setAutoFireActive(shouldAutoFire)
+    end
+
 end)
 
 

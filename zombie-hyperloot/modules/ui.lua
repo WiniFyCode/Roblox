@@ -81,7 +81,19 @@ function UI.createCombatTab()
         Callback = function(Value) Config.aimbotHoldMouse2 = Value end
     })
 
+    CombatTab:AddToggle("AimbotAutoFire", {
+        Title = "Auto Fire (Mouse1)",
+        Default = Config.aimbotAutoFireEnabled,
+        Callback = function(Value)
+            Config.aimbotAutoFireEnabled = Value
+            if not Value and Combat.setAutoFireActive then
+                Combat.setAutoFireActive(false)
+            end
+        end
+    })
+
     CombatTab:AddToggle("AimbotFOV", {
+
         Title = "FOV Circle",
         Default = Config.aimbotFOVEnabled,
         Callback = function(Value) Config.aimbotFOVEnabled = Value end

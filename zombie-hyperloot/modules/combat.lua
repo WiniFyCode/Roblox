@@ -171,10 +171,39 @@ end
 ----------------------------------------------------------
 -- 🔹 Aimbot Functions
 Combat.holdingMouse2 = false
+Combat.autoFireHolding = false
 Combat.FOVCircle = nil
 Combat.hasFOVDrawing = false
 
+local function sendMouseButton1State(isDown)
+    if not Config or not Config.VirtualInputManager then
+        return
+    end
+
+    local mousePos = Config.UserInputService:GetMouseLocation()
+    pcall(function()
+        Config.VirtualInputManager:SendMouseButtonEvent(mousePos.X, mousePos.Y, 0, isDown, game, 0)
+    end)
+end
+
+function Combat.setAutoFireActive(shouldHold)
+    if not Config then return end
+
+    if Config.scriptUnloaded or not Config.aimbotAutoFireEnabled then
+        shouldHold = false
+    end
+
+    if shouldHold and not Combat.autoFireHolding then
+        Combat.autoFireHolding = true
+        sendMouseButton1State(true)
+    elseif not shouldHold and Combat.autoFireHolding then
+        Combat.autoFireHolding = false
+        sendMouseButton1State(false)
+    end
+end
+
 function Combat.initFOVCircle()
+
     local ok, obj = pcall(function()
         return Drawing.new("Circle")
     end)
@@ -364,11 +393,14 @@ function Combat.setupMouseInput()
 end
 
 function Combat.cleanup()
+    Combat.setAutoFireActive(false)
+
     if Combat.FOVCircle then
         pcall(function() Combat.FOVCircle:Remove() end)
         Combat.FOVCircle = nil
     end
     Combat.processedZombies = {}
 end
+
 
 return Combat
