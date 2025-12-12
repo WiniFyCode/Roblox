@@ -192,6 +192,51 @@ function Combat.initFOVCircle()
     end
 end
 
+function Combat.isTargetVisible(targetPart)
+    if not Config.aimbotWallCheckEnabled then
+        return true
+    end
+
+    if not targetPart or not targetPart:IsA("BasePart") then
+        return false
+    end
+
+    local camera = Config.Workspace.CurrentCamera
+    if not camera then
+        return true
+    end
+
+    local map = Config.mapModel
+    if not map then
+        return true
+    end
+
+    local model = map:FindFirstChild("Model")
+    if not model then
+        return true
+    end
+
+    local decoration = model:FindFirstChild("Decoration")
+    if not decoration then
+        return true
+    end
+
+    local origin = camera.CFrame.Position
+    local direction = targetPart.Position - origin
+
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Include
+    params.FilterDescendantsInstances = { decoration }
+    params.IgnoreWater = true
+
+    local result = Config.Workspace:Raycast(origin, direction, params)
+    if result then
+        return false
+    end
+
+    return true
+end
+
 function Combat.getAimbotTargets()
     local targets = {}
     
@@ -258,8 +303,11 @@ function Combat.getClosestAimbotTarget()
                 if onScreen and screenPos.Z > 0 then
                     local cursorDist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
                     if (not Config.aimbotFOVEnabled) or cursorDist <= Config.aimbotFOVRadius then
-                        local score
+                        if not Combat.isTargetVisible(part) then
+                            continue
+                        end
 
+                        local score
                         if priorityMode == "LowestHealth" or priorityMode == "HighestHealth" then
                             score = hum.Health
                         else
@@ -283,6 +331,7 @@ function Combat.getClosestAimbotTarget()
     
     return bestChar, bestPart
 end
+
 
 
 

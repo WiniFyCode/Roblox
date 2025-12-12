@@ -94,6 +94,12 @@ function UI.createCombatTab()
         Callback = function(Value) Config.aimbotFOVRadius = Value end
     })
 
+    CombatTab:AddToggle("AimbotWallCheck", {
+        Title = "Wall Check (Decoration)",
+        Default = Config.aimbotWallCheckEnabled,
+        Callback = function(Value) Config.aimbotWallCheckEnabled = Value end
+    })
+
     CombatTab:AddSlider("AimbotSmoothness", {
         Title = "Smoothness",
         Description = "0 = Instant Lock | Higher = Smoother/Slower",
