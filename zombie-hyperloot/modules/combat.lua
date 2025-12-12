@@ -206,36 +206,48 @@ function Combat.isTargetVisible(targetPart)
         return true
     end
 
-    local map = Config.mapModel
-    if not map then
-        return true
-    end
-
-    local model = map:FindFirstChild("Model")
-    if not model then
-        return true
-    end
-
-    local decoration = model:FindFirstChild("Decoration")
-    if not decoration then
-        return true
-    end
-
     local origin = camera.CFrame.Position
     local direction = targetPart.Position - origin
-
-    local params = RaycastParams.new()
-    params.FilterType = Enum.RaycastFilterType.Include
-    params.FilterDescendantsInstances = { decoration }
-    params.IgnoreWater = true
-
-    local result = Config.Workspace:Raycast(origin, direction, params)
-    if result then
-        return false
+    if direction.Magnitude <= 0 then
+        return true
     end
 
-    return true
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+    params.IgnoreWater = true
+
+    local blacklist = {}
+    local localChar = Config.localPlayer and Config.localPlayer.Character
+    if localChar then
+        table.insert(blacklist, localChar)
+    end
+
+    params.FilterDescendantsInstances = blacklist
+
+    local result = Config.Workspace:Raycast(origin, direction, params)
+    if not result then
+        return true
+    end
+
+    local hitInstance = result.Instance
+    if not hitInstance then
+        return true
+    end
+
+    local targetModel = targetPart:FindFirstAncestorOfClass("Model") or targetPart.Parent
+    if targetModel and hitInstance:IsDescendantOf(targetModel) then
+        return true
+    end
+
+    if hitInstance:IsA("BasePart") then
+        if hitInstance.CanCollide == false and hitInstance.Transparency >= 0.95 then
+            return true
+        end
+    end
+
+    return false
 end
+
 
 function Combat.getAimbotTargets()
     local targets = {}
