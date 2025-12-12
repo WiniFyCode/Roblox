@@ -225,6 +225,9 @@ end
 function Combat.getClosestAimbotTarget()
     local camera = Config.Workspace.CurrentCamera
     local mousePos = Config.UserInputService:GetMouseLocation()
+    local localChar = Config.localPlayer.Character
+    local localHRP = localChar and localChar:FindFirstChild("HumanoidRootPart")
+
     local bestChar, bestPart
     local bestScore = nil
     local priorityMode = Config.aimbotPriorityMode or "Nearest"
@@ -253,13 +256,18 @@ function Combat.getClosestAimbotTarget()
             if part then
                 local screenPos, onScreen = camera:WorldToViewportPoint(part.Position)
                 if onScreen and screenPos.Z > 0 then
-                    local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                    if (not Config.aimbotFOVEnabled) or dist <= Config.aimbotFOVRadius then
+                    local cursorDist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                    if (not Config.aimbotFOVEnabled) or cursorDist <= Config.aimbotFOVRadius then
                         local score
+
                         if priorityMode == "LowestHealth" or priorityMode == "HighestHealth" then
                             score = hum.Health
                         else
-                            score = dist
+                            if localHRP then
+                                score = (localHRP.Position - part.Position).Magnitude
+                            else
+                                score = cursorDist
+                            end
                         end
 
                         if isBetter(score, bestScore) then
@@ -275,6 +283,7 @@ function Combat.getClosestAimbotTarget()
     
     return bestChar, bestPart
 end
+
 
 
 function Combat.setupMouseInput()
