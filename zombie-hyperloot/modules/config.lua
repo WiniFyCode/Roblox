@@ -112,8 +112,8 @@ Config.autoBulletBoxEnabled = true
 ----------------------------------------------------------
 -- 🔹 Auto Skill
 Config.autoSkillEnabled = true
-Config.skill1010Interval = 10
-Config.skill1002Interval = 15
+Config.skill1010Interval = 15
+Config.skill1002Interval = 20
 
 ----------------------------------------------------------
 -- 🔹 TrigerSkill Dupe (GunFire)
