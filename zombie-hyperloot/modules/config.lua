@@ -142,6 +142,7 @@ Config.autoAimCameraEnabled = false
 Config.autoAimCameraSmoothness = 0.15 -- 0 = instant, 1 = very slow
 Config.autoAimCameraTargetMode = "Zombies" -- "Zombies", "Players", "All"
 Config.autoAimCameraPriority = "Nearest" -- "Nearest", "LowestHealth"
+Config.autoAimCameraWallCheck = true -- Bỏ qua target bị chắn bởi tường
 
 ----------------------------------------------------------
 -- 🔹 Map Selection

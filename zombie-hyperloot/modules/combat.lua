@@ -215,6 +215,11 @@ function Combat.getAutoAimCameraTarget()
         if hum and hum.Health > 0 then
             local targetPart = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
             if targetPart then
+                -- Wall check
+                if Config.autoAimCameraWallCheck and not Combat.isTargetVisible(targetPart) then
+                    continue
+                end
+                
                 local distance = (localHRP.Position - targetPart.Position).Magnitude
                 local score
                 
@@ -459,14 +464,15 @@ function Combat.getClosestAimbotTarget()
                 part = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso") or char:FindFirstChild("Head")
             end
             if part then
+                -- Check wall trước
+                if not Combat.isTargetVisible(part) then
+                    continue
+                end
+                
                 local screenPos, onScreen = camera:WorldToViewportPoint(part.Position)
                 if onScreen and screenPos.Z > 0 then
                     local cursorDist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
                     if (not Config.aimbotFOVEnabled) or cursorDist <= Config.aimbotFOVRadius then
-                        if not Combat.isTargetVisible(part) then
-                            continue
-                        end
-
                         local score
                         if priorityMode == "LowestHealth" or priorityMode == "HighestHealth" then
                             score = hum.Health
