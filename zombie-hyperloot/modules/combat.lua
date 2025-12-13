@@ -168,44 +168,7 @@ function Combat.startAllSkillLoops()
     Combat.startSkillLoop(function() return Config.skill1002Interval end, Combat.activateSkill1002)
 end
 
-----------------------------------------------------------
--- 🔹 Auto Aim Camera (360 độ) - Tận dụng lại aimbot logic
-Combat.autoAimCameraConnection = nil
 
-function Combat.updateAutoAimCamera()
-    if not Config.autoAimCameraEnabled then return end
-    if Config.scriptUnloaded then return end
-    
-    local camera = Config.Workspace.CurrentCamera
-    if not camera then return end
-    
-    -- Dùng chung config với aimbot thường
-    local char, targetPart = Combat.getClosestAimbotTarget()
-    
-    if targetPart then
-        -- Dùng chung smoothness với aimbot
-        local smoothness = Config.aimbotSmoothness
-        local targetCFrame = CFrame.new(camera.CFrame.Position, targetPart.Position)
-        camera.CFrame = camera.CFrame:Lerp(targetCFrame, 1 - smoothness)
-    end
-end
-
-function Combat.startAutoAimCamera()
-    if Combat.autoAimCameraConnection then
-        Combat.autoAimCameraConnection:Disconnect()
-    end
-    
-    Combat.autoAimCameraConnection = Config.RunService.RenderStepped:Connect(function()
-        Combat.updateAutoAimCamera()
-    end)
-end
-
-function Combat.stopAutoAimCamera()
-    if Combat.autoAimCameraConnection then
-        Combat.autoAimCameraConnection:Disconnect()
-        Combat.autoAimCameraConnection = nil
-    end
-end
 
 ----------------------------------------------------------
 -- 🔹 Aimbot Functions
@@ -452,7 +415,6 @@ end
 
 function Combat.cleanup()
     Combat.setAutoFireActive(false)
-    Combat.stopAutoAimCamera()
 
     if Combat.FOVCircle then
         pcall(function() Combat.FOVCircle:Remove() end)

@@ -192,20 +192,11 @@ function UI.createCombatTab()
         Callback = function(Value) Config.skill1002Interval = Value end
     })
 
-    CombatTab:AddSection("Auto Aim Camera (360°)")
-
-    CombatTab:AddToggle("AutoAimCamera", {
-        Title = "Auto Aim Camera",
-        Description = "Camera tự động nhắm mục tiêu 360 độ",
-        Default = Config.autoAimCameraEnabled,
-        Callback = function(Value)
-            Config.autoAimCameraEnabled = Value
-            if Value then
-                Combat.startAutoAimCamera()
-            else
-                Combat.stopAutoAimCamera()
-            end
-        end
+    CombatTab:AddToggle("Aimbot360", {
+        Title = "Aimbot 360°",
+        Description = "Aimbot tự động xoay tới zombie (không cần nhắm chuột)",
+        Default = Config.aimbot360Enabled,
+        Callback = function(Value) Config.aimbot360Enabled = Value end
     })
 
     return CombatTab

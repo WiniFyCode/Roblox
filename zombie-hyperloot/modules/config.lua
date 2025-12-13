@@ -135,14 +135,7 @@ Config.savedAimbotState = nil -- Lưu trạng thái aimbot khi camera teleport
 Config.aimbotPriorityMode = "Nearest" -- "Nearest", "Farthest", "LowestHealth", "HighestHealth"
 Config.aimbotWallCheckEnabled = true -- Bỏ qua mục tiêu bị chắn bởi Map.Model.Decoration
 Config.aimbotAutoFireEnabled = false -- Tự giữ chuột trái khi aimbot khóa mục tiêu
-
-----------------------------------------------------------
--- 🔹 Auto Aim Camera (360 độ)
-Config.autoAimCameraEnabled = false
-Config.autoAimCameraSmoothness = 0.15 -- 0 = instant, 1 = very slow
-Config.autoAimCameraTargetMode = "Zombies" -- "Zombies", "Players", "All"
-Config.autoAimCameraPriority = "Nearest" -- "Nearest", "LowestHealth"
-Config.autoAimCameraWallCheck = true -- Bỏ qua target bị chắn bởi tường
+Config.aimbot360Enabled = false -- Aimbot tự động xoay 360° tới zombie
 
 ----------------------------------------------------------
 -- 🔹 Map Selection
