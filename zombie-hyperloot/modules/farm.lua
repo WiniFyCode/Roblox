@@ -200,41 +200,4 @@ function Farm.setupChestTeleportInput()
     end)
 end
 
-----------------------------------------------------------
--- 🔹 Auto Redeem Codes
-local REDEEM_CODE_REMOTE_ID = 2073358730
-
-function Farm.redeemCode(code)
-    if Config and Config.scriptUnloaded then return end
-    
-    local replicatedStorage = Config and Config.ReplicatedStorage or game:GetService("ReplicatedStorage")
-    local remoteFolder = replicatedStorage:FindFirstChild("Remote")
-    if not remoteFolder then return false end
-    local remoteEvent = remoteFolder:FindFirstChild("RemoteEvent")
-    if not remoteEvent then return false end
-    if not remoteEvent then return false end
-    
-    local success = pcall(function()
-        remoteEvent:FireServer(REDEEM_CODE_REMOTE_ID, code)
-    end)
-    
-    return success
-end
-
-function Farm.redeemAllCodes()
-    if Config and Config.scriptUnloaded then return end
-    
-    local codes = Config.redeemCodes or {}
-    local count = 0
-    
-    for _, code in ipairs(codes) do
-        if Farm.redeemCode(code) then
-            count = count + 1
-        end
-        task.wait(0.5) -- Delay giữa các code để tránh spam
-    end
-    
-    return count
-end
-
 return Farm

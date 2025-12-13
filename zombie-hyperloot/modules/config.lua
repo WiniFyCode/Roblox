@@ -172,14 +172,6 @@ Config.customTimeValue = 14 -- 14 = day, 0 = midnight
 Config.removeEffectsEnabled = true -- Tự động xóa effects khi dupe lần đầu
 
 ----------------------------------------------------------
--- 🔹 Auto Redeem Codes
-Config.redeemCodes = {
-    "RAID1212"
-    "CHRISTMAS",
-    "UPD1212",
-}
-
-----------------------------------------------------------
 -- 🔹 Connection Storage (để cleanup)
 Config.connections = {}
 
