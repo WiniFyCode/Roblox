@@ -135,8 +135,6 @@ Config.savedAimbotState = nil -- Lưu trạng thái aimbot khi camera teleport
 Config.aimbotPriorityMode = "Nearest" -- "Nearest", "Farthest", "LowestHealth", "HighestHealth"
 Config.aimbotWallCheckEnabled = true -- Bỏ qua mục tiêu bị chắn bởi Map.Model.Decoration
 Config.aimbotAutoFireEnabled = false -- Tự giữ chuột trái khi aimbot khóa mục tiêu
-Config.aimbot360Enabled = false -- Aimbot tự động xoay 360° tới zombie
-
 ----------------------------------------------------------
 -- 🔹 Map Selection
 Config.selectedWorldId = 1001 -- Exclusion

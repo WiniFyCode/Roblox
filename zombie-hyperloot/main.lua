@@ -399,17 +399,10 @@ renderSteppedConnection = Config.RunService.RenderStepped:Connect(function()
     -- Aimbot
     local shouldAutoFire = false
 
-    if Config.aimbotEnabled or Config.aimbot360Enabled then
+    if Config.aimbotEnabled then
         local active = true
-        
-        -- Aimbot thường cần điều kiện
-        if Config.aimbotEnabled and Config.aimbotHoldMouse2 and not Combat.holdingMouse2 then
+        if Config.aimbotHoldMouse2 and not Combat.holdingMouse2 then
             active = false
-        end
-        
-        -- Aimbot 360° luôn active (không cần nhắm chuột)
-        if Config.aimbot360Enabled then
-            active = true
         end
         
         if active then
