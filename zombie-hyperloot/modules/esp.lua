@@ -5,6 +5,7 @@
 
 local ESP = {}
 local Config = nil
+local UI = nil
 
 -- ESP Objects
 ESP.playerESPObjects = {}
@@ -16,8 +17,34 @@ ESP.chestDescendantConnection = nil
 ESP.bobHighlight = nil
 ESP.bobEnabled = false
 
-function ESP.init(config)
+function ESP.init(config, ui)
     Config = config
+    UI = ui
+end
+
+----------------------------------------------------------
+-- 🔹 Notification Helper
+function ESP.notify(title, text, duration)
+    duration = duration or 3
+    
+    -- Sử dụng Fluent notification nếu có
+    if UI and UI.Window and UI.Window.Notify then
+        UI.Window:Notify({
+            Title = title,
+            Content = text,
+            Duration = duration
+        })
+        return
+    end
+    
+    -- Fallback to StarterGui notification
+    pcall(function()
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = title,
+            Text = text,
+            Duration = duration
+        })
+    end)
 end
 
 ----------------------------------------------------------
@@ -572,14 +599,14 @@ end
 function ESP.teleportToBOB()
     local bob = ESP.findBOB()
     if not bob then
-        warn("[ZombieHyperloot] BOB not found!")
+        ESP.notify("BOB Teleport", "BOB not found! Make sure you're in the right map.", 4)
         return
     end
     
     local char = Config.localPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then
-        warn("[ZombieHyperloot] Player character not found!")
+        ESP.notify("BOB Teleport", "Player character not found! Please respawn and try again.", 4)
         return
     end
     
@@ -587,7 +614,7 @@ function ESP.teleportToBOB()
     local bobPosition = bob.Position
     hrp.CFrame = CFrame.new(bobPosition + Vector3.new(0, 5, 0))
     
-    print("[ZombieHyperloot] Teleported to BOB!")
+    ESP.notify("BOB Teleport", "Successfully teleported to BOB!", 2)
 end
 
 ----------------------------------------------------------

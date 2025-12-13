@@ -126,7 +126,7 @@ task.wait(0.15)
 
 updateProgress(4, 9, "Loading ESP...")
 ESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/esp.lua"))()
-ESP.init(Config)
+ESP.init(Config, UI)
 task.wait(0.15)
 
 updateProgress(5, 9, "Loading Movement...")
