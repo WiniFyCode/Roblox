@@ -48,7 +48,7 @@ subtitle.Name = "Subtitle"
 subtitle.Size = UDim2.new(1, -40, 0, 20)
 subtitle.Position = UDim2.new(0, 20, 0, 50)
 subtitle.BackgroundTransparency = 1
-subtitle.Text = "by WiniFy - Last update: 2025-12-13"
+subtitle.Text = "by WiniFy - Last update: 2025-12-13 21:50"
 subtitle.TextColor3 = Color3.fromRGB(150, 150, 150)
 subtitle.TextSize = 18
 subtitle.Font = Enum.Font.Gotham
@@ -479,16 +479,6 @@ inputBeganConnection = Config.UserInputService.InputBegan:Connect(function(input
     if input.KeyCode == Config.autoRotateToggleKey then
         Config.autoRotateEnabled = not Config.autoRotateEnabled
         Combat.toggleAutoRotate(Config.autoRotateEnabled)
-        
-        -- Notify auto rotate status
-        if Config.UI and Config.UI.Fluent then
-            Config.UI.Fluent:Notify({
-                Title = "Auto Rotate 360°",
-                Content = Config.autoRotateEnabled and "Enabled" or "Disabled",
-                SubContent = Config.autoRotateEnabled and "Camera will auto-rotate to nearest zombie" or "Camera rotation stopped",
-                Duration = 3
-            })
-        end
     end
     
     -- Camera Teleport (X key)
