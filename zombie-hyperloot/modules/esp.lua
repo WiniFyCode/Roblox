@@ -544,14 +544,6 @@ function ESP.addBOBHighlight()
     
     local bob = ESP.findBOB()
     if not bob then 
-        -- Notify if BOB not found
-        if Config.UI and Config.UI.Fluent then
-            Config.UI.Fluent:Notify({
-                Title = "BOB ESP",
-                Content = "BOB not found in current map",
-                Duration = 3
-            })
-        end
         return 
     end
     
@@ -584,10 +576,23 @@ function ESP.removeBOBHighlight()
     end
 end
 
-function ESP.toggleBOBHighlight(enabled)
+function ESP.toggleBOBHighlight(enabled, showNotification)
     ESP.bobEnabled = enabled
     
     if enabled then
+        local bob = ESP.findBOB()
+        if not bob then 
+            -- Chỉ hiển thị notify khi user manually toggle
+            if showNotification and Config.UI and Config.UI.Fluent then
+                Config.UI.Fluent:Notify({
+                    Title = "BOB ESP",
+                    Content = "BOB not found in current map",
+                    SubContent = "Try again when BOB spawns",
+                    Duration = 3
+                })
+            end
+            return 
+        end
         ESP.addBOBHighlight()
     else
         ESP.removeBOBHighlight()

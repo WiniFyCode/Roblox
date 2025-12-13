@@ -384,7 +384,7 @@ function UI.createESPTab()
         Default = Config.espBOBEnabled,
         Callback = function(Value)
             Config.espBOBEnabled = Value
-            ESP.toggleBOBHighlight(Value)
+            ESP.toggleBOBHighlight(Value, true) -- true = show notification
         end
     })
 

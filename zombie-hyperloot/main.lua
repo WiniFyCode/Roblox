@@ -262,9 +262,20 @@ if Config.espChestEnabled then
     ESP.applyChestESP()
 end
 
--- Setup BOB ESP
+-- Setup BOB ESP với retry mechanism
 if Config.espBOBEnabled then
-    ESP.toggleBOBHighlight(true)
+    -- Thử ngay lập tức
+    ESP.toggleBOBHighlight(true, false)
+    
+    -- Nếu không tìm thấy, thử lại sau 10 giây
+    if not ESP.bobHighlight then
+        task.spawn(function()
+            task.wait(10)
+            if Config.espBOBEnabled and not ESP.bobHighlight and not Config.scriptUnloaded then
+                ESP.toggleBOBHighlight(true, false)
+            end
+        end)
+    end
 end
 
 ----------------------------------------------------------
