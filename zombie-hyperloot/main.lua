@@ -254,6 +254,11 @@ if Config.espChestEnabled then
     ESP.applyChestESP()
 end
 
+-- Setup BOB ESP
+if Config.espBOBEnabled then
+    ESP.toggleBOBHighlight(true)
+end
+
 ----------------------------------------------------------
 -- 🔹 Setup Combat
 Combat.initFOVCircle()

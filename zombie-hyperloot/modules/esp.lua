@@ -12,6 +12,10 @@ ESP.zombieESPObjects = {}
 ESP.hasPlayerDrawing = false
 ESP.chestDescendantConnection = nil
 
+-- BOB ESP
+ESP.bobHighlight = nil
+ESP.bobEnabled = false
+
 function ESP.init(config)
     Config = config
 end
@@ -510,6 +514,83 @@ function ESP.watchChestDescendants()
 end
 
 ----------------------------------------------------------
+-- 🔹 BOB ESP & Teleport
+function ESP.findBOB()
+    local map = Config.Workspace:FindFirstChild("Map")
+    if not map then return nil end
+    
+    local mapChildren = map:GetChildren()
+    if #mapChildren >= 44 then
+        local mapChild = mapChildren[44]
+        local eItem = mapChild:FindFirstChild("EItem")
+        if eItem then
+            local bobFolder = eItem:FindFirstChild("BOB")
+            if bobFolder then
+                local bob = bobFolder:FindFirstChild("Bob")
+                return bob
+            end
+        end
+    end
+    return nil
+end
+
+function ESP.addBOBHighlight()
+    if ESP.bobHighlight then return end
+    
+    local bob = ESP.findBOB()
+    if not bob then return end
+    
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "BOB_ESP_Highlight"
+    highlight.Adornee = bob
+    highlight.FillColor = Color3.fromRGB(255, 215, 0) -- Gold color for BOB
+    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+    highlight.FillTransparency = 0.3
+    highlight.OutlineTransparency = 0
+    highlight.Parent = bob
+    
+    ESP.bobHighlight = highlight
+end
+
+function ESP.removeBOBHighlight()
+    if ESP.bobHighlight then
+        ESP.bobHighlight:Destroy()
+        ESP.bobHighlight = nil
+    end
+end
+
+function ESP.toggleBOBHighlight(enabled)
+    ESP.bobEnabled = enabled
+    
+    if enabled then
+        ESP.addBOBHighlight()
+    else
+        ESP.removeBOBHighlight()
+    end
+end
+
+function ESP.teleportToBOB()
+    local bob = ESP.findBOB()
+    if not bob then
+        warn("[ZombieHyperloot] BOB not found!")
+        return
+    end
+    
+    local char = Config.localPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        warn("[ZombieHyperloot] Player character not found!")
+        return
+    end
+    
+    -- Teleport to BOB position with offset
+    local bobPosition = bob.Position
+    hrp.CFrame = CFrame.new(bobPosition + Vector3.new(0, 5, 0))
+    
+    print("[ZombieHyperloot] Teleported to BOB!")
+end
+
+----------------------------------------------------------
 -- 🔹 Cleanup
 function ESP.cleanup()
     -- Clear player ESP
@@ -544,6 +625,9 @@ function ESP.cleanup()
     -- Clear chest ESP
     ESP.clearChestESP()
     ESP.clearZombieESP()
+    
+    -- Clear BOB ESP
+    ESP.removeBOBHighlight()
 
     if ESP.chestDescendantConnection and ESP.chestDescendantConnection.Disconnect then
         ESP.chestDescendantConnection:Disconnect()

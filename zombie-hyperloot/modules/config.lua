@@ -43,6 +43,7 @@ Config.hitboxEnabled = false
 Config.espZombieEnabled = true
 Config.espChestEnabled = true
 Config.espPlayerEnabled = true
+Config.espBOBEnabled = true
 
 ----------------------------------------------------------
 -- 🔹 ESP Zombie Configuration

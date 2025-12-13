@@ -373,6 +373,26 @@ function UI.createESPTab()
         end
     })
 
+    ESPTab:AddSection("BOB ESP")
+
+    ESPTab:AddToggle("ESPBOB", {
+        Title = "BOB Highlight",
+        Description = "Highlight BOB (Boss) với màu vàng",
+        Default = Config.espBOBEnabled,
+        Callback = function(Value)
+            Config.espBOBEnabled = Value
+            ESP.toggleBOBHighlight(Value)
+        end
+    })
+
+    ESPTab:AddButton({
+        Title = "Teleport to BOB",
+        Description = "Teleport tới vị trí BOB (Boss)",
+        Callback = function()
+            ESP.teleportToBOB()
+        end
+    })
+
     return ESPTab
 end
 
@@ -751,6 +771,7 @@ function UI.createInfoTab()
             • Auto Chest collects all loot instantly
             • Aimbot targets both zombies and players
             • Auto Rotate 360° (R key) tự động nhắm zombie gần nhất
+            • BOB ESP highlights the boss with gold color
         ]]
     })
 
