@@ -267,6 +267,9 @@ if Config.noclipCamEnabled then
     task.defer(Movement.applyNoclipCam)
 end
 
+-- Setup Auto Rotate
+Movement.setRotationSmoothness(Config.autoRotateSmoothness)
+
 -- Character respawn handler
 characterAddedConnection = Config.localPlayer.CharacterAdded:Connect(function(character)
     Movement.onCharacterAdded(character)
@@ -457,11 +460,6 @@ inputBeganConnection = Config.UserInputService.InputBegan:Connect(function(input
     if input.KeyCode == Config.hipHeightToggleKey then
         Config.antiZombieEnabled = not Config.antiZombieEnabled
         Movement.applyAntiZombie()
-    end
-    
-    -- Camera 360 Toggle (R key)
-    if input.KeyCode == Config.camera360Key and Config.camera360Enabled then
-        Movement.toggleCamera360()
     end
     
     -- Camera Teleport (X key)

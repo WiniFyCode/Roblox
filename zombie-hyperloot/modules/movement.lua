@@ -221,129 +221,6 @@ function Movement.applyNoclipCam()
 end
 
 ----------------------------------------------------------
--- 🔹 Camera 360 Rotation
-Movement.camera360Connection = nil
-Movement.camera360Angle = 0
-Movement.camera360Target = nil
-Movement.originalCameraSubject = nil
-
-function Movement.findNearestZombieFor360()
-    local char = Config.localPlayer.Character
-    local playerHRP = char and char:FindFirstChild("HumanoidRootPart")
-    if not playerHRP then return nil end
-
-    local playerPosition = playerHRP.Position
-    local nearestZombie = nil
-    local nearestDistance = math.huge
-
-    for _, zombie in ipairs(Config.entityFolder:GetChildren()) do
-        if zombie:IsA("Model") then
-            local humanoid = zombie:FindFirstChild("Humanoid")
-            if humanoid and humanoid.Health > 0 then
-                local head = zombie:FindFirstChild("Head")
-                local hrp = zombie:FindFirstChild("HumanoidRootPart")
-                local targetPart = head or hrp
-                if targetPart and targetPart:IsA("BasePart") then
-                    local distance = (playerPosition - targetPart.Position).Magnitude
-                    if distance < nearestDistance then
-                        nearestDistance = distance
-                        nearestZombie = targetPart
-                    end
-                end
-            end
-        end
-    end
-    return nearestZombie
-end
-
-function Movement.startCamera360()
-    if Movement.camera360Connection then return end
-    
-    local camera = Config.Workspace.CurrentCamera
-    if not camera then return end
-    
-    -- Backup camera subject
-    Movement.originalCameraSubject = camera.CameraSubject
-    
-    -- Reset angle
-    Movement.camera360Angle = 0
-    
-    Movement.camera360Connection = Config.RunService.RenderStepped:Connect(function()
-        if Config.scriptUnloaded or not Config.camera360Active then
-            Movement.stopCamera360()
-            return
-        end
-        
-        -- Tìm zombie gần nhất
-        local targetPart = Movement.findNearestZombieFor360()
-        if not targetPart then
-            -- Không có zombie, dừng camera 360
-            Movement.stopCamera360()
-            return
-        end
-        
-        Movement.camera360Target = targetPart
-        local targetPosition = targetPart.Position
-        
-        -- Tính toán vị trí camera xoay quanh zombie
-        local angle = math.rad(Movement.camera360Angle)
-        local distance = Config.camera360Distance
-        local height = Config.camera360Height
-        
-        local cameraX = targetPosition.X + math.cos(angle) * distance
-        local cameraY = targetPosition.Y + height
-        local cameraZ = targetPosition.Z + math.sin(angle) * distance
-        
-        local cameraPosition = Vector3.new(cameraX, cameraY, cameraZ)
-        
-        -- Set camera CFrame để nhìn về zombie
-        camera.CFrame = CFrame.lookAt(cameraPosition, targetPosition)
-        camera.CameraType = Enum.CameraType.Scriptable
-        
-        -- Tăng góc xoay
-        Movement.camera360Angle = Movement.camera360Angle + Config.camera360Speed
-        if Movement.camera360Angle >= 360 then
-            Movement.camera360Angle = 0
-        end
-    end)
-end
-
-function Movement.stopCamera360()
-    if Movement.camera360Connection then
-        Movement.camera360Connection:Disconnect()
-        Movement.camera360Connection = nil
-    end
-    
-    -- Khôi phục camera
-    local camera = Config.Workspace.CurrentCamera
-    if camera then
-        camera.CameraType = Enum.CameraType.Custom
-        if Movement.originalCameraSubject then
-            camera.CameraSubject = Movement.originalCameraSubject
-        else
-            local char = Config.localPlayer.Character
-            local humanoid = char and char:FindFirstChild("Humanoid")
-            if humanoid then
-                camera.CameraSubject = humanoid
-            end
-        end
-    end
-    
-    Movement.camera360Target = nil
-    Movement.originalCameraSubject = nil
-end
-
-function Movement.toggleCamera360()
-    Config.camera360Active = not Config.camera360Active
-    
-    if Config.camera360Active and Config.camera360Enabled then
-        Movement.startCamera360()
-    else
-        Movement.stopCamera360()
-    end
-end
-
-----------------------------------------------------------
 -- 🔹 Camera Teleport Functions
 function Movement.findLowestHealthZombie()
     local char = Config.localPlayer.Character
@@ -463,6 +340,90 @@ function Movement.selectNextTarget(currentZombie)
 end
 
 ----------------------------------------------------------
+-- 🔹 Auto Camera Rotation 360° to Zombies
+Movement.autoRotateConnection = nil
+Movement.autoRotateEnabled = false
+Movement.rotationSmoothness = 0.05 -- 0 = instant, higher = smoother
+
+function Movement.findClosestZombieForRotation()
+    local char = Config.localPlayer.Character
+    local playerHRP = char and char:FindFirstChild("HumanoidRootPart")
+    if not playerHRP then return nil end
+
+    local playerPosition = playerHRP.Position
+    local closestZombie = nil
+    local closestDistance = math.huge
+
+    for _, zombie in ipairs(Config.entityFolder:GetChildren()) do
+        if zombie:IsA("Model") then
+            local humanoid = zombie:FindFirstChild("Humanoid")
+            if humanoid and humanoid.Health > 0 then
+                local head = zombie:FindFirstChild("Head")
+                local hrp = zombie:FindFirstChild("HumanoidRootPart")
+                local targetPart = head or hrp
+                if targetPart and targetPart:IsA("BasePart") then
+                    local distance = (playerPosition - targetPart.Position).Magnitude
+                    if distance < closestDistance then
+                        closestDistance = distance
+                        closestZombie = {part = targetPart, zombie = zombie, distance = distance}
+                    end
+                end
+            end
+        end
+    end
+    return closestZombie
+end
+
+function Movement.startAutoRotate()
+    if Movement.autoRotateConnection then return end
+    
+    Movement.autoRotateConnection = Config.RunService.RenderStepped:Connect(function()
+        if not Movement.autoRotateEnabled or Config.scriptUnloaded then return end
+        
+        -- Tìm zombie gần nhất
+        local target = Movement.findClosestZombieForRotation()
+        if not target then return end
+        
+        local camera = Config.Workspace.CurrentCamera
+        if not camera then return end
+        
+        local targetPos = target.part.Position
+        local currentCF = camera.CFrame
+        local desiredCF = CFrame.new(currentCF.Position, targetPos)
+        
+        -- Áp dụng smoothness
+        if Movement.rotationSmoothness > 0 then
+            local alpha = 1 - Movement.rotationSmoothness
+            alpha = math.clamp(alpha, 0.01, 1)
+            camera.CFrame = currentCF:Lerp(desiredCF, alpha)
+        else
+            camera.CFrame = desiredCF
+        end
+    end)
+end
+
+function Movement.stopAutoRotate()
+    if Movement.autoRotateConnection then
+        Movement.autoRotateConnection:Disconnect()
+        Movement.autoRotateConnection = nil
+    end
+end
+
+function Movement.toggleAutoRotate(enabled)
+    Movement.autoRotateEnabled = enabled
+    
+    if enabled then
+        Movement.startAutoRotate()
+    else
+        Movement.stopAutoRotate()
+    end
+end
+
+function Movement.setRotationSmoothness(value)
+    Movement.rotationSmoothness = math.clamp(value or 0.05, 0, 0.9)
+end
+
+----------------------------------------------------------
 -- 🔹 Character Respawn Handler
 function Movement.onCharacterAdded(character)
     Movement.disableAntiZombie()
@@ -485,7 +446,7 @@ function Movement.cleanup()
     Movement.disableAntiZombie()
     Movement.disableNoClip()
     Movement.stopSpeedBoost()
-    Movement.stopCamera360() -- Dừng camera 360
+    Movement.stopAutoRotate() -- Tắt auto rotate
     if Config.noclipCamEnabled then
         Config.noclipCamEnabled = false
         Movement.setNoclipCam(false) -- Tắt noclip cam khi cleanup

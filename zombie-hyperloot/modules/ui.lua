@@ -415,6 +415,29 @@ function UI.createMovementTab()
         end
     })
 
+    MovementTab:AddSection("Auto Camera Rotation")
+
+    MovementTab:AddToggle("AutoRotate", {
+        Title = "Auto Rotate to Zombies 360°",
+        Description = "Camera tự động xoay tới zombie gần nhất (không giới hạn FOV)",
+        Default = Config.autoRotateEnabled,
+        Callback = function(Value)
+            Config.autoRotateEnabled = Value
+            Movement.toggleAutoRotate(Value)
+        end
+    })
+
+    MovementTab:AddSlider("AutoRotateSmoothness", {
+        Title = "Rotation Smoothness",
+        Description = "0 = Instant Lock | Higher = Smoother/Slower",
+        Default = Config.autoRotateSmoothness,
+        Min = 0, Max = 0.9, Rounding = 2,
+        Callback = function(Value)
+            Config.autoRotateSmoothness = Value
+            Movement.setRotationSmoothness(Value)
+        end
+    })
+
     MovementTab:AddSection("Camera Teleport")
 
     MovementTab:AddToggle("CameraTeleport", {
@@ -464,55 +487,6 @@ function UI.createMovementTab()
         Default = Config.cameraOffsetZ,
         Min = -360, Max = 360, Rounding = 1,
         Callback = function(Value) Config.cameraOffsetZ = Value end
-    })
-
-    MovementTab:AddSection("Camera 360 Rotation")
-
-    MovementTab:AddToggle("Camera360", {
-        Title = "Camera 360 Rotation (R)",
-        Description = "Camera tự xoay 360 độ quanh zombie gần nhất",
-        Default = Config.camera360Enabled,
-        Callback = function(Value) 
-            Config.camera360Enabled = Value
-            if not Value and Config.camera360Active then
-                Config.camera360Active = false
-                Movement.stopCamera360()
-            end
-        end
-    })
-
-    MovementTab:AddSlider("Camera360Speed", {
-        Title = "Rotation Speed",
-        Description = "Tốc độ xoay camera (độ/frame)",
-        Default = Config.camera360Speed,
-        Min = 0.5, Max = 10, Rounding = 1,
-        Callback = function(Value) Config.camera360Speed = Value end
-    })
-
-    MovementTab:AddSlider("Camera360Distance", {
-        Title = "Distance from Zombie",
-        Description = "Khoảng cách camera từ zombie",
-        Default = Config.camera360Distance,
-        Min = 5, Max = 50, Rounding = 1,
-        Callback = function(Value) Config.camera360Distance = Value end
-    })
-
-    MovementTab:AddSlider("Camera360Height", {
-        Title = "Camera Height",
-        Description = "Độ cao camera so với zombie",
-        Default = Config.camera360Height,
-        Min = -10, Max = 20, Rounding = 1,
-        Callback = function(Value) Config.camera360Height = Value end
-    })
-
-    MovementTab:AddButton({
-        Title = "Start/Stop Camera 360",
-        Description = "Bật/tắt camera 360 ngay lập tức",
-        Callback = function()
-            if Config.camera360Enabled then
-                Movement.toggleCamera360()
-            end
-        end
     })
 
     return MovementTab
@@ -757,9 +731,9 @@ function UI.createInfoTab()
             X Key - Camera Teleport to Zombies
             M Key - Toggle Anti-Zombie
             N Key - Toggle Noclip Cam
-            R Key - Toggle Camera 360 Rotation
             Right Ctrl - Open/Close Menu
             
+            Auto Rotate 360° - Camera tự xoay tới zombie gần nhất
             Supply ESP - Hiển thị bên trái màn hình
             Auto refresh mỗi 15 giây
         ]]
@@ -776,7 +750,7 @@ function UI.createInfoTab()
             • Camera Teleport is great for farming
             • Auto Chest collects all loot instantly
             • Aimbot targets both zombies and players
-            • Camera 360 automatically rotates around nearest zombie
+            • Auto Rotate 360° tự động nhắm zombie gần nhất
         ]]
     })
 
