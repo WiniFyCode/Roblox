@@ -48,7 +48,7 @@ subtitle.Name = "Subtitle"
 subtitle.Size = UDim2.new(1, -40, 0, 20)
 subtitle.Position = UDim2.new(0, 20, 0, 50)
 subtitle.BackgroundTransparency = 1
-subtitle.Text = "by WiniFy - Last update: 2025-12-13 21:27:00"
+subtitle.Text = "by WiniFy - Last update: 2025-12-13"
 subtitle.TextColor3 = Color3.fromRGB(150, 150, 150)
 subtitle.TextSize = 18
 subtitle.Font = Enum.Font.Gotham
@@ -126,7 +126,7 @@ task.wait(0.15)
 
 updateProgress(4, 9, "Loading ESP...")
 ESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/esp.lua"))()
-ESP.init(Config, UI)
+ESP.init(Config)
 task.wait(0.15)
 
 updateProgress(5, 9, "Loading Movement...")
@@ -232,7 +232,15 @@ local function cleanupScript()
         end
     end
 
-    print("[ZombieHyperloot] Script unloaded!")
+    -- Notify script unload
+    if Config.UI and Config.UI.Fluent then
+        Config.UI.Fluent:Notify({
+            Title = "Zombie Hyperloot",
+            Content = "Script unloaded successfully",
+            SubContent = "All features disabled and cleaned up",
+            Duration = 4
+        })
+    end
 end
 
 ----------------------------------------------------------
@@ -471,6 +479,16 @@ inputBeganConnection = Config.UserInputService.InputBegan:Connect(function(input
     if input.KeyCode == Config.autoRotateToggleKey then
         Config.autoRotateEnabled = not Config.autoRotateEnabled
         Combat.toggleAutoRotate(Config.autoRotateEnabled)
+        
+        -- Notify auto rotate status
+        if Config.UI and Config.UI.Fluent then
+            Config.UI.Fluent:Notify({
+                Title = "Auto Rotate 360°",
+                Content = Config.autoRotateEnabled and "Enabled" or "Disabled",
+                SubContent = Config.autoRotateEnabled and "Camera will auto-rotate to nearest zombie" or "Camera rotation stopped",
+                Duration = 3
+            })
+        end
     end
     
     -- Camera Teleport (X key)
@@ -631,6 +649,16 @@ for i = 0, 1, 0.1 do
 end
 
 screenGui:Destroy()
+
+-- Success notification
+if Config.UI and Config.UI.Fluent then
+    Config.UI.Fluent:Notify({
+        Title = "Zombie Hyperloot",
+        Content = "Script loaded successfully!",
+        SubContent = "Press Right Ctrl to open menu | R key for Auto Rotate",
+        Duration = 6
+    })
+end
 
 print("[ZombieHyperloot] Script loaded successfully!")
 print("[ZombieHyperloot] Press Right Ctrl to open menu")

@@ -5,7 +5,6 @@
 
 local ESP = {}
 local Config = nil
-local UI = nil
 
 -- ESP Objects
 ESP.playerESPObjects = {}
@@ -17,34 +16,8 @@ ESP.chestDescendantConnection = nil
 ESP.bobHighlight = nil
 ESP.bobEnabled = false
 
-function ESP.init(config, ui)
+function ESP.init(config)
     Config = config
-    UI = ui
-end
-
-----------------------------------------------------------
--- 🔹 Notification Helper
-function ESP.notify(title, text, duration)
-    duration = duration or 3
-    
-    -- Sử dụng Fluent notification nếu có
-    if UI and UI.Window and UI.Window.Notify then
-        UI.Window:Notify({
-            Title = title,
-            Content = text,
-            Duration = duration
-        })
-        return
-    end
-    
-    -- Fallback to StarterGui notification
-    pcall(function()
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = title,
-            Text = text,
-            Duration = duration
-        })
-    end)
 end
 
 ----------------------------------------------------------
@@ -546,15 +519,20 @@ function ESP.findBOB()
     local map = Config.Workspace:FindFirstChild("Map")
     if not map then return nil end
     
-    local mapChildren = map:GetChildren()
-    if #mapChildren >= 44 then
-        local mapChild = mapChildren[44]
+    -- Tìm BOB trong tất cả children của Map
+    for _, mapChild in ipairs(map:GetChildren()) do
         local eItem = mapChild:FindFirstChild("EItem")
         if eItem then
             local bobFolder = eItem:FindFirstChild("BOB")
             if bobFolder then
                 local bob = bobFolder:FindFirstChild("Bob")
-                return bob
+                if bob and bob:IsA("Model") then
+                    -- Kiểm tra BOB có Humanoid như zombie không
+                    local humanoid = bob:FindFirstChild("Humanoid")
+                    if humanoid then
+                        return bob
+                    end
+                end
             end
         end
     end
@@ -565,7 +543,17 @@ function ESP.addBOBHighlight()
     if ESP.bobHighlight then return end
     
     local bob = ESP.findBOB()
-    if not bob then return end
+    if not bob then 
+        -- Notify if BOB not found
+        if Config.UI and Config.UI.Fluent then
+            Config.UI.Fluent:Notify({
+                Title = "BOB ESP",
+                Content = "BOB not found in current map",
+                Duration = 3
+            })
+        end
+        return 
+    end
     
     local highlight = Instance.new("Highlight")
     highlight.Name = "BOB_ESP_Highlight"
@@ -577,6 +565,16 @@ function ESP.addBOBHighlight()
     highlight.Parent = bob
     
     ESP.bobHighlight = highlight
+    
+    -- Notify BOB found and highlighted
+    if Config.UI and Config.UI.Fluent then
+        Config.UI.Fluent:Notify({
+            Title = "BOB ESP",
+            Content = "BOB found and highlighted!",
+            SubContent = "Gold highlight applied",
+            Duration = 3
+        })
+    end
 end
 
 function ESP.removeBOBHighlight()
@@ -599,22 +597,61 @@ end
 function ESP.teleportToBOB()
     local bob = ESP.findBOB()
     if not bob then
-        ESP.notify("BOB Teleport", "BOB not found! Make sure you're in the right map.", 4)
+        -- Notify BOB not found
+        if Config.UI and Config.UI.Fluent then
+            Config.UI.Fluent:Notify({
+                Title = "Teleport Failed",
+                Content = "BOB not found in current map",
+                Duration = 4
+            })
+        end
         return
     end
     
     local char = Config.localPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then
-        ESP.notify("BOB Teleport", "Player character not found! Please respawn and try again.", 4)
+        -- Notify character not found
+        if Config.UI and Config.UI.Fluent then
+            Config.UI.Fluent:Notify({
+                Title = "Teleport Failed",
+                Content = "Player character not found",
+                Duration = 4
+            })
+        end
         return
     end
     
-    -- Teleport to BOB position with offset
-    local bobPosition = bob.Position
+    -- Tìm HumanoidRootPart của BOB (giống zombie)
+    local bobHRP = bob:FindFirstChild("HumanoidRootPart")
+    local bobHead = bob:FindFirstChild("Head")
+    local targetPart = bobHRP or bobHead
+    
+    if not targetPart then
+        -- Notify BOB parts not found
+        if Config.UI and Config.UI.Fluent then
+            Config.UI.Fluent:Notify({
+                Title = "Teleport Failed",
+                Content = "BOB parts not found",
+                Duration = 4
+            })
+        end
+        return
+    end
+    
+    -- Teleport to BOB position with offset (giống zombie)
+    local bobPosition = targetPart.Position
     hrp.CFrame = CFrame.new(bobPosition + Vector3.new(0, 5, 0))
     
-    ESP.notify("BOB Teleport", "Successfully teleported to BOB!", 2)
+    -- Notify successful teleport
+    if Config.UI and Config.UI.Fluent then
+        Config.UI.Fluent:Notify({
+            Title = "Teleport Success",
+            Content = "Teleported to BOB!",
+            SubContent = "Position: " .. tostring(math.floor(bobPosition.X)) .. ", " .. tostring(math.floor(bobPosition.Y)) .. ", " .. tostring(math.floor(bobPosition.Z)),
+            Duration = 3
+        })
+    end
 end
 
 ----------------------------------------------------------

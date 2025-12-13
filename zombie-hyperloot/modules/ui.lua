@@ -26,6 +26,9 @@ function UI.loadLibraries()
     UI.Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
     UI.SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
     UI.InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+    
+    -- Store Fluent reference in Config for notifications
+    Config.UI.Fluent = UI.Fluent
 end
 
 function UI.createWindow()
