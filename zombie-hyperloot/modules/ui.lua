@@ -652,6 +652,16 @@ function UI.createFarmTab()
         end
     })
 
+    FarmTab:AddSection("Codes")
+
+    FarmTab:AddButton({
+        Title = "Redeem All Codes",
+        Description = "RAID1212, CHRISTMAS, UPD1212",
+        Callback = function()
+            Farm.redeemAllCodes()
+        end
+    })
+
     return FarmTab
 end
 

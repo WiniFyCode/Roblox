@@ -13,6 +13,19 @@ function Farm.init(config, esp)
 end
 
 ----------------------------------------------------------
+-- 🔹 Redeem Codes
+function Farm.redeemAllCodes()
+    local codes = {"RAID1212", "CHRISTMAS", "UPD1212"}
+    for _, code in ipairs(codes) do
+        pcall(function()
+            local args = {2073358730, code}
+            game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
+        end)
+        task.wait(0.5)
+    end
+end
+
+----------------------------------------------------------
 -- 🔹 Auto BulletBox + Item Magnet
 function Farm.startAutoBulletBoxLoop()
     task.spawn(function()
