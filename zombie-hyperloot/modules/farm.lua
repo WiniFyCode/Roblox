@@ -207,7 +207,11 @@ local REDEEM_CODE_REMOTE_ID = 2073358730
 function Farm.redeemCode(code)
     if Config and Config.scriptUnloaded then return end
     
-    local remoteEvent = getPotionRemoteEvent()
+    local replicatedStorage = Config and Config.ReplicatedStorage or game:GetService("ReplicatedStorage")
+    local remoteFolder = replicatedStorage:FindFirstChild("Remote")
+    if not remoteFolder then return false end
+    local remoteEvent = remoteFolder:FindFirstChild("RemoteEvent")
+    if not remoteEvent then return false end
     if not remoteEvent then return false end
     
     local success = pcall(function()
