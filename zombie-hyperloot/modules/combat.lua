@@ -169,6 +169,107 @@ function Combat.startAllSkillLoops()
 end
 
 ----------------------------------------------------------
+-- 🔹 Auto Aim Camera (360 độ)
+Combat.autoAimCameraConnection = nil
+
+function Combat.getAutoAimCameraTargets()
+    local targets = {}
+    local mode = Config.autoAimCameraTargetMode or "Zombies"
+    
+    if mode == "Players" or mode == "All" then
+        for _, plr in ipairs(Config.Players:GetPlayers()) do
+            if plr ~= Config.localPlayer and plr.Character then
+                local hum = plr.Character:FindFirstChildWhichIsA("Humanoid")
+                if hum and hum.Health > 0 then
+                    table.insert(targets, plr.Character)
+                end
+            end
+        end
+    end
+    
+    if mode == "Zombies" or mode == "All" then
+        for _, m in ipairs(Config.entityFolder:GetChildren()) do
+            if m:IsA("Model") then
+                local hum = m:FindFirstChildWhichIsA("Humanoid")
+                if hum and hum.Health > 0 then
+                    table.insert(targets, m)
+                end
+            end
+        end
+    end
+    
+    return targets
+end
+
+function Combat.getAutoAimCameraTarget()
+    local localChar = Config.localPlayer.Character
+    local localHRP = localChar and localChar:FindFirstChild("HumanoidRootPart")
+    if not localHRP then return nil end
+    
+    local bestTarget = nil
+    local bestScore = nil
+    local priority = Config.autoAimCameraPriority or "Nearest"
+    
+    for _, char in ipairs(Combat.getAutoAimCameraTargets()) do
+        local hum = char:FindFirstChildWhichIsA("Humanoid")
+        if hum and hum.Health > 0 then
+            local targetPart = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
+            if targetPart then
+                local distance = (localHRP.Position - targetPart.Position).Magnitude
+                local score
+                
+                if priority == "LowestHealth" then
+                    score = hum.Health
+                else -- Nearest
+                    score = distance
+                end
+                
+                if bestScore == nil or score < bestScore then
+                    bestScore = score
+                    bestTarget = targetPart
+                end
+            end
+        end
+    end
+    
+    return bestTarget
+end
+
+function Combat.updateAutoAimCamera()
+    if not Config.autoAimCameraEnabled then return end
+    if Config.scriptUnloaded then return end
+    
+    local camera = Config.Workspace.CurrentCamera
+    if not camera then return end
+    
+    local targetPart = Combat.getAutoAimCameraTarget()
+    if not targetPart then return end
+    
+    local smoothness = Config.autoAimCameraSmoothness or 0.15
+    local targetCFrame = CFrame.new(camera.CFrame.Position, targetPart.Position)
+    
+    -- Lerp camera để xoay mượt
+    camera.CFrame = camera.CFrame:Lerp(targetCFrame, 1 - smoothness)
+end
+
+function Combat.startAutoAimCamera()
+    if Combat.autoAimCameraConnection then
+        Combat.autoAimCameraConnection:Disconnect()
+    end
+    
+    Combat.autoAimCameraConnection = Config.RunService.RenderStepped:Connect(function()
+        Combat.updateAutoAimCamera()
+    end)
+end
+
+function Combat.stopAutoAimCamera()
+    if Combat.autoAimCameraConnection then
+        Combat.autoAimCameraConnection:Disconnect()
+        Combat.autoAimCameraConnection = nil
+    end
+end
+
+----------------------------------------------------------
 -- 🔹 Aimbot Functions
 Combat.holdingMouse2 = false
 Combat.autoFireHolding = false
@@ -335,7 +436,25 @@ function Combat.getClosestAimbotTarget()
     for _, char in ipairs(Combat.getAimbotTargets()) do
         local hum = char:FindFirstChildWhichIsA("Humanoid")
         if hum and hum.Health > 0 then
-            local part = char:FindFirstChild(Config.aimbotAimPart)
+            local part = nil
+            
+            -- Random mode: chọn ngẫu nhiên từ danh sách parts
+            if Config.aimbotAimPart == "Random" then
+                local randomParts = Config.aimbotRandomParts or {"Head", "UpperTorso", "HumanoidRootPart", "Torso"}
+                local shuffled = {}
+                for _, p in ipairs(randomParts) do table.insert(shuffled, p) end
+                for i = #shuffled, 2, -1 do
+                    local j = math.random(i)
+                    shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
+                end
+                for _, partName in ipairs(shuffled) do
+                    part = char:FindFirstChild(partName)
+                    if part then break end
+                end
+            else
+                part = char:FindFirstChild(Config.aimbotAimPart)
+            end
+            
             if not part then
                 part = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso") or char:FindFirstChild("Head")
             end
@@ -394,6 +513,7 @@ end
 
 function Combat.cleanup()
     Combat.setAutoFireActive(false)
+    Combat.stopAutoAimCamera()
 
     if Combat.FOVCircle then
         pcall(function() Combat.FOVCircle:Remove() end)

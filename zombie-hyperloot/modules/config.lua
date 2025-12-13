@@ -129,11 +129,19 @@ Config.aimbotPrediction = 0.1 -- Dự đoán chuyển động
 Config.aimbotFOVEnabled = true
 Config.aimbotFOVRadius = 50
 Config.aimbotTargetMode = "Zombies" -- "Zombies", "Players", "All"
-Config.aimbotAimPart = "Head" -- "Head", "UpperTorso", "HumanoidRootPart"
+Config.aimbotAimPart = "Head" -- "Head", "UpperTorso", "HumanoidRootPart", "Random"
+Config.aimbotRandomParts = {"Head", "UpperTorso", "HumanoidRootPart", "Torso"} -- Danh sách parts cho Random mode
 Config.savedAimbotState = nil -- Lưu trạng thái aimbot khi camera teleport
 Config.aimbotPriorityMode = "Nearest" -- "Nearest", "Farthest", "LowestHealth", "HighestHealth"
 Config.aimbotWallCheckEnabled = true -- Bỏ qua mục tiêu bị chắn bởi Map.Model.Decoration
 Config.aimbotAutoFireEnabled = false -- Tự giữ chuột trái khi aimbot khóa mục tiêu
+
+----------------------------------------------------------
+-- 🔹 Auto Aim Camera (360 độ)
+Config.autoAimCameraEnabled = false
+Config.autoAimCameraSmoothness = 0.15 -- 0 = instant, 1 = very slow
+Config.autoAimCameraTargetMode = "Zombies" -- "Zombies", "Players", "All"
+Config.autoAimCameraPriority = "Nearest" -- "Nearest", "LowestHealth"
 
 ----------------------------------------------------------
 -- 🔹 Map Selection
