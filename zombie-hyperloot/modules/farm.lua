@@ -94,7 +94,103 @@ function Farm.teleportToAllChests()
 end
 
 ----------------------------------------------------------
+-- 🔹 Potion Buy/Drink (Attack/Health/Luck)
+local POTION_SHOP_REMOTE_ID = 3306896484
+local POTION_DRINK_REMOTE_ID = 2791618369
+
+Farm.potions = {
+    CommonAttack = { buyId = 1001, drinkSlot = 5 },
+    CommonHealth = { buyId = 1002, drinkSlot = 8 },
+    CommonLuck = { buyId = 1003, drinkSlot = 9 },
+    RareAttack = { buyId = 1004, drinkSlot = 6 },
+    RareHealth = { buyId = 1005, drinkSlot = 4 },
+    RareLuck = { buyId = 1006, drinkSlot = 2 },
+}
+
+local function getPotionRemoteEvent()
+    local replicatedStorage = Config and Config.ReplicatedStorage
+    if not replicatedStorage then
+        replicatedStorage = game:GetService("ReplicatedStorage")
+    end
+
+    local remoteFolder = replicatedStorage:FindFirstChild("Remote")
+    if not remoteFolder then
+        warn("[ZombieHyperloot][Potion] Không tìm thấy ReplicatedStorage.Remote")
+        return nil
+    end
+
+    local remoteEvent = remoteFolder:FindFirstChild("RemoteEvent")
+    if not remoteEvent then
+        warn("[ZombieHyperloot][Potion] Không tìm thấy RemoteEvent")
+        return nil
+    end
+
+    return remoteEvent
+end
+
+function Farm.buyPotion(potionKey, amount)
+    if Config and Config.scriptUnloaded then return end
+
+    local potion = Farm.potions[potionKey]
+    if not potion then
+        warn("[ZombieHyperloot][Potion] Potion key không hợp lệ: " .. tostring(potionKey))
+        return
+    end
+
+    local remoteEvent = getPotionRemoteEvent()
+    if not remoteEvent then return end
+
+    amount = amount or 1
+
+    local args = {
+        POTION_SHOP_REMOTE_ID,
+        potion.buyId,
+        amount,
+    }
+
+    pcall(function()
+        remoteEvent:FireServer(unpack(args))
+    end)
+end
+
+function Farm.drinkPotion(potionKey, amount)
+    if Config and Config.scriptUnloaded then return end
+
+    local potion = Farm.potions[potionKey]
+    if not potion then
+        warn("[ZombieHyperloot][Potion] Potion key không hợp lệ: " .. tostring(potionKey))
+        return
+    end
+
+    local remoteEvent = getPotionRemoteEvent()
+    if not remoteEvent then return end
+
+    amount = amount or 1
+
+    local args = {
+        POTION_DRINK_REMOTE_ID,
+        potion.drinkSlot,
+        amount,
+    }
+
+    pcall(function()
+        remoteEvent:FireServer(unpack(args))
+    end)
+end
+
+function Farm.buyAndDrinkPotion(potionKey, amount)
+    if Config and Config.scriptUnloaded then return end
+
+    amount = amount or 1
+
+    Farm.buyPotion(potionKey, amount)
+    task.wait(0.1)
+    Farm.drinkPotion(potionKey, amount)
+end
+
+----------------------------------------------------------
 -- 🔹 Input Handler for Chest Teleport
+
 function Farm.setupChestTeleportInput()
     Config.UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if gameProcessed or Config.scriptUnloaded then return end

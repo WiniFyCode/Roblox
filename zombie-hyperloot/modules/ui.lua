@@ -594,8 +594,67 @@ function UI.createFarmTab()
         Callback = function(Value) Config.teleportEnabled = Value end
     })
 
+    FarmTab:AddSection("Potions - Common")
+
+    FarmTab:AddButton({
+        Title = "Common Attack (Buy + Drink)",
+        Callback = function()
+            if Farm and Farm.buyAndDrinkPotion then
+                Farm.buyAndDrinkPotion("CommonAttack")
+            end
+        end
+    })
+
+    FarmTab:AddButton({
+        Title = "Common Health (Buy + Drink)",
+        Callback = function()
+            if Farm and Farm.buyAndDrinkPotion then
+                Farm.buyAndDrinkPotion("CommonHealth")
+            end
+        end
+    })
+
+    FarmTab:AddButton({
+        Title = "Common Luck (Buy + Drink)",
+        Callback = function()
+            if Farm and Farm.buyAndDrinkPotion then
+                Farm.buyAndDrinkPotion("CommonLuck")
+            end
+        end
+    })
+
+    FarmTab:AddSection("Potions - Rare")
+
+    FarmTab:AddButton({
+        Title = "Rare Attack (Buy + Drink)",
+        Callback = function()
+            if Farm and Farm.buyAndDrinkPotion then
+                Farm.buyAndDrinkPotion("RareAttack")
+            end
+        end
+    })
+
+    FarmTab:AddButton({
+        Title = "Rare Health (Buy + Drink)",
+        Callback = function()
+            if Farm and Farm.buyAndDrinkPotion then
+                Farm.buyAndDrinkPotion("RareHealth")
+            end
+        end
+    })
+
+    FarmTab:AddButton({
+        Title = "Rare Luck (Buy + Drink)",
+        Callback = function()
+            if Farm and Farm.buyAndDrinkPotion then
+                Farm.buyAndDrinkPotion("RareLuck")
+            end
+        end
+    })
+
     return FarmTab
 end
+
 
 ----------------------------------------------------------
 -- 🔹 Settings Tab
