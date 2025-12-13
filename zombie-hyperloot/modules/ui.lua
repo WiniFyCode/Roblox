@@ -68,9 +68,8 @@ function UI.createCombatTab()
     })
 
     CombatTab:AddDropdown("AimbotAimPart", {
-
         Title = "Aim Part",
-        Values = {"Head", "UpperTorso", "HumanoidRootPart"},
+        Values = {"Head", "UpperTorso", "HumanoidRootPart", "Random"},
         Default = Config.aimbotAimPart,
         Callback = function(Value) Config.aimbotAimPart = Value end
     })
@@ -191,6 +190,50 @@ function UI.createCombatTab()
         Default = Config.skill1002Interval,
         Min = 15, Max = 60, Rounding = 0,
         Callback = function(Value) Config.skill1002Interval = Value end
+    })
+
+    CombatTab:AddSection("Auto Aim Camera (360°)")
+
+    CombatTab:AddToggle("AutoAimCamera", {
+        Title = "Auto Aim Camera",
+        Description = "Camera tự động nhắm mục tiêu 360 độ",
+        Default = Config.autoAimCameraEnabled,
+        Callback = function(Value)
+            Config.autoAimCameraEnabled = Value
+            if Value then
+                Combat.startAutoAimCamera()
+            else
+                Combat.stopAutoAimCamera()
+            end
+        end
+    })
+
+    CombatTab:AddDropdown("AutoAimCameraTarget", {
+        Title = "Camera Target",
+        Values = {"Zombies", "Players", "All"},
+        Default = Config.autoAimCameraTargetMode,
+        Callback = function(Value) Config.autoAimCameraTargetMode = Value end
+    })
+
+    CombatTab:AddDropdown("AutoAimCameraPriority", {
+        Title = "Camera Priority",
+        Values = {"Nearest", "LowestHealth"},
+        Default = Config.autoAimCameraPriority,
+        Callback = function(Value) Config.autoAimCameraPriority = Value end
+    })
+
+    CombatTab:AddSlider("AutoAimCameraSmoothness", {
+        Title = "Camera Smoothness",
+        Description = "0 = Instant | Higher = Smoother",
+        Default = Config.autoAimCameraSmoothness,
+        Min = 0, Max = 1, Rounding = 2,
+        Callback = function(Value) Config.autoAimCameraSmoothness = Value end
+    })
+
+    CombatTab:AddToggle("AutoAimCameraWallCheck", {
+        Title = "Camera Wall Check",
+        Default = Config.autoAimCameraWallCheck,
+        Callback = function(Value) Config.autoAimCameraWallCheck = Value end
     })
 
     return CombatTab
