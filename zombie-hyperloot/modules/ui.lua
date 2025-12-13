@@ -208,34 +208,6 @@ function UI.createCombatTab()
         end
     })
 
-    CombatTab:AddDropdown("AutoAimCameraTarget", {
-        Title = "Camera Target",
-        Values = {"Zombies", "Players", "All"},
-        Default = Config.autoAimCameraTargetMode,
-        Callback = function(Value) Config.autoAimCameraTargetMode = Value end
-    })
-
-    CombatTab:AddDropdown("AutoAimCameraPriority", {
-        Title = "Camera Priority",
-        Values = {"Nearest", "LowestHealth"},
-        Default = Config.autoAimCameraPriority,
-        Callback = function(Value) Config.autoAimCameraPriority = Value end
-    })
-
-    CombatTab:AddSlider("AutoAimCameraSmoothness", {
-        Title = "Camera Smoothness",
-        Description = "0 = Instant | Higher = Smoother",
-        Default = Config.autoAimCameraSmoothness,
-        Min = 0, Max = 1, Rounding = 2,
-        Callback = function(Value) Config.autoAimCameraSmoothness = Value end
-    })
-
-    CombatTab:AddToggle("AutoAimCameraWallCheck", {
-        Title = "Camera Wall Check",
-        Default = Config.autoAimCameraWallCheck,
-        Callback = function(Value) Config.autoAimCameraWallCheck = Value end
-    })
-
     return CombatTab
 end
 
@@ -1112,6 +1084,15 @@ function UI.createVisualsTab()
                 Visuals.setCustomTime(Value)
             end
         end
+    })
+
+    VisualsTab:AddSection("Effects")
+
+    VisualsTab:AddToggle("RemoveEffects", {
+        Title = "Auto Remove Effects",
+        Description = "Tự động xóa effects khi dupe lần đầu",
+        Default = Config.removeEffectsEnabled,
+        Callback = function(Value) Config.removeEffectsEnabled = Value end
     })
 
     return VisualsTab

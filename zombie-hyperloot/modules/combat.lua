@@ -169,76 +169,8 @@ function Combat.startAllSkillLoops()
 end
 
 ----------------------------------------------------------
--- 🔹 Auto Aim Camera (360 độ)
+-- 🔹 Auto Aim Camera (360 độ) - Tận dụng lại aimbot logic
 Combat.autoAimCameraConnection = nil
-
-function Combat.getAutoAimCameraTargets()
-    local targets = {}
-    local mode = Config.autoAimCameraTargetMode or "Zombies"
-    
-    if mode == "Players" or mode == "All" then
-        for _, plr in ipairs(Config.Players:GetPlayers()) do
-            if plr ~= Config.localPlayer and plr.Character then
-                local hum = plr.Character:FindFirstChildWhichIsA("Humanoid")
-                if hum and hum.Health > 0 then
-                    table.insert(targets, plr.Character)
-                end
-            end
-        end
-    end
-    
-    if mode == "Zombies" or mode == "All" then
-        for _, m in ipairs(Config.entityFolder:GetChildren()) do
-            if m:IsA("Model") then
-                local hum = m:FindFirstChildWhichIsA("Humanoid")
-                if hum and hum.Health > 0 then
-                    table.insert(targets, m)
-                end
-            end
-        end
-    end
-    
-    return targets
-end
-
-function Combat.getAutoAimCameraTarget()
-    local localChar = Config.localPlayer.Character
-    local localHRP = localChar and localChar:FindFirstChild("HumanoidRootPart")
-    if not localHRP then return nil end
-    
-    local bestTarget = nil
-    local bestScore = nil
-    local priority = Config.autoAimCameraPriority or "Nearest"
-    
-    for _, char in ipairs(Combat.getAutoAimCameraTargets()) do
-        local hum = char:FindFirstChildWhichIsA("Humanoid")
-        if hum and hum.Health > 0 then
-            local targetPart = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
-            if targetPart then
-                -- Wall check
-                if Config.autoAimCameraWallCheck and not Combat.isTargetVisible(targetPart) then
-                    continue
-                end
-                
-                local distance = (localHRP.Position - targetPart.Position).Magnitude
-                local score
-                
-                if priority == "LowestHealth" then
-                    score = hum.Health
-                else -- Nearest
-                    score = distance
-                end
-                
-                if bestScore == nil or score < bestScore then
-                    bestScore = score
-                    bestTarget = targetPart
-                end
-            end
-        end
-    end
-    
-    return bestTarget
-end
 
 function Combat.updateAutoAimCamera()
     if not Config.autoAimCameraEnabled then return end
@@ -247,14 +179,15 @@ function Combat.updateAutoAimCamera()
     local camera = Config.Workspace.CurrentCamera
     if not camera then return end
     
-    local targetPart = Combat.getAutoAimCameraTarget()
-    if not targetPart then return end
+    -- Dùng chung config với aimbot thường
+    local char, targetPart = Combat.getClosestAimbotTarget()
     
-    local smoothness = Config.autoAimCameraSmoothness or 0.15
-    local targetCFrame = CFrame.new(camera.CFrame.Position, targetPart.Position)
-    
-    -- Lerp camera để xoay mượt
-    camera.CFrame = camera.CFrame:Lerp(targetCFrame, 1 - smoothness)
+    if targetPart then
+        -- Dùng chung smoothness với aimbot
+        local smoothness = Config.aimbotSmoothness
+        local targetCFrame = CFrame.new(camera.CFrame.Position, targetPart.Position)
+        camera.CFrame = camera.CFrame:Lerp(targetCFrame, 1 - smoothness)
+    end
 end
 
 function Combat.startAutoAimCamera()
