@@ -340,90 +340,6 @@ function Movement.selectNextTarget(currentZombie)
 end
 
 ----------------------------------------------------------
--- 🔹 Auto Camera Rotation 360° to Zombies
-Movement.autoRotateConnection = nil
-Movement.autoRotateEnabled = false
-Movement.rotationSmoothness = 0.05 -- 0 = instant, higher = smoother
-
-function Movement.findClosestZombieForRotation()
-    local char = Config.localPlayer.Character
-    local playerHRP = char and char:FindFirstChild("HumanoidRootPart")
-    if not playerHRP then return nil end
-
-    local playerPosition = playerHRP.Position
-    local closestZombie = nil
-    local closestDistance = math.huge
-
-    for _, zombie in ipairs(Config.entityFolder:GetChildren()) do
-        if zombie:IsA("Model") then
-            local humanoid = zombie:FindFirstChild("Humanoid")
-            if humanoid and humanoid.Health > 0 then
-                local head = zombie:FindFirstChild("Head")
-                local hrp = zombie:FindFirstChild("HumanoidRootPart")
-                local targetPart = head or hrp
-                if targetPart and targetPart:IsA("BasePart") then
-                    local distance = (playerPosition - targetPart.Position).Magnitude
-                    if distance < closestDistance then
-                        closestDistance = distance
-                        closestZombie = {part = targetPart, zombie = zombie, distance = distance}
-                    end
-                end
-            end
-        end
-    end
-    return closestZombie
-end
-
-function Movement.startAutoRotate()
-    if Movement.autoRotateConnection then return end
-    
-    Movement.autoRotateConnection = Config.RunService.RenderStepped:Connect(function()
-        if not Movement.autoRotateEnabled or Config.scriptUnloaded then return end
-        
-        -- Tìm zombie gần nhất
-        local target = Movement.findClosestZombieForRotation()
-        if not target then return end
-        
-        local camera = Config.Workspace.CurrentCamera
-        if not camera then return end
-        
-        local targetPos = target.part.Position
-        local currentCF = camera.CFrame
-        local desiredCF = CFrame.new(currentCF.Position, targetPos)
-        
-        -- Áp dụng smoothness
-        if Movement.rotationSmoothness > 0 then
-            local alpha = 1 - Movement.rotationSmoothness
-            alpha = math.clamp(alpha, 0.01, 1)
-            camera.CFrame = currentCF:Lerp(desiredCF, alpha)
-        else
-            camera.CFrame = desiredCF
-        end
-    end)
-end
-
-function Movement.stopAutoRotate()
-    if Movement.autoRotateConnection then
-        Movement.autoRotateConnection:Disconnect()
-        Movement.autoRotateConnection = nil
-    end
-end
-
-function Movement.toggleAutoRotate(enabled)
-    Movement.autoRotateEnabled = enabled
-    
-    if enabled then
-        Movement.startAutoRotate()
-    else
-        Movement.stopAutoRotate()
-    end
-end
-
-function Movement.setRotationSmoothness(value)
-    Movement.rotationSmoothness = math.clamp(value or 0.05, 0, 0.9)
-end
-
-----------------------------------------------------------
 -- 🔹 Character Respawn Handler
 function Movement.onCharacterAdded(character)
     Movement.disableAntiZombie()
@@ -446,7 +362,7 @@ function Movement.cleanup()
     Movement.disableAntiZombie()
     Movement.disableNoClip()
     Movement.stopSpeedBoost()
-    Movement.stopAutoRotate() -- Tắt auto rotate
+
     if Config.noclipCamEnabled then
         Config.noclipCamEnabled = false
         Movement.setNoclipCam(false) -- Tắt noclip cam khi cleanup

@@ -177,6 +177,11 @@ Combat.autoFireHolding = false
 Combat.FOVCircle = nil
 Combat.hasFOVDrawing = false
 
+-- Auto Camera Rotation 360°
+Combat.autoRotateConnection = nil
+Combat.autoRotateEnabled = false
+Combat.rotationSmoothness = 0.05 -- 0 = instant, higher = smoother
+
 local function sendMouseButton1State(isDown)
     if not Config or not Config.VirtualInputManager then
         return
@@ -413,8 +418,97 @@ function Combat.setupMouseInput()
     end)
 end
 
+----------------------------------------------------------
+-- 🔹 Auto Camera Rotation 360° to Zombies (with Wall Check)
+
+function Combat.findClosestZombieForRotation()
+    local char = Config.localPlayer.Character
+    local playerHRP = char and char:FindFirstChild("HumanoidRootPart")
+    if not playerHRP then return nil end
+
+    local playerPosition = playerHRP.Position
+    local closestZombie = nil
+    local closestDistance = math.huge
+
+    for _, zombie in ipairs(Config.entityFolder:GetChildren()) do
+        if zombie:IsA("Model") then
+            local humanoid = zombie:FindFirstChild("Humanoid")
+            if humanoid and humanoid.Health > 0 then
+                local head = zombie:FindFirstChild("Head")
+                local hrp = zombie:FindFirstChild("HumanoidRootPart")
+                local targetPart = head or hrp
+                if targetPart and targetPart:IsA("BasePart") then
+                    -- Check wall trước (sử dụng chung setting với aimbot)
+                    if not Combat.isTargetVisible(targetPart) then
+                        continue
+                    end
+                    
+                    local distance = (playerPosition - targetPart.Position).Magnitude
+                    if distance < closestDistance then
+                        closestDistance = distance
+                        closestZombie = {part = targetPart, zombie = zombie, distance = distance}
+                    end
+                end
+            end
+        end
+    end
+    return closestZombie
+end
+
+function Combat.startAutoRotate()
+    if Combat.autoRotateConnection then return end
+    
+    Combat.autoRotateConnection = Config.RunService.RenderStepped:Connect(function()
+        if not Combat.autoRotateEnabled or Config.scriptUnloaded then return end
+        
+        -- Tìm zombie gần nhất (có wall check)
+        local target = Combat.findClosestZombieForRotation()
+        if not target then return end
+        
+        local camera = Config.Workspace.CurrentCamera
+        if not camera then return end
+        
+        local targetPos = target.part.Position
+        local currentCF = camera.CFrame
+        local desiredCF = CFrame.new(currentCF.Position, targetPos)
+        
+        -- Áp dụng smoothness
+        if Combat.rotationSmoothness > 0 then
+            local alpha = 1 - Combat.rotationSmoothness
+            alpha = math.clamp(alpha, 0.01, 1)
+            camera.CFrame = currentCF:Lerp(desiredCF, alpha)
+        else
+            camera.CFrame = desiredCF
+        end
+    end)
+end
+
+function Combat.stopAutoRotate()
+    if Combat.autoRotateConnection then
+        Combat.autoRotateConnection:Disconnect()
+        Combat.autoRotateConnection = nil
+    end
+end
+
+function Combat.toggleAutoRotate(enabled)
+    Combat.autoRotateEnabled = enabled
+    
+    if enabled then
+        Combat.startAutoRotate()
+    else
+        Combat.stopAutoRotate()
+    end
+end
+
+function Combat.setRotationSmoothness(value)
+    Combat.rotationSmoothness = math.clamp(value or 0.05, 0, 0.9)
+end
+
+
+
 function Combat.cleanup()
     Combat.setAutoFireActive(false)
+    Combat.stopAutoRotate() -- Tắt auto rotate
 
     if Combat.FOVCircle then
         pcall(function() Combat.FOVCircle:Remove() end)

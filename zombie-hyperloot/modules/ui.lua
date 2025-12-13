@@ -192,6 +192,28 @@ function UI.createCombatTab()
         Callback = function(Value) Config.skill1002Interval = Value end
     })
 
+    CombatTab:AddSection("Auto Camera Rotation 360°")
+
+    CombatTab:AddToggle("AutoRotate", {
+        Title = "Auto Rotate to Zombies 360°",
+        Description = "Camera tự động xoay tới zombie gần nhất (R key toggle)",
+        Default = Config.autoRotateEnabled,
+        Callback = function(Value)
+            Config.autoRotateEnabled = Value
+            Combat.toggleAutoRotate(Value)
+        end
+    })
+
+    CombatTab:AddSlider("AutoRotateSmoothness", {
+        Title = "Rotation Smoothness",
+        Description = "0 = Instant Lock | Higher = Smoother/Slower",
+        Default = Config.autoRotateSmoothness,
+        Min = 0, Max = 0.9, Rounding = 2,
+        Callback = function(Value)
+            Config.autoRotateSmoothness = Value
+            Combat.setRotationSmoothness(Value)
+        end
+    })
 
     return CombatTab
 end
@@ -412,29 +434,6 @@ function UI.createMovementTab()
         Callback = function(Value)
             Config.noclipCamEnabled = Value
             Movement.applyNoclipCam()
-        end
-    })
-
-    MovementTab:AddSection("Auto Camera Rotation")
-
-    MovementTab:AddToggle("AutoRotate", {
-        Title = "Auto Rotate to Zombies 360°",
-        Description = "Camera tự động xoay tới zombie gần nhất (không giới hạn FOV)",
-        Default = Config.autoRotateEnabled,
-        Callback = function(Value)
-            Config.autoRotateEnabled = Value
-            Movement.toggleAutoRotate(Value)
-        end
-    })
-
-    MovementTab:AddSlider("AutoRotateSmoothness", {
-        Title = "Rotation Smoothness",
-        Description = "0 = Instant Lock | Higher = Smoother/Slower",
-        Default = Config.autoRotateSmoothness,
-        Min = 0, Max = 0.9, Rounding = 2,
-        Callback = function(Value)
-            Config.autoRotateSmoothness = Value
-            Movement.setRotationSmoothness(Value)
         end
     })
 
@@ -731,6 +730,7 @@ function UI.createInfoTab()
             X Key - Camera Teleport to Zombies
             M Key - Toggle Anti-Zombie
             N Key - Toggle Noclip Cam
+            R Key - Toggle Auto Rotate 360°
             Right Ctrl - Open/Close Menu
             
             Auto Rotate 360° - Camera tự xoay tới zombie gần nhất
@@ -750,7 +750,7 @@ function UI.createInfoTab()
             • Camera Teleport is great for farming
             • Auto Chest collects all loot instantly
             • Aimbot targets both zombies and players
-            • Auto Rotate 360° tự động nhắm zombie gần nhất
+            • Auto Rotate 360° (R key) tự động nhắm zombie gần nhất
         ]]
     })
 

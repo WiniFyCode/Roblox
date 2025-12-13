@@ -109,6 +109,7 @@ Config.noclipCamEnabled = true
 -- 🔹 Auto Camera Rotation 360°
 Config.autoRotateEnabled = false
 Config.autoRotateSmoothness = 0.05 -- 0 = instant, higher = smoother
+Config.autoRotateToggleKey = Enum.KeyCode.R -- Phím R để toggle
 
 ----------------------------------------------------------
 -- 🔹 Auto BulletBox & Item Magnet

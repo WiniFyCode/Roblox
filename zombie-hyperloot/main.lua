@@ -268,7 +268,7 @@ if Config.noclipCamEnabled then
 end
 
 -- Setup Auto Rotate
-Movement.setRotationSmoothness(Config.autoRotateSmoothness)
+Combat.setRotationSmoothness(Config.autoRotateSmoothness)
 
 -- Character respawn handler
 characterAddedConnection = Config.localPlayer.CharacterAdded:Connect(function(character)
@@ -460,6 +460,12 @@ inputBeganConnection = Config.UserInputService.InputBegan:Connect(function(input
     if input.KeyCode == Config.hipHeightToggleKey then
         Config.antiZombieEnabled = not Config.antiZombieEnabled
         Movement.applyAntiZombie()
+    end
+    
+    -- Auto Rotate Toggle (R key)
+    if input.KeyCode == Config.autoRotateToggleKey then
+        Config.autoRotateEnabled = not Config.autoRotateEnabled
+        Combat.toggleAutoRotate(Config.autoRotateEnabled)
     end
     
     -- Camera Teleport (X key)
