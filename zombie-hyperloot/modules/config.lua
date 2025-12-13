@@ -86,6 +86,15 @@ Config.cameraOffsetY = 10 -- Giống file gốc
 Config.cameraOffsetZ = -2
 
 ----------------------------------------------------------
+-- 🔹 Camera 360 Rotation
+Config.camera360Enabled = false
+Config.camera360Active = false
+Config.camera360Speed = 2 -- Tốc độ xoay (độ/frame)
+Config.camera360Distance = 15 -- Khoảng cách từ zombie
+Config.camera360Height = 5 -- Độ cao camera so với zombie
+Config.camera360Key = Enum.KeyCode.R -- Phím bật/tắt camera 360
+
+----------------------------------------------------------
 -- 🔹 Anti-Zombie (HipHeight)
 Config.antiZombieEnabled = false
 Config.hipHeightValue = 10

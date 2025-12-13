@@ -459,6 +459,11 @@ inputBeganConnection = Config.UserInputService.InputBegan:Connect(function(input
         Movement.applyAntiZombie()
     end
     
+    -- Camera 360 Toggle (R key)
+    if input.KeyCode == Config.camera360Key and Config.camera360Enabled then
+        Movement.toggleCamera360()
+    end
+    
     -- Camera Teleport (X key)
     if input.KeyCode == Config.cameraTeleportKey and Config.cameraTeleportEnabled then
         if Config.cameraTeleportActive then
