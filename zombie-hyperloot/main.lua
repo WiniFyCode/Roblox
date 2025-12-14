@@ -3,13 +3,64 @@
     by WiniFy
     
     Modular version - Load từng modules để giảm lag
+    Auto-reload khi vào game mới
 ]]
 
 ----------------------------------------------------------
--- 🔹 Loading Screen UI
+-- 🔹 Auto Reload Script khi vào game mới
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local HttpService = game:GetService("HttpService")
+
+-- Lưu JobId ban đầu để detect khi vào game mới
+local initialJobId = game.JobId
+local hasInitialized = false
+
+-- Function để reload script (chỉ khi script được load từ GitHub)
+local function reloadScript()
+    -- Nếu script được load từ local file, không thể reload từ GitHub
+    -- Chỉ reload nếu có thể access GitHub
+    local scriptUrl = "https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/main.lua"
+    local success, newScript = pcall(function()
+        return game:HttpGet(scriptUrl, true)
+    end)
+    
+    if success and newScript then
+        -- Cleanup script cũ trước
+        if Config and Config.scriptUnloaded ~= nil then
+            Config.scriptUnloaded = true
+        end
+        
+        -- Load script mới
+        task.wait(0.5)
+        loadstring(newScript)()
+    else
+        -- Nếu không thể reload từ GitHub, chỉ warn và tiếp tục chạy script hiện tại
+        warn("[ZombieHyperloot] Không thể auto reload từ GitHub. Script sẽ tiếp tục chạy.")
+    end
+end
+
+-- Detect khi vào game mới bằng cách check JobId
+-- JobId sẽ thay đổi mỗi khi vào server mới
+task.spawn(function()
+    task.wait(3) -- Đợi script load xong
+    hasInitialized = true
+    
+    while task.wait(1) do
+        local currentJobId = game.JobId
+        
+        -- Nếu JobId thay đổi → vào game/server mới
+        if hasInitialized and currentJobId ~= initialJobId then
+            print("[ZombieHyperloot] Đã phát hiện vào game mới (JobId thay đổi), đang reload script...")
+            initialJobId = currentJobId
+            reloadScript()
+            break
+        end
+    end
+end)
+
+----------------------------------------------------------
+-- 🔹 Loading Screen UI
 
 ----------------------------------------------------------
 -- 🔹 Get Last Commit Time from GitHub
