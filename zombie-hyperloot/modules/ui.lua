@@ -376,67 +376,6 @@ function UI.createESPTab()
         end
     })
 
-    ESPTab:AddSection("Bob ESP")
-
-    ESPTab:AddToggle("ESPBob", {
-        Title = "ESP Bob",
-        Description = "Hiển thị ESP cho Bob (refresh mỗi 5s)",
-        Default = Config.espBobEnabled,
-        Callback = function(Value)
-            Config.espBobEnabled = Value
-            if Value then
-                ESP.startBobESP()
-            else
-                ESP.stopBobESP()
-            end
-        end
-    })
-
-    ESPTab:AddColorpicker("ESPBobColor", {
-        Title = "Bob ESP Color",
-        Default = Config.espColorBob,
-        Callback = function(Value)
-            Config.espColorBob = Value
-            -- Refresh highlights với màu mới
-            for model, highlight in pairs(ESP.bobHighlights) do
-                if highlight then
-                    highlight.FillColor = Value
-                    highlight.OutlineColor = Value
-                end
-            end
-            -- Refresh Drawing text color
-            for model, data in pairs(ESP.bobESPObjects) do
-                if data.Name then
-                    data.Name.Color = Value
-                end
-            end
-        end
-    })
-
-    ESPTab:AddButton({
-        Title = "Teleport to Bob",
-        Description = "Teleport tới Bob gần nhất",
-        Callback = function()
-            local success = ESP.teleportToBob()
-            if success then
-                if Config.UI and Config.UI.Fluent then
-                    Config.UI.Fluent:Notify({
-                        Title = "Bob ESP",
-                        Content = "Đã teleport tới Bob!",
-                        Duration = 2
-                    })
-                end
-            else
-                if Config.UI and Config.UI.Fluent then
-                    Config.UI.Fluent:Notify({
-                        Title = "Bob ESP",
-                        Content = "Không tìm thấy Bob nào!",
-                        Duration = 2
-                    })
-                end
-            end
-        end
-    })
 
     return ESPTab
 end
@@ -674,6 +613,76 @@ function UI.createMapTab()
     })
 
     return MapTab
+end
+
+----------------------------------------------------------
+-- 🔹 Event Tab
+function UI.createEventTab()
+    local EventTab = UI.Window:AddTab({ Title = "Event" })
+
+    EventTab:AddSection("Bob ESP")
+
+    EventTab:AddToggle("ESPBob", {
+        Title = "ESP Bob",
+        Description = "Hiển thị ESP cho Bob (refresh mỗi 5s)",
+        Default = Config.espBobEnabled,
+        Callback = function(Value)
+            Config.espBobEnabled = Value
+            if Value then
+                ESP.startBobESP()
+            else
+                ESP.stopBobESP()
+            end
+        end
+    })
+
+    EventTab:AddColorpicker("ESPBobColor", {
+        Title = "Bob ESP Color",
+        Default = Config.espColorBob,
+        Callback = function(Value)
+            Config.espColorBob = Value
+            -- Refresh highlights với màu mới
+            for model, highlight in pairs(ESP.bobHighlights) do
+                if highlight then
+                    highlight.FillColor = Value
+                    highlight.OutlineColor = Value
+                end
+            end
+            -- Refresh Drawing text color
+            for model, data in pairs(ESP.bobESPObjects) do
+                if data.Name then
+                    data.Name.Color = Value
+                end
+            end
+        end
+    })
+
+    EventTab:AddButton({
+        Title = "Teleport to Bob",
+        Description = "Teleport tới Bob gần nhất",
+        Callback = function()
+            local success = ESP.teleportToBob()
+            if success then
+                if Config.UI and Config.UI.Fluent then
+                    Config.UI.Fluent:Notify({
+                        Title = "Bob ESP",
+                        Content = "Đã teleport tới Bob!",
+                        Duration = 2
+                    })
+                end
+            else
+                if Config.UI and Config.UI.Fluent then
+                    Config.UI.Fluent:Notify({
+                        Title = "Bob ESP",
+                        Content = "Không tìm thấy Bob!",
+                        Duration = 2
+                    })
+                end
+            end
+        end
+    })
+
+    return EventTab
 end
 
 ----------------------------------------------------------
@@ -1193,6 +1202,7 @@ function UI.buildAllTabs(cleanupCallback)
     UI.createESPTab()
     UI.createMovementTab()
     UI.createMapTab()
+    UI.createEventTab()
     UI.createFarmTab()
     UI.createVisualsTab()
     UI.createHUDTab()
