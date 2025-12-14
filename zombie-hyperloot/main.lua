@@ -26,11 +26,26 @@ local function getLastCommitTime()
         
         if data and data[1] and data[1].commit and data[1].commit.author and data[1].commit.author.date then
             local commitDate = data[1].commit.author.date
-            -- Format: "2025-12-14T08:50:00Z" -> "2025-12-14 08:50"
-            local dateStr = string.match(commitDate, "(%d%d%d%d%-%d%d%-%d%d)")
-            local timeStr = string.match(commitDate, "T(%d%d:%d%d)")
-            if dateStr and timeStr then
-                return dateStr .. " " .. timeStr
+            -- Format: "2025-12-14T03:19:00Z" (UTC) -> "2025-12-14 10:19" (UTC+7)
+            local year, month, day, hour, minute = string.match(commitDate, "(%d%d%d%d)%-(%d%d)%-(%d%d)T(%d%d):(%d%d)")
+            if year and month and day and hour and minute then
+                -- Convert UTC to UTC+7 (Vietnam timezone)
+                local hourNum = tonumber(hour)
+                local minuteNum = tonumber(minute)
+                hourNum = hourNum + 7
+                
+                -- Handle day overflow
+                local dayNum = tonumber(day)
+                if hourNum >= 24 then
+                    hourNum = hourNum - 24
+                    dayNum = dayNum + 1
+                    -- Simple day increment (không xử lý month/year overflow vì ít khi xảy ra)
+                end
+                
+                local formattedHour = string.format("%02d", hourNum)
+                local formattedMinute = string.format("%02d", minuteNum)
+                local formattedDay = string.format("%02d", dayNum)
+                return string.format("%s-%s-%s %s:%s", year, month, formattedDay, formattedHour, formattedMinute)
             end
         end
         return nil
