@@ -155,7 +155,42 @@ function Character.equipCharacter(id)
 end
 
 -- 🔹 Auto Skill (moved from Combat)
-function Character.triggerSkill(skillId, usePosition)
+local function getClosestZombiePart()
+    if not Config or not Config.entityFolder or not Config.localPlayer then
+        return nil
+    end
+
+    local localChar = Config.localPlayer.Character
+    local playerHRP = localChar and localChar:FindFirstChild("HumanoidRootPart")
+    if not playerHRP then
+        return nil
+    end
+
+    local closestPart = nil
+    local closestDistance = math.huge
+
+    for _, zombie in ipairs(Config.entityFolder:GetChildren()) do
+        if zombie:IsA("Model") then
+            local humanoid = zombie:FindFirstChildWhichIsA("Humanoid")
+            if humanoid and humanoid.Health > 0 then
+                local head = zombie:FindFirstChild("Head")
+                local hrp = zombie:FindFirstChild("HumanoidRootPart")
+                local targetPart = head or hrp
+                if targetPart and targetPart:IsA("BasePart") then
+                    local distance = (playerHRP.Position - targetPart.Position).Magnitude
+                    if distance < closestDistance then
+                        closestDistance = distance
+                        closestPart = targetPart
+                    end
+                end
+            end
+        end
+    end
+
+    return closestPart
+end
+
+function Character.triggerSkill(skillId, usePosition, customCFrame)
     local char = Config.localPlayer and Config.localPlayer.Character
     if not char then return end
 
@@ -168,7 +203,7 @@ function Character.triggerSkill(skillId, usePosition)
     local args
     if usePosition then
         local hrp = char:FindFirstChild("HumanoidRootPart")
-        local cf = hrp and hrp.CFrame or CFrame.new()
+        local cf = customCFrame or (hrp and hrp.CFrame or CFrame.new())
         args = {skillId, "Enter", cf}
     else
         args = {skillId, "Enter"}
@@ -189,7 +224,19 @@ function Character.activateHealingSkill()
     Character.triggerSkill(1002, false)
 end
 
--- Flag Bearer Ultimate (1004) - cần CFrame vị trí
+-- Wraith Ultimate (1006) - dùng vị trí zombie gần nhất
+function Character.activateWraithUltimate()
+    local targetPart = getClosestZombiePart()
+    local targetCFrame
+
+    if targetPart and targetPart:IsA("BasePart") then
+        targetCFrame = CFrame.new(targetPart.Position)
+    end
+
+    Character.triggerSkill(1006, true, targetCFrame)
+end
+
+-- Flag Bearer Ultimate (1004) - cần CFrame vị trí người chơi
 function Character.activateFlagBearerUltimate()
     Character.triggerSkill(1004, true)
 end
@@ -212,9 +259,11 @@ end
 
 function Character.startAllSkillLoops()
     Character.startSkillLoop(function() return Config.armsmasterUltimateInterval end, Character.activateArmsmasterUltimate)
+    Character.startSkillLoop(function() return Config.wraithUltimateInterval or 15 end, Character.activateWraithUltimate)
     Character.startSkillLoop(function() return Config.healingSkillInterval end, Character.activateHealingSkill)
     Character.startSkillLoop(function() return Config.flagBearerUltimateInterval or 15 end, Character.activateFlagBearerUltimate)
 end
+
 
 return Character
 

@@ -830,7 +830,7 @@ function UI.createCharacterTab()
 
     CharacterTab:AddToggle("AutoSkill", {
         Title = "Auto Skill (All Skills)",
-        Description = "Tự động dùng Armsmaster, Heal và Flag liên tục",
+        Description = "Tự động dùng Armsmaster, Wraith, Heal và Flag liên tục",
         Default = Config.autoSkillEnabled,
         Callback = function(Value)
             Config.autoSkillEnabled = Value
@@ -838,9 +838,11 @@ function UI.createCharacterTab()
                 task.spawn(function()
                     task.wait(0.5)
                     Character.activateArmsmasterUltimate()
-                    task.wait(0.5)
+                    task.wait(0.3)
+                    Character.activateWraithUltimate()
+                    task.wait(0.3)
                     Character.activateHealingSkill()
-                    task.wait(0.5)
+                    task.wait(0.3)
                     Character.activateFlagBearerUltimate()
                 end)
             end
@@ -852,6 +854,13 @@ function UI.createCharacterTab()
         Default = Config.armsmasterUltimateInterval,
         Min = 15, Max = 60, Rounding = 0,
         Callback = function(Value) Config.armsmasterUltimateInterval = Value end
+    })
+
+    CharacterTab:AddSlider("WraithUltimateInterval", {
+        Title = "Wraith Ultimate Interval (s)",
+        Default = Config.wraithUltimateInterval,
+        Min = 1, Max = 60, Rounding = 0,
+        Callback = function(Value) Config.wraithUltimateInterval = Value end
     })
 
     CharacterTab:AddSlider("HealingSkillInterval", {
