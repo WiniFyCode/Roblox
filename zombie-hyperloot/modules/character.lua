@@ -210,43 +210,11 @@ function Character.startSkillLoop(getInterval, action)
     end)
 end
 
-local function getSelectedCharacterSkillInterval()
-    if not Config then
-        return 15
-    end
-
-    local charId = Config.selectedCharacterId
-
-    if charId == 1006 then
-        return Config.armsmasterUltimateInterval or 15
-    elseif charId == 1004 then
-        return Config.flagBearerUltimateInterval or 15
-    else
-        return 15
-    end
-end
-
-local function triggerSelectedCharacterSkill()
-    if not Config then
-        return
-    end
-
-    local charId = Config.selectedCharacterId
-
-    if charId == 1006 then
-        Character.activateArmsmasterUltimate()
-    elseif charId == 1004 then
-        Character.activateFlagBearerUltimate()
-    end
-end
-
 function Character.startAllSkillLoops()
-    Character.startSkillLoop(getSelectedCharacterSkillInterval, triggerSelectedCharacterSkill)
+    Character.startSkillLoop(function() return Config.armsmasterUltimateInterval end, Character.activateArmsmasterUltimate)
     Character.startSkillLoop(function() return Config.healingSkillInterval end, Character.activateHealingSkill)
+    Character.startSkillLoop(function() return Config.flagBearerUltimateInterval or 15 end, Character.activateFlagBearerUltimate)
 end
-
-
-
 
 return Character
 

@@ -829,13 +829,14 @@ function UI.createCharacterTab()
     CharacterTab:AddSection("Auto Skill")
 
     CharacterTab:AddToggle("AutoSkill", {
-        Title = "Auto Skill (Selected Character)",
+        Title = "Auto Skill (All Skills)",
+        Description = "Tự động dùng Armsmaster, Heal và Flag liên tục",
         Default = Config.autoSkillEnabled,
         Callback = function(Value)
             Config.autoSkillEnabled = Value
             if Value then
                 task.spawn(function()
-                    task.wait(1)
+                    task.wait(0.5)
                     Character.activateArmsmasterUltimate()
                     task.wait(0.5)
                     Character.activateHealingSkill()
