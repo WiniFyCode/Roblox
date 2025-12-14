@@ -390,15 +390,21 @@ function Map.activateTouchInterest(touchInterest, part)
     if not touchInterest or not part then return false end
     
     local success = pcall(function()
-        -- Fire TouchInterest trực tiếp với character của player
         local char = Config.localPlayer.Character
-        if char then
-            local humanoidRootPart = char:FindFirstChild("HumanoidRootPart")
-            if humanoidRootPart then
-                -- Fire TouchInterest trực tiếp, không cần teleport
-                touchInterest:Fire(char)
-                return true
-            end
+        if not char then return end
+        
+        local humanoidRootPart = char:FindFirstChild("HumanoidRootPart")
+            or char:FindFirstChild("Torso")
+            or char:FindFirstChild("UpperTorso")
+        if not humanoidRootPart then return end
+        
+        -- Ưu tiên hàm exploit firetouchinterest (phổ biến nhất)
+        if typeof(firetouchinterest) == "function" then
+            firetouchinterest(humanoidRootPart, part, 0)
+            firetouchinterest(humanoidRootPart, part, 1)
+        -- Một số executor có thể dùng tên firetouchtransmitter
+        elseif typeof(firetouchtransmitter) == "function" then
+            firetouchtransmitter(humanoidRootPart, part)
         end
     end)
     
