@@ -268,13 +268,15 @@ end
 -- Wraith Ultimate (1006) - dùng vị trí zombie gần nhất
 function Character.activateWraithUltimate()
     local targetPart = getClosestZombiePart()
-    local targetCFrame
-
-    if targetPart and targetPart:IsA("BasePart") then
-        targetCFrame = CFrame.new(targetPart.Position)
+    
+    -- Nếu không có zombie thì dừng, không activate skill
+    if not targetPart or not targetPart:IsA("BasePart") then
+        return false
     end
 
+    local targetCFrame = CFrame.new(targetPart.Position)
     Character.triggerSkill(1006, true, targetCFrame)
+    return true
 end
 
 -- Flag Bearer Ultimate (1004) - cần CFrame vị trí người chơi
@@ -282,17 +284,28 @@ function Character.activateFlagBearerUltimate()
     Character.triggerSkill(1004, true)
 end
 
-function Character.startSkillLoop(getInterval, action)
+function Character.startSkillLoop(getInterval, action, checkCondition)
     task.spawn(function()
         if Config.autoSkillEnabled and not Config.scriptUnloaded then
             task.wait(1)
-            action()
+            -- Nếu có checkCondition, chỉ chạy khi condition = true
+            if not checkCondition or checkCondition() then
+                action()
+            end
         end
 
         while task.wait(getInterval()) do
             if Config.scriptUnloaded then break end
             if Config.autoSkillEnabled then
-                action()
+                -- Nếu có checkCondition, chỉ chạy khi condition = true
+                if checkCondition then
+                    if checkCondition() then
+                        action()
+                    end
+                    -- Nếu không có zombie, tiếp tục loop nhưng không activate skill
+                else
+                    action()
+                end
             end
         end
     end)
@@ -321,8 +334,12 @@ function Character.startAllSkillLoops()
         -- Armsmaster
         Character.startSkillLoop(function() return Config.armsmasterUltimateInterval end, Character.activateArmsmasterUltimate)
     elseif characterId == 1003 then
-        -- Wraith
-        Character.startSkillLoop(function() return Config.wraithUltimateInterval or 15 end, Character.activateWraithUltimate)
+        -- Wraith - chỉ activate khi có zombie
+        Character.startSkillLoop(
+            function() return Config.wraithUltimateInterval or 15 end, 
+            Character.activateWraithUltimate,
+            function() return getClosestZombiePart() ~= nil end -- Check condition: có zombie mới chạy
+        )
     elseif characterId == 1004 then
         -- Flag Bearer
         Character.startSkillLoop(function() return Config.flagBearerUltimateInterval or 15 end, Character.activateFlagBearerUltimate)
