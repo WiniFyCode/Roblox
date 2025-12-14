@@ -393,18 +393,42 @@ function Map.activateTouchInterest(touchInterest, part)
         local char = Config.localPlayer.Character
         if not char then return end
         
-        local humanoidRootPart = char:FindFirstChild("HumanoidRootPart")
-            or char:FindFirstChild("Torso")
-            or char:FindFirstChild("UpperTorso")
-        if not humanoidRootPart then return end
+        -- Đảm bảo target là 1 BasePart
+        local targetPart = part
+        if not targetPart:IsA("BasePart") then
+            targetPart = part:FindFirstAncestorWhichIsA("BasePart") or targetPart
+        end
+        if not targetPart or not targetPart:IsA("BasePart") then return end
         
-        -- Ưu tiên hàm exploit firetouchinterest (phổ biến nhất)
+        -- Giống cách Dex làm: dùng tất cả BasePart trong nhân vật
+        local characterParts = {}
+        for _, child in ipairs(char:GetChildren()) do
+            if child:IsA("BasePart") then
+                table.insert(characterParts, child)
+            end
+        end
+        if #characterParts == 0 then return end
+        
+        -- Ưu tiên firetouchinterest (phần lớn executor đều có)
         if typeof(firetouchinterest) == "function" then
-            firetouchinterest(humanoidRootPart, part, 0)
-            firetouchinterest(humanoidRootPart, part, 1)
-        -- Một số executor có thể dùng tên firetouchtransmitter
-        elseif typeof(firetouchtransmitter) == "function" then
-            firetouchtransmitter(humanoidRootPart, part)
+            for _, charPart in ipairs(characterParts) do
+                firetouchinterest(charPart, targetPart, 0)
+                firetouchinterest(charPart, targetPart, 1)
+            end
+        end
+        
+        -- Thử thêm một số biến thể firetouchtransmitter nếu có
+        if typeof(firetouchtransmitter) == "function" then
+            for _, charPart in ipairs(characterParts) do
+                -- Một số executor: (part1, part2)
+                pcall(function()
+                    firetouchtransmitter(charPart, targetPart)
+                end)
+            end
+            -- Một số khác: truyền trực tiếp TouchInterest
+            pcall(function()
+                firetouchtransmitter(touchInterest)
+            end)
         end
     end)
     
