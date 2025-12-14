@@ -9,6 +9,40 @@
 -- 🔹 Loading Screen UI
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local HttpService = game:GetService("HttpService")
+
+----------------------------------------------------------
+-- 🔹 Get Last Commit Time from GitHub
+local function getLastCommitTime()
+    local defaultTime = "2025-12-14 08:50"
+    
+    local success, result = pcall(function()
+        -- GitHub API endpoint để lấy commit cuối cùng của toàn bộ folder zombie-hyperloot
+        -- (không phải chỉ file main.lua, mà là bất kỳ file nào trong folder)
+        -- Tương đương với: https://github.com/WiniFyCode/Roblox/commits/main/zombie-hyperloot
+        local url = "https://api.github.com/repos/WiniFyCode/Roblox/commits?path=zombie-hyperloot&per_page=1"
+        local response = game:HttpGet(url, true)
+        local data = HttpService:JSONDecode(response)
+        
+        if data and data[1] and data[1].commit and data[1].commit.author and data[1].commit.author.date then
+            local commitDate = data[1].commit.author.date
+            -- Format: "2025-12-14T08:50:00Z" -> "2025-12-14 08:50"
+            local dateStr = string.match(commitDate, "(%d%d%d%d%-%d%d%-%d%d)")
+            local timeStr = string.match(commitDate, "T(%d%d:%d%d)")
+            if dateStr and timeStr then
+                return dateStr .. " " .. timeStr
+            end
+        end
+        return nil
+    end)
+    
+    if success and result and result ~= "" then
+        return result
+    end
+    
+    -- Fallback về default time nếu API fail
+    return defaultTime
+end
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "ZombieHyperlootLoader"
@@ -48,7 +82,7 @@ subtitle.Name = "Subtitle"
 subtitle.Size = UDim2.new(1, -40, 0, 20)
 subtitle.Position = UDim2.new(0, 20, 0, 50)
 subtitle.BackgroundTransparency = 1
-subtitle.Text = "by WiniFy - Last update: 2025-12-14 08:50"
+subtitle.Text = "by WiniFy - Last update: " .. getLastCommitTime()
 subtitle.TextColor3 = Color3.fromRGB(150, 150, 150)
 subtitle.TextSize = 18
 subtitle.Font = Enum.Font.Gotham
@@ -348,6 +382,7 @@ renderSteppedConnection = Config.RunService.RenderStepped:Connect(function()
         highlightUpdateTick = 0
         ESP.updateZombieHighlights()
         ESP.updatePlayerHighlights()
+        ESP.updateBobHighlights()
     end
     
     -- ESP Update Loop
@@ -407,6 +442,36 @@ renderSteppedConnection = Config.RunService.RenderStepped:Connect(function()
         else
             for _, data in pairs(ESP.zombieESPObjects) do
                 ESP.hideZombieESP(data)
+            end
+        end
+
+        -- Bob ESP (giống ESP Player - chỉ name + distance)
+        if Config.espBobEnabled then
+            local seenBobs = {}
+            local bobs = ESP.findAllBobs()
+            for _, bobData in ipairs(bobs) do
+                local bobModel = bobData.model
+                local hum = bobData.humanoid
+                if hum and hum.Health > 0 then
+                    local ok, cf, size = pcall(bobModel.GetBoundingBox, bobModel)
+                    if ok and cf and size then
+                        ESP.drawBobESP(bobModel, cf, size, hum)
+                        seenBobs[bobModel] = true
+                    else
+                        ESP.hideBobESP(ESP.bobESPObjects[bobModel])
+                    end
+                else
+                    ESP.hideBobESP(ESP.bobESPObjects[bobModel])
+                end
+            end
+            for model, data in pairs(ESP.bobESPObjects) do
+                if not seenBobs[model] then
+                    ESP.hideBobESP(data)
+                end
+            end
+        else
+            for _, data in pairs(ESP.bobESPObjects) do
+                ESP.hideBobESP(data)
             end
         end
     end

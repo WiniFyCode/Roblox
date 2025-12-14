@@ -14,6 +14,7 @@ ESP.chestDescendantConnection = nil
 ESP.bobESPConnection = nil
 ESP.bobESPObjects = {} -- Lưu các Bob đã tạo ESP
 ESP.bobESPRunning = false -- Flag để dừng loop
+ESP.bobHighlights = {} -- Lưu highlights cho Bob
 
 
 
@@ -515,7 +516,9 @@ function ESP.watchChestDescendants()
 end
 
 ----------------------------------------------------------
--- 🔹 Bob ESP
+-- 🔹 Bob ESP (giống ESP Player - chỉ name + distance + highlight)
+ESP.bobHighlights = {}
+
 function ESP.findAllBobs()
     local bobs = {}
     local map = Config.Workspace:FindFirstChild("Map")
@@ -532,17 +535,10 @@ function ESP.findAllBobs()
                     if bobModel then
                         local humanoid = bobModel:FindFirstChild("Humanoid")
                         if humanoid then
-                            -- Tìm BasePart để làm ESP (có thể là HumanoidRootPart hoặc Head)
-                            local hrp = bobModel:FindFirstChild("HumanoidRootPart")
-                            local head = bobModel:FindFirstChild("Head")
-                            local part = hrp or head or bobModel:FindFirstChildWhichIsA("BasePart")
-                            if part then
-                                table.insert(bobs, {
-                                    model = bobModel,
-                                    part = part,
-                                    humanoid = humanoid
-                                })
-                            end
+                            table.insert(bobs, {
+                                model = bobModel,
+                                humanoid = humanoid
+                            })
                         end
                     end
                 end
@@ -553,89 +549,129 @@ function ESP.findAllBobs()
     return bobs
 end
 
-function ESP.createBobESP(bobData)
-    if not bobData or not bobData.model or not bobData.part then return end
-    
-    -- Kiểm tra xem đã có ESP chưa
-    if ESP.bobESPObjects[bobData.model] then return end
-    
-    local highlight = Instance.new("Highlight")
-    highlight.Name = "BobESP_Highlight"
-    highlight.Adornee = bobData.model
-    highlight.FillColor = Config.espColorBob
-    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-    highlight.FillTransparency = 0.5
-    highlight.OutlineTransparency = 0
-    highlight.Enabled = true
-    highlight.Parent = bobData.model
-    
-    local billboard = Instance.new("BillboardGui")
-    billboard.Name = "BobESP_Tag"
-    billboard.AlwaysOnTop = true
-    billboard.Size = UDim2.new(0, 200, 0, 50)
-    billboard.StudsOffset = Vector3.new(0, 3, 0)
-    billboard.Parent = bobData.part
-    
-    local textLabel = Instance.new("TextLabel")
-    textLabel.Size = UDim2.new(1, 0, 1, 0)
-    textLabel.BackgroundTransparency = 1
-    textLabel.Text = "BOB"
-    textLabel.TextColor3 = Config.espColorBob
-    textLabel.TextSize = 20
-    textLabel.Font = Enum.Font.GothamBold
-    textLabel.TextStrokeTransparency = 0
-    textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-    textLabel.Parent = billboard
-    
-    -- Lưu ESP objects
-    ESP.bobESPObjects[bobData.model] = {
-        highlight = highlight,
-        billboard = billboard,
-        model = bobData.model
+function ESP.createBobESPElements()
+    return {
+        Name = newDrawing("Text", {Visible = false, Center = true, Outline = true, Size = 14, Font = 2, Color = Config.espColorBob})
     }
 end
 
-function ESP.clearBobESP()
-    for model, espData in pairs(ESP.bobESPObjects) do
-        if espData.highlight then
-            pcall(function() espData.highlight:Destroy() end)
-        end
-        if espData.billboard then
-            pcall(function() espData.billboard:Destroy() end)
-        end
-    end
-    ESP.bobESPObjects = {}
+function ESP.hideBobESP(data)
+    if not data then return end
+    data.Name.Visible = false
 end
 
-function ESP.updateBobESP()
+function ESP.addBobHighlight(bobModel)
+    if not Config.espBobEnabled then return end
+    if ESP.bobHighlights[bobModel] then return end
+    
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "BobESP_Highlight"
+    highlight.Adornee = bobModel
+    highlight.FillColor = Config.espColorBob
+    highlight.OutlineColor = Config.espColorBob
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.Parent = bobModel
+    
+    ESP.bobHighlights[bobModel] = highlight
+end
+
+function ESP.removeBobHighlight(bobModel)
+    local highlight = ESP.bobHighlights[bobModel]
+    if highlight then
+        highlight:Destroy()
+        ESP.bobHighlights[bobModel] = nil
+    end
+end
+
+function ESP.updateBobHighlights()
     if not Config.espBobEnabled then
-        ESP.clearBobESP()
+        for model, highlight in pairs(ESP.bobHighlights) do
+            ESP.removeBobHighlight(model)
+        end
         return
     end
     
-    -- Tìm tất cả Bobs
-    local currentBobs = ESP.findAllBobs()
+    local bobs = ESP.findAllBobs()
     local foundModels = {}
     
-    -- Tạo ESP cho Bobs mới
-    for _, bobData in ipairs(currentBobs) do
+    for _, bobData in ipairs(bobs) do
         foundModels[bobData.model] = true
-        if not ESP.bobESPObjects[bobData.model] then
-            ESP.createBobESP(bobData)
-        end
+        ESP.addBobHighlight(bobData.model)
     end
     
-    -- Xóa ESP cho Bobs không còn tồn tại
-    for model, espData in pairs(ESP.bobESPObjects) do
+    -- Xóa highlight cho Bobs không còn tồn tại
+    for model, highlight in pairs(ESP.bobHighlights) do
         if not foundModels[model] then
-            if espData.highlight then
-                pcall(function() espData.highlight:Destroy() end)
-            end
-            if espData.billboard then
-                pcall(function() espData.billboard:Destroy() end)
-            end
-            ESP.bobESPObjects[model] = nil
+            ESP.removeBobHighlight(model)
         end
+    end
+end
+
+function ESP.drawBobESP(bobModel, cf, size, humanoid)
+    if not ESP.hasPlayerDrawing or not Config.espBobEnabled then
+        ESP.hideBobESP(ESP.bobESPObjects[bobModel])
+        return
+    end
+
+    local points, visible = ESP.getBoxScreenPoints(cf, size)
+    if not visible or #points == 0 then
+        ESP.hideBobESP(ESP.bobESPObjects[bobModel])
+        return
+    end
+
+    local data = ESP.bobESPObjects[bobModel]
+    if not data then
+        data = ESP.createBobESPElements()
+        ESP.bobESPObjects[bobModel] = data
+    end
+
+    local minX, minY, maxX, maxY = math.huge, math.huge, -math.huge, -math.huge
+    for _, pt in ipairs(points) do
+        minX = math.min(minX, pt.X)
+        minY = math.min(minY, pt.Y)
+        maxX = math.max(maxX, pt.X)
+        maxY = math.max(maxY, pt.Y)
+    end
+
+    local boxWidth, boxHeight = maxX - minX, maxY - minY
+    if boxWidth <= 3 or boxHeight <= 4 then
+        ESP.hideBobESP(data)
+        return
+    end
+
+    local slimWidth = boxWidth * 0.7
+    local slimX = minX + (boxWidth - slimWidth) / 2
+    local baseColor = Config.espColorBob
+    
+    -- Tính distance
+    local char = Config.localPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local distance = 0
+    if hrp and bobModel then
+        local bobHRP = bobModel:FindFirstChild("HumanoidRootPart")
+        if bobHRP then
+            distance = math.floor((hrp.Position - bobHRP.Position).Magnitude)
+        end
+    end
+
+    -- Name với distance
+    data.Name.Visible = true
+    data.Name.Text = string.format("BOB [%dm]", distance)
+    data.Name.Position = Vector2.new(slimX + slimWidth / 2, minY - 18)
+    data.Name.Color = baseColor
+end
+
+function ESP.clearBobESP()
+    for model, data in pairs(ESP.bobESPObjects) do
+        if data.Name and data.Name.Remove then
+            pcall(function() data.Name:Remove() end)
+        end
+    end
+    ESP.bobESPObjects = {}
+    
+    for model, highlight in pairs(ESP.bobHighlights) do
+        ESP.removeBobHighlight(model)
     end
 end
 
@@ -644,17 +680,37 @@ function ESP.startBobESP()
     
     ESP.bobESPRunning = true
     
-    -- Update lần đầu
-    ESP.updateBobESP()
+    -- Initialize Bob ESP objects nếu chưa có
+    if ESP.hasPlayerDrawing then
+        local bobs = ESP.findAllBobs()
+        for _, bobData in ipairs(bobs) do
+            if not ESP.bobESPObjects[bobData.model] then
+                ESP.bobESPObjects[bobData.model] = ESP.createBobESPElements()
+            end
+        end
+    end
     
-    -- Refresh mỗi 5 giây
+    -- Update highlights lần đầu
+    ESP.updateBobHighlights()
+    
+    -- Refresh highlights mỗi 5 giây
     ESP.bobESPConnection = task.spawn(function()
         while ESP.bobESPRunning do
             task.wait(5)
             if Config.scriptUnloaded or not Config.espBobEnabled or not ESP.bobESPRunning then
                 break
             end
-            ESP.updateBobESP()
+            ESP.updateBobHighlights()
+            
+            -- Tạo ESP objects cho Bobs mới
+            if ESP.hasPlayerDrawing then
+                local bobs = ESP.findAllBobs()
+                for _, bobData in ipairs(bobs) do
+                    if not ESP.bobESPObjects[bobData.model] then
+                        ESP.bobESPObjects[bobData.model] = ESP.createBobESPElements()
+                    end
+                end
+            end
         end
         ESP.bobESPConnection = nil
     end)
@@ -689,11 +745,16 @@ function ESP.teleportToBob()
     local nearestDistance = math.huge
     
     for _, bobData in ipairs(bobs) do
-        if bobData.part then
-            local distance = (playerPosition - bobData.part.Position).Magnitude
-            if distance < nearestDistance then
-                nearestDistance = distance
-                nearestBob = bobData
+        if bobData.model then
+            local bobHRP = bobData.model:FindFirstChild("HumanoidRootPart")
+            local bobHead = bobData.model:FindFirstChild("Head")
+            local bobPart = bobHRP or bobHead or bobData.model:FindFirstChildWhichIsA("BasePart")
+            if bobPart then
+                local distance = (playerPosition - bobPart.Position).Magnitude
+                if distance < nearestDistance then
+                    nearestDistance = distance
+                    nearestBob = {model = bobData.model, part = bobPart}
+                end
             end
         end
     end
@@ -744,6 +805,7 @@ function ESP.cleanup()
     ESP.clearZombieESP()
     
     -- Clear Bob ESP
+    ESP.clearBobESP()
     ESP.stopBobESP()
 
     if ESP.chestDescendantConnection and ESP.chestDescendantConnection.Disconnect then

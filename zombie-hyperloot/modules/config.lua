@@ -32,7 +32,7 @@ Config.espColorZombie = Color3.fromRGB(180, 110, 255) -- Màu tím cho zombie
 Config.espColorChest = Color3.fromRGB(255, 255, 0) -- Màu vàng cho chest
 Config.espColorPlayer = Color3.fromRGB(100, 200, 255) -- Màu xanh dương cho player
 Config.espColorEnemy = Color3.fromRGB(255, 50, 50) -- Màu đỏ cho enemy
-Config.espColorBob = Color3.fromRGB(0, 255, 255) -- Màu cyan cho Bob
+Config.espColorBob = Color3.fromRGB(255, 165, 0) -- Màu cam cho Bob
 
 ----------------------------------------------------------
 -- 🔹 Hitbox

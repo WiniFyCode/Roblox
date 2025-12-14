@@ -398,16 +398,16 @@ function UI.createESPTab()
         Callback = function(Value)
             Config.espColorBob = Value
             -- Refresh highlights với màu mới
-            for model, espData in pairs(ESP.bobESPObjects) do
-                if espData.highlight then
-                    espData.highlight.FillColor = Value
-                    espData.highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+            for model, highlight in pairs(ESP.bobHighlights) do
+                if highlight then
+                    highlight.FillColor = Value
+                    highlight.OutlineColor = Value
                 end
-                if espData.billboard then
-                    local textLabel = espData.billboard:FindFirstChild("TextLabel")
-                    if textLabel then
-                        textLabel.TextColor3 = Value
-                    end
+            end
+            -- Refresh Drawing text color
+            for model, data in pairs(ESP.bobESPObjects) do
+                if data.Name then
+                    data.Name.Color = Value
                 end
             end
         end
