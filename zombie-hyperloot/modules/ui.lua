@@ -864,7 +864,7 @@ function UI.createCharacterTab()
     CharacterTab:AddSlider("FlagBearerUltimateInterval", {
         Title = "Flag Bearer Ultimate Interval (s)",
         Default = Config.flagBearerUltimateInterval,
-        Min = 15, Max = 120, Rounding = 0,
+        Min = 5, Max = 60, Rounding = 0,
         Callback = function(Value) Config.flagBearerUltimateInterval = Value end
     })
 
