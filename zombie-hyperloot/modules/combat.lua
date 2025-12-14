@@ -123,50 +123,9 @@ end
 
 
 ----------------------------------------------------------
--- 🔹 Auto Skill Loop
-function Combat.triggerSkill(skillId)
-    local char = Config.localPlayer.Character
-    if not char then return end
-    
-    local tool = char:FindFirstChild("Tool")
-    if not tool then return end
-    
-    local netMessage = char:FindFirstChild("NetMessage")
-    if not netMessage then return end
-    
-    pcall(function()
-        netMessage:WaitForChild("TrigerSkill"):FireServer(skillId, "Enter")
-    end)
-end
+-- 🔹 Auto Skill (moved to Character module)
+-- Logic auto skill hiện nằm trong modules/character.lua
 
-function Combat.activateSkill1010()
-    Combat.triggerSkill(1010)
-end
-
-function Combat.activateSkill1002()
-    Combat.triggerSkill(1002)
-end
-
-function Combat.startSkillLoop(getInterval, action)
-    task.spawn(function()
-        if Config.autoSkillEnabled and not Config.scriptUnloaded then
-            task.wait(1)
-            action()
-        end
-        
-        while task.wait(getInterval()) do
-            if Config.scriptUnloaded then break end
-            if Config.autoSkillEnabled then
-                action()
-            end
-        end
-    end)
-end
-
-function Combat.startAllSkillLoops()
-    Combat.startSkillLoop(function() return Config.skill1010Interval end, Combat.activateSkill1010)
-    Combat.startSkillLoop(function() return Config.skill1002Interval end, Combat.activateSkill1002)
-end
 
 
 

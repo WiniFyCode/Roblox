@@ -157,50 +157,54 @@ end
 
 ----------------------------------------------------------
 -- 🔹 Load Modules with Progress
-local Config, Visuals, Combat, ESP, Movement, Map, Farm, HUD, UI
+local Config, Visuals, Combat, ESP, Movement, Map, Farm, HUD, UI, Character
 
-updateProgress(1, 9, "Loading Config...")
+updateProgress(1, 10, "Loading Config...")
 Config = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/config.lua"))()
 task.wait(0.15)
 
-updateProgress(2, 9, "Loading Visuals...")
+updateProgress(2, 10, "Loading Visuals...")
 Visuals = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/visuals.lua"))()
 Visuals.init(Config)
 task.wait(0.15)
 
-updateProgress(3, 9, "Loading Combat...")
+updateProgress(3, 10, "Loading Combat...")
 Combat = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/combat.lua"))()
 Combat.init(Config, Visuals)
 task.wait(0.15)
 
-updateProgress(4, 9, "Loading ESP...")
+updateProgress(4, 10, "Loading ESP...")
 ESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/esp.lua"))()
 ESP.init(Config)
 task.wait(0.15)
 
-updateProgress(5, 9, "Loading Movement...")
+updateProgress(5, 10, "Loading Movement...")
 Movement = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/movement.lua"))()
 Movement.init(Config)
 task.wait(0.15)
 
-updateProgress(6, 9, "Loading Map...")
+updateProgress(6, 10, "Loading Map...")
 Map = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/map.lua"))()
 Map.init(Config)
 task.wait(0.15)
 
-updateProgress(7, 9, "Loading Farm...")
+updateProgress(7, 10, "Loading Farm...")
 Farm = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/farm.lua"))()
 Farm.init(Config, ESP)
 task.wait(0.15)
 
-updateProgress(8, 9, "Loading HUD...")
+updateProgress(8, 10, "Loading HUD...")
 HUD = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/hud.lua"))()
 HUD.init(Config)
 task.wait(0.15)
 
-updateProgress(9, 9, "Loading UI...")
+updateProgress(9, 10, "Loading Character...")
+Character = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/character.lua"))()
+Character.init(Config)
+
+updateProgress(10, 10, "Loading UI...")
 UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/ui.lua"))()
-UI.init(Config, Combat, ESP, Movement, Map, Farm, HUD, Visuals)
+UI.init(Config, Combat, ESP, Movement, Map, Farm, HUD, Visuals, Character)
 task.wait(0.3)
 
 ----------------------------------------------------------
@@ -320,7 +324,7 @@ ESP.startBobESP() -- Start Bob ESP với refresh mỗi 5s
 -- 🔹 Setup Combat
 Combat.initFOVCircle()
 Combat.setupMouseInput()
-Combat.startAllSkillLoops()
+Character.startAllSkillLoops()
 
 ----------------------------------------------------------
 -- 🔹 Setup Movement

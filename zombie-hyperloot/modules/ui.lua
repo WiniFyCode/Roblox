@@ -4,14 +4,14 @@
 ]]
 
 local UI = {}
-local Config, Combat, ESP, Movement, Map, Farm, HUD, Visuals = nil, nil, nil, nil, nil, nil, nil, nil
+local Config, Combat, ESP, Movement, Map, Farm, HUD, Visuals, Character = nil, nil, nil, nil, nil, nil, nil, nil, nil
 
 UI.Window = nil
 UI.Fluent = nil
 UI.SaveManager = nil
 UI.InterfaceManager = nil
 
-function UI.init(config, combat, esp, movement, map, farm, hud, visuals)
+function UI.init(config, combat, esp, movement, map, farm, hud, visuals, character)
     Config = config
     Combat = combat
     ESP = esp
@@ -20,6 +20,7 @@ function UI.init(config, combat, esp, movement, map, farm, hud, visuals)
     Farm = farm
     HUD = hud
     Visuals = visuals
+    Character = character
 end
 
 function UI.loadLibraries()
@@ -173,26 +174,35 @@ function UI.createCombatTab()
             if Value then
                 task.spawn(function()
                     task.wait(1)
-                    Combat.activateSkill1010()
+                    Character.activateArmsmasterUltimate()
                     task.wait(0.5)
-                    Combat.activateSkill1002()
+                    Character.activateHealingSkill()
+                    task.wait(0.5)
+                    Character.activateFlagBearerUltimate()
                 end)
             end
         end
     })
 
-    CombatTab:AddSlider("Skill1010Interval", {
-        Title = "Skill 1010 Interval (s)",
-        Default = Config.skill1010Interval,
-        Min = 10, Max = 60, Rounding = 0,
-        Callback = function(Value) Config.skill1010Interval = Value end
+    CombatTab:AddSlider("ArmsmasterUltimateInterval", {
+        Title = "Armsmaster Ultimate Interval (s)",
+        Default = Config.armsmasterUltimateInterval,
+        Min = 15, Max = 60, Rounding = 0,
+        Callback = function(Value) Config.armsmasterUltimateInterval = Value end
     })
 
-    CombatTab:AddSlider("Skill1002Interval", {
-        Title = "Skill 1002 Interval (s)",
-        Default = Config.skill1002Interval,
+    CombatTab:AddSlider("HealingSkillInterval", {
+        Title = "F Skill (Healing) Interval (s)",
+        Default = Config.healingSkillInterval,
         Min = 15, Max = 60, Rounding = 0,
-        Callback = function(Value) Config.skill1002Interval = Value end
+        Callback = function(Value) Config.healingSkillInterval = Value end
+    })
+
+    CombatTab:AddSlider("FlagBearerUltimateInterval", {
+        Title = "Flag Bearer Ultimate Interval (s)",
+        Default = Config.flagBearerUltimateInterval,
+        Min = 15, Max = 120, Rounding = 0,
+        Callback = function(Value) Config.flagBearerUltimateInterval = Value end
     })
 
     CombatTab:AddSection("Auto Camera Rotation 360°")
@@ -1204,6 +1214,7 @@ function UI.buildAllTabs(cleanupCallback)
     UI.createMapTab()
     UI.createEventTab()
     UI.createFarmTab()
+    UI.createCharacterTab()
     UI.createVisualsTab()
     UI.createHUDTab()
     UI.createSettingsTab(cleanupCallback)

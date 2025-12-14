@@ -120,8 +120,9 @@ Config.autoBulletBoxEnabled = true
 ----------------------------------------------------------
 -- 🔹 Auto Skill
 Config.autoSkillEnabled = true
-Config.skill1010Interval = 15
-Config.skill1002Interval = 20
+Config.armsmasterUltimateInterval = 15 -- Armsmaster Ultimate (1010)
+Config.healingSkillInterval = 20 -- F Skill (Healing, 1002)
+Config.flagBearerUltimateInterval = 15 -- Flag Bearer Ultimate (1004)
 
 ----------------------------------------------------------
 -- 🔹 TrigerSkill Dupe (GunFire)
@@ -149,6 +150,11 @@ Config.selectedWorldId = 1001 -- Exclusion
 Config.selectedDifficulty = 1 -- 1 = Normal, 2 = Hard, 3 = Nightmare
 Config.selectedMaxCount = 4
 Config.selectedFriendOnly = false
+
+----------------------------------------------------------
+-- 🔹 Character Selection
+Config.selectedCharacterId = nil
+Config.selectedCharacterDisplay = nil
 
 ----------------------------------------------------------
 -- 🔹 Auto Replay
