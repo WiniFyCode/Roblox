@@ -376,23 +376,40 @@ function UI.createESPTab()
         end
     })
 
-    ESPTab:AddSection("BOB ESP")
+    ESPTab:AddSection("Bob ESP")
 
-    ESPTab:AddToggle("ESPBOB", {
-        Title = "BOB Highlight",
-        Description = "Highlight BOB (Boss) với màu vàng",
-        Default = Config.espBOBEnabled,
+    ESPTab:AddToggle("ESPBob", {
+        Title = "ESP Bob",
+        Description = "Hiển thị ESP cho Bob (refresh mỗi 5s)",
+        Default = Config.espBobEnabled,
         Callback = function(Value)
-            Config.espBOBEnabled = Value
-            ESP.toggleBOBHighlight(Value, true) -- true = show notification
+            Config.espBobEnabled = Value
+            if Value then
+                ESP.startBobESP()
+            else
+                ESP.stopBobESP()
+            end
         end
     })
 
-    ESPTab:AddButton({
-        Title = "Teleport to BOB",
-        Description = "Teleport tới vị trí BOB (Boss)",
-        Callback = function()
-            ESP.teleportToBOB()
+    ESPTab:AddColorpicker("ESPBobColor", {
+        Title = "Bob ESP Color",
+        Default = Config.espColorBob,
+        Callback = function(Value)
+            Config.espColorBob = Value
+            -- Refresh highlights với màu mới
+            for model, espData in pairs(ESP.bobESPObjects) do
+                if espData.highlight then
+                    espData.highlight.FillColor = Value
+                    espData.highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                end
+                if espData.billboard then
+                    local textLabel = espData.billboard:FindFirstChild("TextLabel")
+                    if textLabel then
+                        textLabel.TextColor3 = Value
+                    end
+                end
+            end
         end
     })
 
@@ -774,7 +791,7 @@ function UI.createInfoTab()
             • Auto Chest collects all loot instantly
             • Aimbot targets both zombies and players
             • Auto Rotate 360° (R key) tự động nhắm zombie gần nhất
-            • BOB ESP highlights the boss with gold color
+
         ]]
     })
 

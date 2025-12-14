@@ -32,6 +32,7 @@ Config.espColorZombie = Color3.fromRGB(180, 110, 255) -- Màu tím cho zombie
 Config.espColorChest = Color3.fromRGB(255, 255, 0) -- Màu vàng cho chest
 Config.espColorPlayer = Color3.fromRGB(100, 200, 255) -- Màu xanh dương cho player
 Config.espColorEnemy = Color3.fromRGB(255, 50, 50) -- Màu đỏ cho enemy
+Config.espColorBob = Color3.fromRGB(0, 255, 255) -- Màu cyan cho Bob
 
 ----------------------------------------------------------
 -- 🔹 Hitbox
@@ -43,7 +44,7 @@ Config.hitboxEnabled = false
 Config.espZombieEnabled = true
 Config.espChestEnabled = true
 Config.espPlayerEnabled = true
-Config.espBOBEnabled = true
+Config.espBobEnabled = true
 
 ----------------------------------------------------------
 -- 🔹 ESP Zombie Configuration
@@ -157,6 +158,10 @@ Config.autoReplayEnabled = false
 -- 🔹 Supply ESP
 Config.supplyESPEnabled = true
 Config.supplyESPPosition = "Right" -- "Left" hoặc "Right"
+
+----------------------------------------------------------
+-- 🔹 Bob ESP
+Config.bobESPEnabled = true
 
 ----------------------------------------------------------
 -- 🔹 Visuals

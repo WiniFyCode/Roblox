@@ -48,7 +48,7 @@ subtitle.Name = "Subtitle"
 subtitle.Size = UDim2.new(1, -40, 0, 20)
 subtitle.Position = UDim2.new(0, 20, 0, 50)
 subtitle.BackgroundTransparency = 1
-subtitle.Text = "by WiniFy - Last update: 2025-12-13 21:50"
+subtitle.Text = "by WiniFy - Last update: 2025-12-14 08:50"
 subtitle.TextColor3 = Color3.fromRGB(150, 150, 150)
 subtitle.TextSize = 18
 subtitle.Font = Enum.Font.Gotham
@@ -181,6 +181,7 @@ local function cleanupScript()
     Config.speedEnabled = false
     Config.antiZombieEnabled = false
     Config.supplyESPEnabled = false
+    Config.espBobEnabled = false
 
     -- Disconnect all connections
     if renderSteppedConnection then
@@ -261,22 +262,9 @@ ESP.watchChestDescendants()
 if Config.espChestEnabled then
     ESP.applyChestESP()
 end
+ESP.startBobESP() -- Start Bob ESP với refresh mỗi 5s
 
--- Setup BOB ESP với retry mechanism
-if Config.espBOBEnabled then
-    -- Thử ngay lập tức
-    ESP.toggleBOBHighlight(true, false)
-    
-    -- Nếu không tìm thấy, thử lại sau 10 giây
-    if not ESP.bobHighlight then
-        task.spawn(function()
-            task.wait(10)
-            if Config.espBOBEnabled and not ESP.bobHighlight and not Config.scriptUnloaded then
-                ESP.toggleBOBHighlight(true, false)
-            end
-        end)
-    end
-end
+
 
 ----------------------------------------------------------
 -- 🔹 Setup Combat

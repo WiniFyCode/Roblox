@@ -11,10 +11,11 @@ ESP.playerESPObjects = {}
 ESP.zombieESPObjects = {}
 ESP.hasPlayerDrawing = false
 ESP.chestDescendantConnection = nil
+ESP.bobESPConnection = nil
+ESP.bobESPObjects = {} -- Lưu các Bob đã tạo ESP
+ESP.bobESPRunning = false -- Flag để dừng loop
 
--- BOB ESP
-ESP.bobHighlight = nil
-ESP.bobEnabled = false
+
 
 function ESP.init(config)
     Config = config
@@ -514,149 +515,157 @@ function ESP.watchChestDescendants()
 end
 
 ----------------------------------------------------------
--- 🔹 BOB ESP & Teleport
-function ESP.findBOB()
+-- 🔹 Bob ESP
+function ESP.findAllBobs()
+    local bobs = {}
     local map = Config.Workspace:FindFirstChild("Map")
-    if not map then return nil end
+    if not map then return bobs end
     
-    -- Tìm BOB trong tất cả children của Map
+    -- Duyệt qua tất cả children của Map
     for _, mapChild in ipairs(map:GetChildren()) do
-        local eItem = mapChild:FindFirstChild("EItem")
-        if eItem then
-            local bobFolder = eItem:FindFirstChild("BOB")
-            if bobFolder then
-                local bob = bobFolder:FindFirstChild("Bob")
-                if bob and bob:IsA("Model") then
-                    -- Kiểm tra BOB có Humanoid như zombie không
-                    local humanoid = bob:FindFirstChild("Humanoid")
-                    if humanoid then
-                        return bob
+        if mapChild:IsA("Model") then
+            local eItem = mapChild:FindFirstChild("EItem")
+            if eItem then
+                local bob = eItem:FindFirstChild("BOB")
+                if bob then
+                    local bobModel = bob:FindFirstChild("Bob")
+                    if bobModel then
+                        local humanoid = bobModel:FindFirstChild("Humanoid")
+                        if humanoid then
+                            -- Tìm BasePart để làm ESP (có thể là HumanoidRootPart hoặc Head)
+                            local hrp = bobModel:FindFirstChild("HumanoidRootPart")
+                            local head = bobModel:FindFirstChild("Head")
+                            local part = hrp or head or bobModel:FindFirstChildWhichIsA("BasePart")
+                            if part then
+                                table.insert(bobs, {
+                                    model = bobModel,
+                                    part = part,
+                                    humanoid = humanoid
+                                })
+                            end
+                        end
                     end
                 end
             end
         end
     end
-    return nil
+    
+    return bobs
 end
 
-function ESP.addBOBHighlight()
-    if ESP.bobHighlight then return end
+function ESP.createBobESP(bobData)
+    if not bobData or not bobData.model or not bobData.part then return end
     
-    local bob = ESP.findBOB()
-    if not bob then 
-        return 
-    end
+    -- Kiểm tra xem đã có ESP chưa
+    if ESP.bobESPObjects[bobData.model] then return end
     
     local highlight = Instance.new("Highlight")
-    highlight.Name = "BOB_ESP_Highlight"
-    highlight.Adornee = bob
-    highlight.FillColor = Color3.fromRGB(255, 215, 0) -- Gold color for BOB
+    highlight.Name = "BobESP_Highlight"
+    highlight.Adornee = bobData.model
+    highlight.FillColor = Config.espColorBob
     highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-    highlight.FillTransparency = 0.3
+    highlight.FillTransparency = 0.5
     highlight.OutlineTransparency = 0
-    highlight.Parent = bob
+    highlight.Enabled = true
+    highlight.Parent = bobData.model
     
-    ESP.bobHighlight = highlight
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "BobESP_Tag"
+    billboard.AlwaysOnTop = true
+    billboard.Size = UDim2.new(0, 200, 0, 50)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.Parent = bobData.part
     
-    -- Notify BOB found and highlighted
-    if Config.UI and Config.UI.Fluent then
-        Config.UI.Fluent:Notify({
-            Title = "BOB ESP",
-            Content = "BOB found and highlighted!",
-            SubContent = "Gold highlight applied",
-            Duration = 3
-        })
-    end
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = "BOB"
+    textLabel.TextColor3 = Config.espColorBob
+    textLabel.TextSize = 20
+    textLabel.Font = Enum.Font.GothamBold
+    textLabel.TextStrokeTransparency = 0
+    textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    textLabel.Parent = billboard
+    
+    -- Lưu ESP objects
+    ESP.bobESPObjects[bobData.model] = {
+        highlight = highlight,
+        billboard = billboard,
+        model = bobData.model
+    }
 end
 
-function ESP.removeBOBHighlight()
-    if ESP.bobHighlight then
-        ESP.bobHighlight:Destroy()
-        ESP.bobHighlight = nil
+function ESP.clearBobESP()
+    for model, espData in pairs(ESP.bobESPObjects) do
+        if espData.highlight then
+            pcall(function() espData.highlight:Destroy() end)
+        end
+        if espData.billboard then
+            pcall(function() espData.billboard:Destroy() end)
+        end
     end
+    ESP.bobESPObjects = {}
 end
 
-function ESP.toggleBOBHighlight(enabled, showNotification)
-    ESP.bobEnabled = enabled
+function ESP.updateBobESP()
+    if not Config.espBobEnabled then
+        ESP.clearBobESP()
+        return
+    end
     
-    if enabled then
-        local bob = ESP.findBOB()
-        if not bob then 
-            -- Chỉ hiển thị notify khi user manually toggle
-            if showNotification and Config.UI and Config.UI.Fluent then
-                Config.UI.Fluent:Notify({
-                    Title = "BOB ESP",
-                    Content = "BOB not found in current map",
-                    SubContent = "Try again when BOB spawns",
-                    Duration = 3
-                })
+    -- Tìm tất cả Bobs
+    local currentBobs = ESP.findAllBobs()
+    local foundModels = {}
+    
+    -- Tạo ESP cho Bobs mới
+    for _, bobData in ipairs(currentBobs) do
+        foundModels[bobData.model] = true
+        if not ESP.bobESPObjects[bobData.model] then
+            ESP.createBobESP(bobData)
+        end
+    end
+    
+    -- Xóa ESP cho Bobs không còn tồn tại
+    for model, espData in pairs(ESP.bobESPObjects) do
+        if not foundModels[model] then
+            if espData.highlight then
+                pcall(function() espData.highlight:Destroy() end)
             end
-            return 
+            if espData.billboard then
+                pcall(function() espData.billboard:Destroy() end)
+            end
+            ESP.bobESPObjects[model] = nil
         end
-        ESP.addBOBHighlight()
-    else
-        ESP.removeBOBHighlight()
     end
 end
 
-function ESP.teleportToBOB()
-    local bob = ESP.findBOB()
-    if not bob then
-        -- Notify BOB not found
-        if Config.UI and Config.UI.Fluent then
-            Config.UI.Fluent:Notify({
-                Title = "Teleport Failed",
-                Content = "BOB not found in current map",
-                Duration = 4
-            })
+function ESP.startBobESP()
+    if ESP.bobESPConnection then return end
+    
+    ESP.bobESPRunning = true
+    
+    -- Update lần đầu
+    ESP.updateBobESP()
+    
+    -- Refresh mỗi 5 giây
+    ESP.bobESPConnection = task.spawn(function()
+        while ESP.bobESPRunning do
+            task.wait(5)
+            if Config.scriptUnloaded or not Config.espBobEnabled or not ESP.bobESPRunning then
+                break
+            end
+            ESP.updateBobESP()
         end
-        return
+        ESP.bobESPConnection = nil
+    end)
+end
+
+function ESP.stopBobESP()
+    ESP.bobESPRunning = false
+    if ESP.bobESPConnection then
+        ESP.bobESPConnection = nil
     end
-    
-    local char = Config.localPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if not hrp then
-        -- Notify character not found
-        if Config.UI and Config.UI.Fluent then
-            Config.UI.Fluent:Notify({
-                Title = "Teleport Failed",
-                Content = "Player character not found",
-                Duration = 4
-            })
-        end
-        return
-    end
-    
-    -- Tìm HumanoidRootPart của BOB (giống zombie)
-    local bobHRP = bob:FindFirstChild("HumanoidRootPart")
-    local bobHead = bob:FindFirstChild("Head")
-    local targetPart = bobHRP or bobHead
-    
-    if not targetPart then
-        -- Notify BOB parts not found
-        if Config.UI and Config.UI.Fluent then
-            Config.UI.Fluent:Notify({
-                Title = "Teleport Failed",
-                Content = "BOB parts not found",
-                Duration = 4
-            })
-        end
-        return
-    end
-    
-    -- Teleport to BOB position with offset (giống zombie)
-    local bobPosition = targetPart.Position
-    hrp.CFrame = CFrame.new(bobPosition + Vector3.new(0, 5, 0))
-    
-    -- Notify successful teleport
-    if Config.UI and Config.UI.Fluent then
-        Config.UI.Fluent:Notify({
-            Title = "Teleport Success",
-            Content = "Teleported to BOB!",
-            SubContent = "Position: " .. tostring(math.floor(bobPosition.X)) .. ", " .. tostring(math.floor(bobPosition.Y)) .. ", " .. tostring(math.floor(bobPosition.Z)),
-            Duration = 3
-        })
-    end
+    ESP.clearBobESP()
 end
 
 ----------------------------------------------------------
@@ -695,8 +704,8 @@ function ESP.cleanup()
     ESP.clearChestESP()
     ESP.clearZombieESP()
     
-    -- Clear BOB ESP
-    ESP.removeBOBHighlight()
+    -- Clear Bob ESP
+    ESP.stopBobESP()
 
     if ESP.chestDescendantConnection and ESP.chestDescendantConnection.Disconnect then
         ESP.chestDescendantConnection:Disconnect()
