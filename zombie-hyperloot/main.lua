@@ -266,6 +266,7 @@ local function cleanupScript()
     Map.cleanup()
     HUD.cleanup()
     Visuals.cleanup()
+    Character.cleanup()
     UI.cleanup()
 
     -- Khôi phục hitbox

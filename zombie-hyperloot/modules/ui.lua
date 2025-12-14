@@ -828,54 +828,68 @@ function UI.createCharacterTab()
 
     CharacterTab:AddSection("Auto Skill")
 
+    -- Lấy character ID hiện tại để quyết định hiển thị skill nào
+    local currentCharacterId = Character.getCurrentCharacterId()
+    
+    -- Tạo toggle Auto Skill với description động
+    local autoSkillDesc = "Tự động dùng skill phù hợp với character hiện tại"
+    if currentCharacterId == 1006 then
+        autoSkillDesc = "Tự động dùng Armsmaster Ultimate + Healing"
+    elseif currentCharacterId == 1003 then
+        autoSkillDesc = "Tự động dùng Wraith Ultimate + Healing"
+    elseif currentCharacterId == 1004 then
+        autoSkillDesc = "Tự động dùng Flag Bearer Ultimate + Healing"
+    elseif currentCharacterId then
+        autoSkillDesc = "Tự động dùng Healing (character này không có ultimate riêng)"
+    end
+
     CharacterTab:AddToggle("AutoSkill", {
-        Title = "Auto Skill (All Skills)",
-        Description = "Tự động dùng Armsmaster, Wraith, Heal và Flag liên tục",
+        Title = "Auto Skill",
+        Description = autoSkillDesc,
         Default = Config.autoSkillEnabled,
         Callback = function(Value)
             Config.autoSkillEnabled = Value
-            if Value then
-                task.spawn(function()
-                    task.wait(0.5)
-                    Character.activateArmsmasterUltimate()
-                    task.wait(0.3)
-                    Character.activateWraithUltimate()
-                    task.wait(0.3)
-                    Character.activateHealingSkill()
-                    task.wait(0.3)
-                    Character.activateFlagBearerUltimate()
-                end)
-            end
         end
     })
 
-    CharacterTab:AddSlider("ArmsmasterUltimateInterval", {
-        Title = "Armsmaster Ultimate Interval (s)",
-        Default = Config.armsmasterUltimateInterval,
-        Min = 15, Max = 60, Rounding = 0,
-        Callback = function(Value) Config.armsmasterUltimateInterval = Value end
-    })
-
-    CharacterTab:AddSlider("WraithUltimateInterval", {
-        Title = "Wraith Ultimate Interval (s)",
-        Default = Config.wraithUltimateInterval,
-        Min = 1, Max = 60, Rounding = 0,
-        Callback = function(Value) Config.wraithUltimateInterval = Value end
-    })
-
+    -- Healing Skill (luôn hiển thị - character nào cũng có)
     CharacterTab:AddSlider("HealingSkillInterval", {
         Title = "F Skill (Healing) Interval (s)",
+        Description = "Skill F - Character nào cũng có",
         Default = Config.healingSkillInterval,
         Min = 15, Max = 60, Rounding = 0,
         Callback = function(Value) Config.healingSkillInterval = Value end
     })
 
-    CharacterTab:AddSlider("FlagBearerUltimateInterval", {
-        Title = "Flag Bearer Ultimate Interval (s)",
-        Default = Config.flagBearerUltimateInterval,
-        Min = 5, Max = 60, Rounding = 0,
-        Callback = function(Value) Config.flagBearerUltimateInterval = Value end
-    })
+    -- Armsmaster Ultimate (chỉ hiển thị khi character = 1006)
+    if currentCharacterId == 1006 then
+        CharacterTab:AddSlider("ArmsmasterUltimateInterval", {
+            Title = "Armsmaster Ultimate Interval (s)",
+            Default = Config.armsmasterUltimateInterval,
+            Min = 15, Max = 60, Rounding = 0,
+            Callback = function(Value) Config.armsmasterUltimateInterval = Value end
+        })
+    end
+
+    -- Wraith Ultimate (chỉ hiển thị khi character = 1003)
+    if currentCharacterId == 1003 then
+        CharacterTab:AddSlider("WraithUltimateInterval", {
+            Title = "Wraith Ultimate Interval (s)",
+            Default = Config.wraithUltimateInterval,
+            Min = 0.5, Max = 60, Rounding = 0.5,
+            Callback = function(Value) Config.wraithUltimateInterval = Value end
+        })
+    end
+
+    -- Flag Bearer Ultimate (chỉ hiển thị khi character = 1004)
+    if currentCharacterId == 1004 then
+        CharacterTab:AddSlider("FlagBearerUltimateInterval", {
+            Title = "Flag Bearer Ultimate Interval (s)",
+            Default = Config.flagBearerUltimateInterval,
+            Min = 5, Max = 60, Rounding = 0,
+            Callback = function(Value) Config.flagBearerUltimateInterval = Value end
+        })
+    end
 
     return CharacterTab
 end

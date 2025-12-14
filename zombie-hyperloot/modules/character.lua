@@ -9,6 +9,7 @@ local Config = nil
 -- Remote IDs (từ remote logger)
 local CHARACTER_DIC_REMOTE_FUNCTION_ID = 857483751
 local EQUIP_CHARACTER_REMOTE_EVENT_ID = 1981544152
+local GET_USER_DATA_REMOTE_FUNCTION_ID = 2498358147
 
 -- Map ID -> Tên hiển thị (có thể chỉnh tuỳ ý)
 Character.CharacterNames = {
@@ -21,6 +22,9 @@ Character.CharacterNames = {
 
 -- Lưu mapping display string -> id để UI dùng lại
 Character.DisplayToId = {}
+
+-- Lưu character ID hiện tại
+Character.currentCharacterId = nil
 
 local function getRemoteFolder()
     local replicatedStorage = Config and Config.ReplicatedStorage or game:GetService("ReplicatedStorage")
@@ -154,6 +158,43 @@ function Character.equipCharacter(id)
     return true
 end
 
+-- 🔹 Get Current Character ID from Server
+function Character.getCurrentCharacterId()
+    if Config and Config.scriptUnloaded then return nil end
+
+    local remoteFunction = getRemoteFunction()
+    if not remoteFunction then return nil end
+
+    local userId = Config.localPlayer and Config.localPlayer.UserId
+    if not userId then return nil end
+
+    local args = {
+        GET_USER_DATA_REMOTE_FUNCTION_ID,
+        userId,
+    }
+
+    local success, result = pcall(function()
+        return remoteFunction:InvokeServer(unpack(args))
+    end)
+
+    if not success then
+        warn("[ZombieHyperloot][Character] InvokeServer get user data lỗi:", result)
+        return nil
+    end
+
+    if type(result) ~= "table" then
+        return nil
+    end
+
+    local characterId = result.character
+    if characterId then
+        Character.currentCharacterId = tonumber(characterId)
+        return Character.currentCharacterId
+    end
+
+    return nil
+end
+
 -- 🔹 Auto Skill (moved from Combat)
 local function getClosestZombiePart()
     if not Config or not Config.entityFolder or not Config.localPlayer then
@@ -258,12 +299,43 @@ function Character.startSkillLoop(getInterval, action)
 end
 
 function Character.startAllSkillLoops()
-    Character.startSkillLoop(function() return Config.armsmasterUltimateInterval end, Character.activateArmsmasterUltimate)
-    Character.startSkillLoop(function() return Config.wraithUltimateInterval or 15 end, Character.activateWraithUltimate)
+    -- Lấy character ID hiện tại từ server
+    local characterId = Character.getCurrentCharacterId()
+    
+    if not characterId then
+        warn("[ZombieHyperloot][Character] Không lấy được character ID, sẽ chạy tất cả skills")
+        -- Fallback: chạy tất cả skills nếu không lấy được character ID
+        Character.startSkillLoop(function() return Config.armsmasterUltimateInterval end, Character.activateArmsmasterUltimate)
+        Character.startSkillLoop(function() return Config.wraithUltimateInterval or 15 end, Character.activateWraithUltimate)
+        Character.startSkillLoop(function() return Config.healingSkillInterval end, Character.activateHealingSkill)
+        Character.startSkillLoop(function() return Config.flagBearerUltimateInterval or 15 end, Character.activateFlagBearerUltimate)
+        return
+    end
+
+    -- Chỉ chạy skill tương ứng với character hiện tại
+    -- Healing skill (1002) có thể dùng cho tất cả characters
     Character.startSkillLoop(function() return Config.healingSkillInterval end, Character.activateHealingSkill)
-    Character.startSkillLoop(function() return Config.flagBearerUltimateInterval or 15 end, Character.activateFlagBearerUltimate)
+
+    -- Character-specific skills
+    if characterId == 1006 then
+        -- Armsmaster
+        Character.startSkillLoop(function() return Config.armsmasterUltimateInterval end, Character.activateArmsmasterUltimate)
+    elseif characterId == 1003 then
+        -- Wraith
+        Character.startSkillLoop(function() return Config.wraithUltimateInterval or 15 end, Character.activateWraithUltimate)
+    elseif characterId == 1004 then
+        -- Flag Bearer
+        Character.startSkillLoop(function() return Config.flagBearerUltimateInterval or 15 end, Character.activateFlagBearerUltimate)
+    end
+    -- 1001 (Assault) và 1005 (Ninja) không có ultimate skill riêng
 end
 
+----------------------------------------------------------
+-- 🔹 Cleanup
+function Character.cleanup()
+    -- Skill loops sẽ tự dừng khi Config.scriptUnloaded = true
+    -- Không cần cleanup gì thêm vì sử dụng task.spawn và check Config.scriptUnloaded
+end
 
 return Character
 
