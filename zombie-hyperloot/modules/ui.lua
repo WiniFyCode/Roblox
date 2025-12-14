@@ -164,47 +164,6 @@ function UI.createCombatTab()
         Callback = function(Value) Config.trigerSkillDupeCount = Value end
     })
 
-    CombatTab:AddSection("Auto Skill")
-
-    CombatTab:AddToggle("AutoSkill", {
-        Title = "Auto Skill",
-        Default = Config.autoSkillEnabled,
-        Callback = function(Value)
-            Config.autoSkillEnabled = Value
-            if Value then
-                task.spawn(function()
-                    task.wait(1)
-                    Character.activateArmsmasterUltimate()
-                    task.wait(0.5)
-                    Character.activateHealingSkill()
-                    task.wait(0.5)
-                    Character.activateFlagBearerUltimate()
-                end)
-            end
-        end
-    })
-
-    CombatTab:AddSlider("ArmsmasterUltimateInterval", {
-        Title = "Armsmaster Ultimate Interval (s)",
-        Default = Config.armsmasterUltimateInterval,
-        Min = 15, Max = 60, Rounding = 0,
-        Callback = function(Value) Config.armsmasterUltimateInterval = Value end
-    })
-
-    CombatTab:AddSlider("HealingSkillInterval", {
-        Title = "F Skill (Healing) Interval (s)",
-        Default = Config.healingSkillInterval,
-        Min = 15, Max = 60, Rounding = 0,
-        Callback = function(Value) Config.healingSkillInterval = Value end
-    })
-
-    CombatTab:AddSlider("FlagBearerUltimateInterval", {
-        Title = "Flag Bearer Ultimate Interval (s)",
-        Default = Config.flagBearerUltimateInterval,
-        Min = 15, Max = 120, Rounding = 0,
-        Callback = function(Value) Config.flagBearerUltimateInterval = Value end
-    })
-
     CombatTab:AddSection("Auto Camera Rotation 360°")
 
     CombatTab:AddToggle("AutoRotate", {
@@ -865,6 +824,47 @@ function UI.createCharacterTab()
                 end
             end
         end
+    })
+
+    CharacterTab:AddSection("Auto Skill")
+
+    CharacterTab:AddToggle("AutoSkill", {
+        Title = "Auto Skill (Selected Character)",
+        Default = Config.autoSkillEnabled,
+        Callback = function(Value)
+            Config.autoSkillEnabled = Value
+            if Value then
+                task.spawn(function()
+                    task.wait(1)
+                    Character.activateArmsmasterUltimate()
+                    task.wait(0.5)
+                    Character.activateHealingSkill()
+                    task.wait(0.5)
+                    Character.activateFlagBearerUltimate()
+                end)
+            end
+        end
+    })
+
+    CharacterTab:AddSlider("ArmsmasterUltimateInterval", {
+        Title = "Armsmaster Ultimate Interval (s)",
+        Default = Config.armsmasterUltimateInterval,
+        Min = 15, Max = 60, Rounding = 0,
+        Callback = function(Value) Config.armsmasterUltimateInterval = Value end
+    })
+
+    CharacterTab:AddSlider("HealingSkillInterval", {
+        Title = "F Skill (Healing) Interval (s)",
+        Default = Config.healingSkillInterval,
+        Min = 15, Max = 60, Rounding = 0,
+        Callback = function(Value) Config.healingSkillInterval = Value end
+    })
+
+    CharacterTab:AddSlider("FlagBearerUltimateInterval", {
+        Title = "Flag Bearer Ultimate Interval (s)",
+        Default = Config.flagBearerUltimateInterval,
+        Min = 15, Max = 120, Rounding = 0,
+        Callback = function(Value) Config.flagBearerUltimateInterval = Value end
     })
 
     return CharacterTab
