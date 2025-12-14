@@ -231,6 +231,7 @@ local function cleanupScript()
     Config.antiZombieEnabled = false
     Config.supplyESPEnabled = false
     Config.espBobEnabled = false
+    Config.autoDoorEnabled = false
 
     -- Disconnect all connections
     if renderSteppedConnection then
@@ -343,9 +344,14 @@ Farm.startAutoBulletBoxLoop()
 Farm.setupChestTeleportInput()
 
 ----------------------------------------------------------
--- 🔹 Setup Map Auto Replay & Supply ESP
+-- 🔹 Setup Map Auto Replay, Supply ESP & Auto Door
 Map.startAutoReplayLoop()
 Map.startSupplyESP()
+
+-- Start Auto Door nếu được bật
+if Config.autoDoorEnabled then
+    Map.startAutoDoor()
+end
 
 ----------------------------------------------------------
 -- 🔹 Setup HUD

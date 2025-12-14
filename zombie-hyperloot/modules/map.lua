@@ -13,6 +13,11 @@ Map.supplyFrame = nil
 Map.supplyButtons = {}
 Map.refreshConnection = nil
 
+-- Auto Door tracking
+Map.autoDoorEnabled = false
+Map.doorConnection = nil
+Map.lastDoorCheck = 0
+
 function Map.init(config)
     Config = config
 end
@@ -353,8 +358,108 @@ function Map.stopSupplyESP()
     Map.supplyItems = {}
 end
 
+----------------------------------------------------------
+-- 🔹 Auto Door Functions
+function Map.findTouchInterests()
+    local touchInterests = {}
+    
+    local fx = Config.Workspace:FindFirstChild("FX")
+    if not fx then return touchInterests end
+    
+    local task = fx:FindFirstChild("Task")
+    if not task then return touchInterests end
+    
+    -- Tìm tất cả TouchInterest trong Task
+    for _, descendant in ipairs(task:GetDescendants()) do
+        if descendant:IsA("TouchInterest") then
+            local parent = descendant.Parent
+            if parent and parent:IsA("BasePart") then
+                table.insert(touchInterests, {
+                    touchInterest = descendant,
+                    part = parent,
+                    position = parent.Position
+                })
+            end
+        end
+    end
+    
+    return touchInterests
+end
+
+function Map.activateTouchInterest(touchInterest, part)
+    if not touchInterest or not part then return false end
+    
+    local success = pcall(function()
+        -- Fire TouchInterest trực tiếp với character của player
+        local char = Config.localPlayer.Character
+        if char then
+            local humanoidRootPart = char:FindFirstChild("HumanoidRootPart")
+            if humanoidRootPart then
+                -- Fire TouchInterest trực tiếp, không cần teleport
+                touchInterest:Fire(char)
+                return true
+            end
+        end
+    end)
+    
+    return success
+end
+
+
+
+function Map.toggleAutoDoor(enabled)
+    Map.autoDoorEnabled = enabled
+    
+    if enabled then
+        Map.startAutoDoor()
+    else
+        Map.stopAutoDoor()
+    end
+end
+
+function Map.startAutoDoor()
+    Map.stopAutoDoor() -- Đảm bảo không có connection cũ
+    
+    Map.doorConnection = task.spawn(function()
+        while task.wait(5) do -- Kiểm tra mỗi 5 giây
+            if Config.scriptUnloaded or not Map.autoDoorEnabled then
+                break
+            end
+            
+            -- Chỉ kiểm tra nếu trong game
+            local char = Config.localPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                local touchInterests = Map.findTouchInterests()
+                local activatedCount = 0
+                
+                for _, data in ipairs(touchInterests) do
+                    if Map.activateTouchInterest(data.touchInterest, data.part) then
+                        activatedCount = activatedCount + 1
+                    end
+                end
+                
+                if activatedCount > 0 then
+                    print("[AutoDoor] Đã mở " .. activatedCount .. " cửa")
+                end
+            end
+        end
+    end)
+    
+    print("[AutoDoor] Auto open door đã được bật")
+end
+
+function Map.stopAutoDoor()
+    if Map.doorConnection then
+        Map.doorConnection = nil
+        print("[AutoDoor] Auto open door đã được tắt")
+    end
+end
+
+----------------------------------------------------------
+-- 🔹 Cleanup
 function Map.cleanup()
     Map.stopSupplyESP()
+    Map.stopAutoDoor()
 end
 
 return Map

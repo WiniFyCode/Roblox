@@ -661,6 +661,18 @@ function UI.createMapTab()
         end
     })
 
+    MapTab:AddSection("Auto Door")
+
+    MapTab:AddToggle("AutoDoor", {
+        Title = "Auto Open Door",
+        Description = "Tự động mở các cửa khi có trong game (check 5s)",
+        Default = Config.autoDoorEnabled,
+        Callback = function(Value)
+            Config.autoDoorEnabled = Value
+            Map.toggleAutoDoor(Value)
+        end
+    })
+
     return MapTab
 end
 

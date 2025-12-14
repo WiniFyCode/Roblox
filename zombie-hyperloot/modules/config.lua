@@ -164,6 +164,10 @@ Config.supplyESPPosition = "Right" -- "Left" hoặc "Right"
 Config.bobESPEnabled = true
 
 ----------------------------------------------------------
+-- 🔹 Auto Door
+Config.autoDoorEnabled = true
+
+----------------------------------------------------------
 -- 🔹 Visuals
 Config.removeFogEnabled = false
 Config.fullbrightEnabled = false
