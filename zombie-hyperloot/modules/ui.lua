@@ -413,6 +413,31 @@ function UI.createESPTab()
         end
     })
 
+    ESPTab:AddButton({
+        Title = "Teleport to Bob",
+        Description = "Teleport tới Bob gần nhất",
+        Callback = function()
+            local success = ESP.teleportToBob()
+            if success then
+                if Config.UI and Config.UI.Fluent then
+                    Config.UI.Fluent:Notify({
+                        Title = "Bob ESP",
+                        Content = "Đã teleport tới Bob!",
+                        Duration = 2
+                    })
+                end
+            else
+                if Config.UI and Config.UI.Fluent then
+                    Config.UI.Fluent:Notify({
+                        Title = "Bob ESP",
+                        Content = "Không tìm thấy Bob nào!",
+                        Duration = 2
+                    })
+                end
+            end
+        end
+    })
+
     return ESPTab
 end
 

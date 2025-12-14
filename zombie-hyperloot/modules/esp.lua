@@ -668,6 +668,45 @@ function ESP.stopBobESP()
     ESP.clearBobESP()
 end
 
+function ESP.teleportToBob()
+    local char = Config.localPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        warn("[BobESP] Không tìm thấy HumanoidRootPart")
+        return false
+    end
+    
+    -- Tìm tất cả Bobs
+    local bobs = ESP.findAllBobs()
+    if #bobs == 0 then
+        warn("[BobESP] Không tìm thấy Bob nào")
+        return false
+    end
+    
+    -- Tìm Bob gần nhất
+    local playerPosition = hrp.Position
+    local nearestBob = nil
+    local nearestDistance = math.huge
+    
+    for _, bobData in ipairs(bobs) do
+        if bobData.part then
+            local distance = (playerPosition - bobData.part.Position).Magnitude
+            if distance < nearestDistance then
+                nearestDistance = distance
+                nearestBob = bobData
+            end
+        end
+    end
+    
+    if nearestBob and nearestBob.part then
+        -- Teleport tới Bob (cao hơn 3 studs để tránh bị stuck)
+        hrp.CFrame = CFrame.new(nearestBob.part.Position + Vector3.new(0, 3, 0))
+        return true
+    end
+    
+    return false
+end
+
 ----------------------------------------------------------
 -- 🔹 Cleanup
 function ESP.cleanup()
