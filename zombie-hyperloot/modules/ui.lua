@@ -785,6 +785,93 @@ end
 
 
 ----------------------------------------------------------
+-- 🔹 Character Tab
+function UI.createCharacterTab()
+    local CharacterTab = UI.Window:AddTab({ Title = "Character" })
+
+    CharacterTab:AddSection("Character Selection")
+
+    local displayList, displayToId = Character.getCharacterDisplayList()
+
+    if not displayList or #displayList == 0 then
+        displayList = {"Không đọc được dữ liệu (vào game trước đã)"}
+        displayToId = {}
+    end
+
+    local function findIndex(list, value)
+        for index, item in ipairs(list) do
+            if item == value then
+                return index
+            end
+        end
+        return nil
+    end
+
+    local defaultDisplay = Config.selectedCharacterDisplay
+    if not defaultDisplay or not findIndex(displayList, defaultDisplay) then
+        defaultDisplay = displayList[1]
+    end
+
+    if displayToId and displayToId[defaultDisplay] then
+        Config.selectedCharacterId = displayToId[defaultDisplay]
+        Config.selectedCharacterDisplay = defaultDisplay
+    end
+
+    CharacterTab:AddDropdown("SelectedCharacter", {
+        Title = "Character",
+        Values = displayList,
+        Default = defaultDisplay,
+        Callback = function(Value)
+            Config.selectedCharacterDisplay = Value
+            local idMap = Character.DisplayToId or displayToId or {}
+            local selectedId = idMap[Value]
+            if selectedId then
+                Config.selectedCharacterId = selectedId
+            end
+        end
+    })
+
+    CharacterTab:AddButton({
+        Title = "Equip Selected Character",
+        Description = "Equip nhân vật đã chọn (và dùng cho Auto Skill)",
+        Callback = function()
+            local id = Config.selectedCharacterId
+            if not id then
+                if Config.UI and Config.UI.Fluent then
+                    Config.UI.Fluent:Notify({
+                        Title = "Character",
+                        Content = "Chưa chọn nhân vật trong dropdown!",
+                        Duration = 3
+                    })
+                end
+                return
+            end
+
+            local success, err = Character.equipCharacter(id)
+
+            if Config.UI and Config.UI.Fluent then
+                if success then
+                    Config.UI.Fluent:Notify({
+                        Title = "Character",
+                        Content = "Đã gửi yêu cầu equip nhân vật " .. tostring(Config.selectedCharacterDisplay or id),
+                        Duration = 3
+                    })
+                else
+                    Config.UI.Fluent:Notify({
+                        Title = "Character",
+                        Content = "Equip thất bại: " .. tostring(err),
+                        Duration = 3
+                    })
+                end
+            end
+        end
+    })
+
+    return CharacterTab
+end
+
+
+----------------------------------------------------------
 -- 🔹 Settings Tab
 function UI.createSettingsTab(cleanupCallback)
     local SettingsTab = UI.Window:AddTab({ Title = "Settings" })

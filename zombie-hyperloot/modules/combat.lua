@@ -121,14 +121,6 @@ function Combat.updateAllHitboxes(enabled)
     end
 end
 
-
-----------------------------------------------------------
--- 🔹 Auto Skill (moved to Character module)
--- Logic auto skill hiện nằm trong modules/character.lua
-
-
-
-
 ----------------------------------------------------------
 -- 🔹 Aimbot Functions
 Combat.holdingMouse2 = false
