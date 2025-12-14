@@ -360,86 +360,50 @@ end
 
 ----------------------------------------------------------
 -- 🔹 Auto Door Functions
-function Map.findTouchInterests()
-    local touchInterests = {}
-    
-    local fx = Config.Workspace:FindFirstChild("FX")
-    if not fx then return touchInterests end
-    
-    local task = fx:FindFirstChild("Task")
-    if not task then return touchInterests end
-    
-    -- Tìm tất cả TouchInterest trong Task
-    for _, descendant in ipairs(task:GetDescendants()) do
-        if descendant:IsA("TouchInterest") then
-            local parent = descendant.Parent
-            if parent and parent:IsA("BasePart") then
-                table.insert(touchInterests, {
-                    touchInterest = descendant,
-                    part = parent,
-                    position = parent.Position
-                })
+
+-- Lấy part cửa hiện tại (Workspace.FX.Task)
+function Map.getDoorPart()
+    local fx = Config.Workspace:FindFirstChild("FX") or Config.fxFolder
+    if not fx then return nil end
+
+    local taskPart = fx:FindFirstChild("Task")
+    if taskPart and taskPart:IsA("BasePart") then
+        return taskPart
+    end
+
+    return nil
+end
+
+-- Cho nhân vật chạm vào cửa 1 lần
+function Map.openDoorOnce()
+    local char = Config.localPlayer.Character
+    local doorPart = Map.getDoorPart()
+
+    if not char or not doorPart then
+        return 0
+    end
+
+    for _, part in ipairs(char:GetChildren()) do
+        if part:IsA("BasePart") then
+            if typeof(firetouchinterest) == "function" then
+                firetouchinterest(part, doorPart, 0)
+                firetouchinterest(part, doorPart, 1)
             end
         end
     end
-    
-    return touchInterests
+
+    if typeof(firetouchtransmitter) == "function" then
+        pcall(function()
+            firetouchtransmitter(doorPart)
+        end)
+    end
+
+    return 1
 end
-
-function Map.activateTouchInterest(touchInterest, part)
-    if not touchInterest or not part then return false end
-    
-    local success = pcall(function()
-        local char = Config.localPlayer.Character
-        if not char then return end
-        
-        -- Đảm bảo target là 1 BasePart
-        local targetPart = part
-        if not targetPart:IsA("BasePart") then
-            targetPart = part:FindFirstAncestorWhichIsA("BasePart") or targetPart
-        end
-        if not targetPart or not targetPart:IsA("BasePart") then return end
-        
-        -- Giống cách Dex làm: dùng tất cả BasePart trong nhân vật
-        local characterParts = {}
-        for _, child in ipairs(char:GetChildren()) do
-            if child:IsA("BasePart") then
-                table.insert(characterParts, child)
-            end
-        end
-        if #characterParts == 0 then return end
-        
-        -- Ưu tiên firetouchinterest (phần lớn executor đều có)
-        if typeof(firetouchinterest) == "function" then
-            for _, charPart in ipairs(characterParts) do
-                firetouchinterest(charPart, targetPart, 0)
-                firetouchinterest(charPart, targetPart, 1)
-            end
-        end
-        
-        -- Thử thêm một số biến thể firetouchtransmitter nếu có
-        if typeof(firetouchtransmitter) == "function" then
-            for _, charPart in ipairs(characterParts) do
-                -- Một số executor: (part1, part2)
-                pcall(function()
-                    firetouchtransmitter(charPart, targetPart)
-                end)
-            end
-            -- Một số khác: truyền trực tiếp TouchInterest
-            pcall(function()
-                firetouchtransmitter(touchInterest)
-            end)
-        end
-    end)
-    
-    return success
-end
-
-
 
 function Map.toggleAutoDoor(enabled)
     Map.autoDoorEnabled = enabled
-    
+
     if enabled then
         Map.startAutoDoor()
     else
@@ -449,41 +413,38 @@ end
 
 function Map.startAutoDoor()
     Map.stopAutoDoor() -- Đảm bảo không có connection cũ
-    
+    Map.autoDoorEnabled = true
+
     Map.doorConnection = task.spawn(function()
         while task.wait(5) do -- Kiểm tra mỗi 5 giây
             if Config.scriptUnloaded or not Map.autoDoorEnabled then
                 break
             end
-            
-            -- Chỉ kiểm tra nếu trong game
+
             local char = Config.localPlayer.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                local touchInterests = Map.findTouchInterests()
-                local activatedCount = 0
-                
-                for _, data in ipairs(touchInterests) do
-                    if Map.activateTouchInterest(data.touchInterest, data.part) then
-                        activatedCount = activatedCount + 1
-                    end
-                end
-                
-                if activatedCount > 0 then
-                    print("[AutoDoor] Đã mở " .. activatedCount .. " cửa")
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if char and hrp then
+                local opened = Map.openDoorOnce()
+                if opened > 0 then
+                    print("[AutoDoor] Đã mở cửa")
                 end
             end
         end
+
+        Map.doorConnection = nil
     end)
-    
+
     print("[AutoDoor] Auto open door đã được bật")
 end
 
 function Map.stopAutoDoor()
+    Map.autoDoorEnabled = false
     if Map.doorConnection then
         Map.doorConnection = nil
         print("[AutoDoor] Auto open door đã được tắt")
     end
 end
+
 
 ----------------------------------------------------------
 -- 🔹 Cleanup
