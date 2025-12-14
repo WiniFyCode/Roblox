@@ -319,7 +319,11 @@ function Character.startAllSkillLoops()
         warn("[ZombieHyperloot][Character] Không lấy được character ID, sẽ chạy tất cả skills")
         -- Fallback: chạy tất cả skills nếu không lấy được character ID
         Character.startSkillLoop(function() return Config.armsmasterUltimateInterval end, Character.activateArmsmasterUltimate)
-        Character.startSkillLoop(function() return Config.wraithUltimateInterval or 0.4 end, Character.activateWraithUltimate)
+        Character.startSkillLoop(
+            function() return Config.wraithUltimateInterval or 0.4 end, 
+            Character.activateWraithUltimate,
+            function() return getClosestZombiePart() ~= nil end
+        )
         Character.startSkillLoop(function() return Config.healingSkillInterval end, Character.activateHealingSkill)
         Character.startSkillLoop(function() return Config.flagBearerUltimateInterval or 15 end, Character.activateFlagBearerUltimate)
         return
