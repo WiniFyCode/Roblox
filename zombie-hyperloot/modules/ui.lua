@@ -875,17 +875,9 @@ function UI.createCharacterTab()
     if currentCharacterId == 1003 then
         CharacterTab:AddSlider("WraithUltimateInterval", {
             Title = "Wraith Ultimate Interval (s)",
-            Description = "Mỗi lần cách nhau 0.5 giây (0.5, 1.0, 1.5, 2.0, ...)",
             Default = Config.wraithUltimateInterval,
-            Min = 0.5, Max = 60, Rounding = 2, -- 2 chữ số thập phân để có thể làm tròn về 0.5
-            Callback = function(Value)
-                -- Làm tròn về bội số của 0.5 (mỗi lần cách nhau 0.5)
-                -- Ví dụ: 0.7 → 0.5, 1.2 → 1.0, 1.8 → 2.0
-                local rounded = math.floor(Value * 2 + 0.5) / 2
-                -- Đảm bảo không nhỏ hơn 0.5
-                rounded = math.max(0.5, rounded)
-                Config.wraithUltimateInterval = rounded
-            end
+            Min = 0.5, Max = 60, Rounding = 1,
+            Callback = function(Value) Config.wraithUltimateInterval = Value end
         })
     end
 
