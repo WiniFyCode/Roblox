@@ -878,7 +878,7 @@ function UI.createCharacterTab()
         CharacterTab:AddSlider("WraithUltimateInterval", {
             Title = "Wraith Ultimate Interval (s)",
             Default = Config.wraithUltimateInterval,
-            Min = 0.4, Max = 60, Rounding = 1,
+            Min = 0.3, Max = 60, Rounding = 1,
             Callback = function(Value) Config.wraithUltimateInterval = Value end
         })
     end

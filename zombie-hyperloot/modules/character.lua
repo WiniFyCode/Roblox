@@ -279,7 +279,7 @@ function Character.activateWraithUltimate()
     return true
 end
 
--- Assault Ultimate (1001) - dùng 2 vector: vị trí zombie và vị trí player
+-- Assault Ultimate (1001) - dùng 2 vector: cả 2 đều là vị trí zombie
 function Character.activateAssaultUltimate()
     local targetPart = getClosestZombiePart()
     
@@ -291,16 +291,13 @@ function Character.activateAssaultUltimate()
     local char = Config.localPlayer and Config.localPlayer.Character
     if not char then return false end
 
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return false end
-
     local netMessage = char:FindFirstChild("NetMessage")
     if not netMessage then return false end
 
-    -- Vector 1: vị trí zombie (target)
+    -- Vector 1: vị trí zombie
     local vector1 = targetPart.Position
-    -- Vector 2: vị trí player
-    local vector2 = hrp.Position
+    -- Vector 2: cũng là vị trí zombie (cùng vector)
+    local vector2 = targetPart.Position
 
     local args = {
         1001,
@@ -357,12 +354,12 @@ function Character.startAllSkillLoops()
         -- Fallback: chạy tất cả skills nếu không lấy được character ID
         Character.startSkillLoop(function() return Config.armsmasterUltimateInterval end, Character.activateArmsmasterUltimate)
         Character.startSkillLoop(
-            function() return Config.wraithUltimateInterval or 0.4 end, 
+            function() return Config.wraithUltimateInterval or 0.3 end, 
             Character.activateWraithUltimate,
             function() return getClosestZombiePart() ~= nil end
         )
         Character.startSkillLoop(
-            function() return Config.assaultUltimateInterval or 0.4 end, 
+            function() return Config.assaultUltimateInterval or 0.3 end, 
             Character.activateAssaultUltimate,
             function() return getClosestZombiePart() ~= nil end
         )
@@ -382,14 +379,14 @@ function Character.startAllSkillLoops()
     elseif characterId == 1003 then
         -- Wraith - chỉ activate khi có zombie
         Character.startSkillLoop(
-            function() return Config.wraithUltimateInterval or 0.4 end, 
+            function() return Config.wraithUltimateInterval or 0.3 end, 
             Character.activateWraithUltimate,
             function() return getClosestZombiePart() ~= nil end -- Check condition: có zombie mới chạy
         )
     elseif characterId == 1001 then
         -- Assault - chỉ activate khi có zombie
         Character.startSkillLoop(
-            function() return Config.assaultUltimateInterval or 0.4 end, 
+            function() return Config.assaultUltimateInterval or 0.3 end, 
             Character.activateAssaultUltimate,
             function() return getClosestZombiePart() ~= nil end -- Check condition: có zombie mới chạy
         )

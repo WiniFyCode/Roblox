@@ -121,8 +121,8 @@ Config.autoBulletBoxEnabled = true
 -- 🔹 Auto Skill
 Config.autoSkillEnabled = true
 Config.armsmasterUltimateInterval = 15 -- Armsmaster Ultimate (1010)
-Config.wraithUltimateInterval = 0.4 -- Wraith Ultimate (1006)
-Config.assaultUltimateInterval = 0.4 -- Assault Ultimate (1001)
+Config.wraithUltimateInterval = 0.3 -- Wraith Ultimate (1006)
+Config.assaultUltimateInterval = 0.3 -- Assault Ultimate (1001)
 Config.healingSkillInterval = 20 -- F Skill (Healing, 1002)
 Config.flagBearerUltimateInterval = 15 -- Flag Bearer Ultimate (1004)
 
