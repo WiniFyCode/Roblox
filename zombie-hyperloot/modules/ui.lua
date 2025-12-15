@@ -837,6 +837,8 @@ function UI.createCharacterTab()
         autoSkillDesc = "Tự động dùng Armsmaster Ultimate + Healing"
     elseif currentCharacterId == 1003 then
         autoSkillDesc = "Tự động dùng Wraith Ultimate + Healing"
+    elseif currentCharacterId == 1001 then
+        autoSkillDesc = "Tự động dùng Assault Ultimate + Healing"
     elseif currentCharacterId == 1004 then
         autoSkillDesc = "Tự động dùng Flag Bearer Ultimate + Healing"
     elseif currentCharacterId then
@@ -878,6 +880,16 @@ function UI.createCharacterTab()
             Default = Config.wraithUltimateInterval,
             Min = 0.4, Max = 60, Rounding = 1,
             Callback = function(Value) Config.wraithUltimateInterval = Value end
+        })
+    end
+
+    -- Assault Ultimate (chỉ hiển thị khi character = 1001)
+    if currentCharacterId == 1001 then
+        CharacterTab:AddSlider("AssaultUltimateInterval", {
+            Title = "Assault Ultimate Interval (s)",
+            Default = Config.assaultUltimateInterval,
+            Min = 0.3, Max = 60, Rounding = 1,
+            Callback = function(Value) Config.assaultUltimateInterval = Value end
         })
     end
 

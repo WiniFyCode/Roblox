@@ -279,6 +279,43 @@ function Character.activateWraithUltimate()
     return true
 end
 
+-- Assault Ultimate (1001) - dùng 2 vector: vị trí zombie và vị trí player
+function Character.activateAssaultUltimate()
+    local targetPart = getClosestZombiePart()
+    
+    -- Nếu không có zombie thì dừng, không activate skill
+    if not targetPart or not targetPart:IsA("BasePart") then
+        return false
+    end
+
+    local char = Config.localPlayer and Config.localPlayer.Character
+    if not char then return false end
+
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return false end
+
+    local netMessage = char:FindFirstChild("NetMessage")
+    if not netMessage then return false end
+
+    -- Vector 1: vị trí zombie (target)
+    local vector1 = targetPart.Position
+    -- Vector 2: vị trí player
+    local vector2 = hrp.Position
+
+    local args = {
+        1001,
+        "Enter",
+        vector1,
+        vector2
+    }
+
+    pcall(function()
+        netMessage:WaitForChild("TrigerSkill"):FireServer(unpack(args))
+    end)
+
+    return true
+end
+
 -- Flag Bearer Ultimate (1004) - cần CFrame vị trí người chơi
 function Character.activateFlagBearerUltimate()
     Character.triggerSkill(1004, true)
@@ -324,6 +361,11 @@ function Character.startAllSkillLoops()
             Character.activateWraithUltimate,
             function() return getClosestZombiePart() ~= nil end
         )
+        Character.startSkillLoop(
+            function() return Config.assaultUltimateInterval or 0.4 end, 
+            Character.activateAssaultUltimate,
+            function() return getClosestZombiePart() ~= nil end
+        )
         Character.startSkillLoop(function() return Config.healingSkillInterval end, Character.activateHealingSkill)
         Character.startSkillLoop(function() return Config.flagBearerUltimateInterval or 15 end, Character.activateFlagBearerUltimate)
         return
@@ -344,11 +386,18 @@ function Character.startAllSkillLoops()
             Character.activateWraithUltimate,
             function() return getClosestZombiePart() ~= nil end -- Check condition: có zombie mới chạy
         )
+    elseif characterId == 1001 then
+        -- Assault - chỉ activate khi có zombie
+        Character.startSkillLoop(
+            function() return Config.assaultUltimateInterval or 0.4 end, 
+            Character.activateAssaultUltimate,
+            function() return getClosestZombiePart() ~= nil end -- Check condition: có zombie mới chạy
+        )
     elseif characterId == 1004 then
         -- Flag Bearer
         Character.startSkillLoop(function() return Config.flagBearerUltimateInterval or 15 end, Character.activateFlagBearerUltimate)
     end
-    -- 1001 (Assault) và 1005 (Ninja) không có ultimate skill riêng
+    -- 1005 (Ninja) không có ultimate skill riêng
 end
 
 ----------------------------------------------------------
