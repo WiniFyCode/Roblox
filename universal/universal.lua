@@ -57,6 +57,11 @@ local wsCharAddedConnection
 local jpLoopConnection
 local jpCharAddedConnection
 
+-- Aimbot / Visual helpers
+local FOVCircle
+local CrosshairLines = {}
+local aimbotHoldingMouse2 = false
+
 -- Get Character
 local function getCharacter()
 	character = LocalPlayer.Character
@@ -332,6 +337,67 @@ CombatGroup:AddDropdown("HitboxPart", {
 	Text = "Hitbox Part",
 })
 
+local AimbotGroup = Tabs.Combat:AddRightGroupbox("Aimbot", "crosshair")
+
+AimbotGroup:AddToggle("AimbotEnabled", {
+	Text = "Aimbot",
+	Default = false,
+	Tooltip = "Smooth camera aimbot",
+})
+
+AimbotGroup:AddToggle("AimbotHoldMouse2", {
+	Text = "Hold Mouse 2",
+	Default = true,
+	Tooltip = "Only aim while holding right mouse button",
+})
+
+AimbotGroup:AddToggle("AimbotTeamCheck", {
+	Text = "Team Check (players)",
+	Default = false,
+	Tooltip = "Ignore teammates when aiming at players",
+})
+
+AimbotGroup:AddDropdown("AimbotTarget", {
+	Values = { "Zombies", "Players", "All" },
+	Default = 1,
+	Text = "Target Type",
+})
+
+AimbotGroup:AddDropdown("AimbotAimPart", {
+	Values = { "Head", "UpperTorso", "HumanoidRootPart" },
+	Default = 1,
+	Text = "Aim Part",
+})
+
+AimbotGroup:AddToggle("AimbotFOVEnabled", {
+	Text = "FOV Enabled",
+	Default = true,
+})
+
+AimbotGroup:AddSlider("AimbotFOVRadius", {
+	Text = "FOV Radius",
+	Default = 150,
+	Min = 40,
+	Max = 400,
+	Rounding = 0,
+})
+
+AimbotGroup:AddSlider("AimbotSmoothness", {
+	Text = "Smoothness",
+	Default = 0.20,
+	Min = 0,
+	Max = 1,
+	Rounding = 2,
+})
+
+AimbotGroup:AddSlider("AimbotPrediction", {
+	Text = "Prediction",
+	Default = 0.08,
+	Min = 0,
+	Max = 0.3,
+	Rounding = 2,
+})
+
 -- Hitbox
 local function getHitboxTargets()
 	local targets = {}
@@ -424,6 +490,153 @@ RunService.Heartbeat:Connect(function()
 	applyHitbox()
 end)
 
+-- Aimbot helpers
+local function getAimbotTargets()
+	local targets = {}
+	local mode = Options.AimbotTarget and Options.AimbotTarget.Value or "Zombies"
+
+	if mode == "Players" or mode == "All" then
+		for _, player in ipairs(Players:GetPlayers()) do
+			if player ~= LocalPlayer and player.Character then
+				local hum = player.Character:FindFirstChildOfClass("Humanoid")
+				if hum and hum.Health > 0 then
+					if not (Toggles.AimbotTeamCheck and Toggles.AimbotTeamCheck.Value) or player.Team ~= LocalPlayer.Team then
+						table.insert(targets, player.Character)
+					end
+				end
+			end
+		end
+	end
+
+	if (mode == "Zombies" or mode == "All") and EntityFolder then
+		for _, model in ipairs(EntityFolder:GetChildren()) do
+			if model:IsA("Model") then
+				local hum = model:FindFirstChildOfClass("Humanoid")
+				if hum and hum.Health > 0 then
+					table.insert(targets, model)
+				end
+			end
+		end
+	end
+
+	return targets
+end
+
+local function getClosestAimbotTarget()
+	local mousePos = UserInputService:GetMouseLocation()
+	local closestChar, closestPart
+	local closestDist = math.huge
+
+	local aimPartName = Options.AimbotAimPart and Options.AimbotAimPart.Value or "Head"
+	local fovEnabled = Toggles.AimbotFOVEnabled and Toggles.AimbotFOVEnabled.Value
+	local fovRadius = (Options.AimbotFOVRadius and Options.AimbotFOVRadius.Value) or 150
+
+	for _, char in ipairs(getAimbotTargets()) do
+		local hum = char:FindFirstChildOfClass("Humanoid")
+		if hum and hum.Health > 0 then
+			local part = char:FindFirstChild(aimPartName)
+			if not part then
+				part = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso") or char:FindFirstChild("Head")
+			end
+
+			if part then
+				local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
+				if onScreen and screenPos.Z > 0 then
+					local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+					if (not fovEnabled) or dist <= fovRadius then
+						if dist < closestDist then
+							closestDist = dist
+							closestChar = char
+							closestPart = part
+						end
+					end
+				end
+			end
+		end
+	end
+
+	return closestChar, closestPart
+end
+
+-- Mouse2 state for aimbot
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	if input.UserInputType == Enum.UserInputType.MouseButton2 then
+		aimbotHoldingMouse2 = true
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton2 then
+		aimbotHoldingMouse2 = false
+	end
+end)
+
+-- Aimbot + FOV + Crosshair loop
+RunService.RenderStepped:Connect(function()
+	local mousePos = UserInputService:GetMouseLocation()
+
+	-- FOV circle
+	if FOVCircle then
+		FOVCircle.Position = mousePos
+		FOVCircle.Radius = (Options.AimbotFOVRadius and Options.AimbotFOVRadius.Value) or 150
+		FOVCircle.Color = (Options.ESPColor and Options.ESPColor.Value) or Color3.fromRGB(255, 255, 255)
+		FOVCircle.Visible = Toggles.AimbotEnabled and Toggles.AimbotEnabled.Value and (Toggles.AimbotFOVEnabled and Toggles.AimbotFOVEnabled.Value)
+	end
+
+	-- Crosshair
+	if #CrosshairLines > 0 then
+		local cx, cy = mousePos.X, mousePos.Y
+		local size = 6
+		local show = Toggles.Crosshair and Toggles.Crosshair.Value or false
+
+		for _, l in ipairs(CrosshairLines) do
+			l.Visible = show
+		end
+
+		if show then
+			CrosshairLines[1].From = Vector2.new(cx - size, cy)
+			CrosshairLines[1].To = Vector2.new(cx - 1, cy)
+			CrosshairLines[2].From = Vector2.new(cx + 1, cy)
+			CrosshairLines[2].To = Vector2.new(cx + size, cy)
+			CrosshairLines[3].From = Vector2.new(cx, cy - size)
+			CrosshairLines[3].To = Vector2.new(cx, cy - 1)
+			CrosshairLines[4].From = Vector2.new(cx, cy + 1)
+			CrosshairLines[4].To = Vector2.new(cx, cy + size)
+		end
+	end
+
+	-- Aimbot
+	if Toggles.AimbotEnabled and Toggles.AimbotEnabled.Value then
+		local active = true
+		if Toggles.AimbotHoldMouse2 and Toggles.AimbotHoldMouse2.Value and not aimbotHoldingMouse2 then
+			active = false
+		end
+
+		if active then
+			local char, part = getClosestAimbotTarget()
+			if char and part then
+				local targetPos = part.Position
+				local prediction = (Options.AimbotPrediction and Options.AimbotPrediction.Value) or 0
+				if prediction > 0 then
+					local vel = part.AssemblyLinearVelocity or part.Velocity or Vector3.new()
+					targetPos = targetPos + (vel * prediction)
+				end
+
+				local cf = Camera.CFrame
+				local desired = CFrame.new(cf.Position, targetPos)
+				local smoothness = (Options.AimbotSmoothness and Options.AimbotSmoothness.Value) or 0
+
+				if smoothness > 0 then
+					Camera.CFrame = cf:Lerp(desired, smoothness)
+				else
+					Camera.CFrame = desired
+				end
+			end
+		end
+	end
+end)
+
 -- ============================================
 -- VISUALS TAB - ESP
 -- ============================================
@@ -488,6 +701,30 @@ ESPGroup:AddLabel("Highlight Color"):AddColorPicker("HighlightColor", {
 })
 
 -- ESP Functions
+
+-- Setup aimbot visuals (FOV circle + crosshair lines)
+do
+	local success, circle = pcall(function()
+		return Drawing.new("Circle")
+	end)
+	if success and circle then
+		FOVCircle = circle
+		FOVCircle.NumSides = 64
+		FOVCircle.Thickness = 1.5
+		FOVCircle.Filled = false
+		FOVCircle.Color = (Options.ESPColor and Options.ESPColor.Value) or Color3.fromRGB(255, 255, 255)
+		FOVCircle.Visible = false
+	end
+
+	for i = 1, 4 do
+		local line = Drawing.new("Line")
+		line.Visible = false
+		line.Thickness = 1.5
+		line.Color = Color3.fromRGB(255, 255, 255)
+		CrosshairLines[i] = line
+	end
+end
+
 local function createESP(player)
 	if player == LocalPlayer then return end
 	if not player.Character then return end
@@ -607,115 +844,123 @@ end
 
 local function updateESP()
 	if not Toggles.PlayerESP.Value then return end
-
+	
 	for player, espData in pairs(espObjects) do
-		if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-			local humanoidRootPart = player.Character.HumanoidRootPart
-			local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-			local size = humanoidRootPart.Size + Vector3.new(2, 3, 1)
-			local points, allVisible = getBoxScreenPoints(humanoidRootPart.CFrame, size)
-
-			if espData then
-				if not allVisible or #points == 0 then
-					if espData.box then espData.box.Visible = false end
-					if espData.tracer then espData.tracer.Visible = false end
-					if espData.label then espData.label.Visible = false end
-					if espData.healthBar then espData.healthBar.Visible = false end
-				else
-					local minX, minY, maxX, maxY = math.huge, math.huge, -math.huge, -math.huge
-					for _, pt in ipairs(points) do
-						minX = math.min(minX, pt.X)
-						minY = math.min(minY, pt.Y)
-						maxX = math.max(maxX, pt.X)
-						maxY = math.max(maxY, pt.Y)
-					end
-
-					local boxWidth, boxHeight = maxX - minX, maxY - minY
-					if boxWidth <= 3 or boxHeight <= 4 then
+		local character = player.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		
+		if character and humanoid and humanoid.Health > 0 then
+			local ok, cf, size = pcall(character.GetBoundingBox, character)
+			if not ok or not cf or not size then
+				if espData and espData.box then espData.box.Visible = false end
+				if espData and espData.tracer then espData.tracer.Visible = false end
+				if espData and espData.label then espData.label.Visible = false end
+				if espData and espData.healthBar then espData.healthBar.Visible = false end
+			else
+				local points, allVisible = getBoxScreenPoints(cf, size)
+				
+				if espData then
+					if not allVisible or #points == 0 then
 						if espData.box then espData.box.Visible = false end
 						if espData.tracer then espData.tracer.Visible = false end
 						if espData.label then espData.label.Visible = false end
 						if espData.healthBar then espData.healthBar.Visible = false end
 					else
-						local slimWidth = boxWidth * 0.7
-						local slimX = minX + (boxWidth - slimWidth) / 2
-						local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-
-						local isEnemy = false
-						if Toggles.ESPTeamCheck and Toggles.ESPTeamCheck.Value then
-							if LocalPlayer.Team and player.Team then
-								isEnemy = player.Team ~= LocalPlayer.Team
-							elseif LocalPlayer.TeamColor and player.TeamColor then
-								isEnemy = player.TeamColor ~= LocalPlayer.TeamColor
-							else
-								-- Nếu game không dùng team, coi tất cả người chơi khác là enemy
-								isEnemy = player ~= LocalPlayer
-							end
+						local minX, minY, maxX, maxY = math.huge, math.huge, -math.huge, -math.huge
+						for _, pt in ipairs(points) do
+							minX = math.min(minX, pt.X)
+							minY = math.min(minY, pt.Y)
+							maxX = math.max(maxX, pt.X)
+							maxY = math.max(maxY, pt.Y)
 						end
-
-						local baseColor = Options.ESPColor and Options.ESPColor.Value or Color3.fromRGB(255, 255, 255)
-						if isEnemy and Options.EnemyESPColor then
-							baseColor = Options.EnemyESPColor.Value
-						end
-
-						-- Box
-						if espData.box and Toggles.ESPBoxes.Value then
-							espData.box.Visible = true
-							espData.box.Position = Vector2.new(slimX, minY)
-							espData.box.Size = Vector2.new(slimWidth, boxHeight)
-							espData.box.Color = baseColor
-						elseif espData.box then
-							espData.box.Visible = false
-						end
-
-						-- Name + distance
-						if espData.label then
-							local parts = {}
-							if Toggles.ESPNames.Value then
-								if humanoid then
-									table.insert(parts,
-										string.format("%s [%d]", player.Name, math.floor(humanoid.Health)))
+						
+						local boxWidth, boxHeight = maxX - minX, maxY - minY
+						if boxWidth <= 3 or boxHeight <= 4 then
+							if espData.box then espData.box.Visible = false end
+							if espData.tracer then espData.tracer.Visible = false end
+							if espData.label then espData.label.Visible = false end
+							if espData.healthBar then espData.healthBar.Visible = false end
+						else
+							local slimWidth = boxWidth * 0.7
+							local slimX = minX + (boxWidth - slimWidth) / 2
+							local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+							
+							local isEnemy = false
+							if Toggles.ESPTeamCheck and Toggles.ESPTeamCheck.Value then
+								if LocalPlayer.Team and player.Team then
+									isEnemy = player.Team ~= LocalPlayer.Team
+								elseif LocalPlayer.TeamColor and player.TeamColor then
+									isEnemy = player.TeamColor ~= LocalPlayer.TeamColor
 								else
-									table.insert(parts, player.Name)
+									-- Nếu game không dùng team, coi tất cả người chơi khác là enemy
+									isEnemy = player ~= LocalPlayer
 								end
 							end
-							if Toggles.ESPDistance.Value and rootPart then
-								local distance = math.floor((rootPart.Position - humanoidRootPart.Position).Magnitude)
-								table.insert(parts, tostring(distance) .. " studs")
+							
+							local baseColor = Options.ESPColor and Options.ESPColor.Value or Color3.fromRGB(255, 255, 255)
+							if isEnemy and Options.EnemyESPColor then
+								baseColor = Options.EnemyESPColor.Value
 							end
-							local text = table.concat(parts, " | ")
-							if text ~= "" then
-								espData.label.Visible = true
-								espData.label.Text = text
-								espData.label.Position = Vector2.new(slimX + slimWidth / 2, minY - 18)
-								espData.label.Color = baseColor
-							else
-								espData.label.Visible = false
+							
+							-- Box
+							if espData.box and Toggles.ESPBoxes.Value then
+								espData.box.Visible = true
+								espData.box.Position = Vector2.new(slimX, minY)
+								espData.box.Size = Vector2.new(slimWidth, boxHeight)
+								espData.box.Color = baseColor
+							elseif espData.box then
+								espData.box.Visible = false
 							end
-						end
-
-						-- Tracer
-						if espData.tracer and Toggles.ESPTracers.Value then
-							espData.tracer.Visible = true
-							espData.tracer.From = screenCenter
-							espData.tracer.To = Vector2.new(slimX + slimWidth / 2, maxY)
-							espData.tracer.Color = baseColor
-						elseif espData.tracer then
-							espData.tracer.Visible = false
-						end
-
-						-- Health bar
-						if espData.healthBar and Toggles.ESPHealth.Value and humanoid and humanoid.MaxHealth > 0 then
-							local hp = humanoid.Health
-							local maxHp = humanoid.MaxHealth
-							local ratio = math.clamp(hp / maxHp, 0, 1)
-							local barHeight = boxHeight * ratio
-							espData.healthBar.Visible = true
-							espData.healthBar.From = Vector2.new(slimX - 5, maxY)
-							espData.healthBar.To = Vector2.new(slimX - 5, maxY - barHeight)
-							espData.healthBar.Color = Color3.fromRGB((1 - ratio) * 255, ratio * 255, 0)
-						elseif espData.healthBar then
-							espData.healthBar.Visible = false
+							
+							-- Name + distance
+							if espData.label then
+								local parts = {}
+								if Toggles.ESPNames.Value then
+									if humanoid then
+										table.insert(parts,
+											string.format("%s [%d]", player.Name, math.floor(humanoid.Health)))
+									else
+										table.insert(parts, player.Name)
+									end
+								end
+								if Toggles.ESPDistance.Value and rootPart and character.PrimaryPart then
+									local distance = math.floor((rootPart.Position - character.PrimaryPart.Position).Magnitude)
+									table.insert(parts, tostring(distance) .. " studs")
+								end
+								local text = table.concat(parts, " | ")
+								if text ~= "" then
+									espData.label.Visible = true
+									espData.label.Text = text
+									espData.label.Position = Vector2.new(slimX + slimWidth / 2, minY - 18)
+									espData.label.Color = baseColor
+								else
+									espData.label.Visible = false
+								end
+							end
+							
+							-- Tracer
+							if espData.tracer and Toggles.ESPTracers.Value then
+								espData.tracer.Visible = true
+								espData.tracer.From = screenCenter
+								espData.tracer.To = Vector2.new(slimX + slimWidth / 2, maxY)
+								espData.tracer.Color = baseColor
+							elseif espData.tracer then
+								espData.tracer.Visible = false
+							end
+							
+							-- Health bar
+							if espData.healthBar and Toggles.ESPHealth.Value and humanoid and humanoid.MaxHealth > 0 then
+								local hp = humanoid.Health
+								local maxHp = humanoid.MaxHealth
+								local ratio = math.clamp(hp / maxHp, 0, 1)
+								local barHeight = boxHeight * ratio
+								espData.healthBar.Visible = true
+								espData.healthBar.From = Vector2.new(slimX - 5, maxY)
+								espData.healthBar.To = Vector2.new(slimX - 5, maxY - barHeight)
+								espData.healthBar.Color = Color3.fromRGB((1 - ratio) * 255, ratio * 255, 0)
+							elseif espData.healthBar then
+								espData.healthBar.Visible = false
+							end
 						end
 					end
 				end
@@ -816,6 +1061,12 @@ VisualsGroup:AddToggle("NoFog", {
 	Text = "No Fog",
 	Default = false,
 	Tooltip = "Disable fog",
+})
+
+VisualsGroup:AddToggle("Crosshair", {
+	Text = "Crosshair",
+	Default = false,
+	Tooltip = "Show simple crosshair at mouse position",
 })
 
 -- Full Bright
@@ -1166,6 +1417,25 @@ Library:OnUnload(function()
 	Lighting.Brightness = 1
 	Lighting.Ambient = Color3.fromRGB(128, 128, 128)
 	Lighting.FogEnd = 500
+
+	-- Cleanup aimbot drawings
+	if FOVCircle then
+		pcall(function()
+			FOVCircle.Visible = false
+			FOVCircle:Remove()
+		end)
+		FOVCircle = nil
+	end
+
+	for i, line in ipairs(CrosshairLines) do
+		if line then
+			pcall(function()
+				line.Visible = false
+				line:Remove()
+			end)
+			CrosshairLines[i] = nil
+		end
+	end
 end)
 
 Library:Notify({
