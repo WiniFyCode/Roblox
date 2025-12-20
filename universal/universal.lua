@@ -876,14 +876,15 @@ local function updateESP()
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		
 		if character and humanoid and humanoid.Health > 0 then
-			local ok, cf, size = pcall(character.GetBoundingBox, character)
-			if not ok or not cf or not size then
+			local rootPart = character:FindFirstChild("HumanoidRootPart") or character.PrimaryPart
+			if not rootPart then
 				if espData and espData.box then espData.box.Visible = false end
 				if espData and espData.tracer then espData.tracer.Visible = false end
 				if espData and espData.label then espData.label.Visible = false end
 				if espData and espData.healthBar then espData.healthBar.Visible = false end
 			else
-				local points, allVisible = getBoxScreenPoints(cf, size)
+				local size = rootPart.Size + Vector3.new(2, 3, 1)
+				local points, allVisible = getBoxScreenPoints(rootPart.CFrame, size)
 				
 				if espData then
 					if not allVisible or #points == 0 then
