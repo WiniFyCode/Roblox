@@ -55,7 +55,16 @@ function UI.createCombatTab()
     CombatLeftGroup:AddToggle("Aimbot", {
         Text = "Aimbot",
         Default = Config.aimbotEnabled,
-        Callback = function(Value) Config.aimbotEnabled = Value end
+        Callback = function(Value)
+            Config.aimbotEnabled = Value
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Aimbot",
+                    Description = Value and "Aimbot enabled" or "Aimbot disabled",
+                    Time = 2
+                })
+            end
+        end
     })
 
     CombatLeftGroup:AddDivider()
@@ -64,14 +73,32 @@ function UI.createCombatTab()
         Text = "Target Type",
         Values = {"Zombies", "Players", "All"},
         Default = Config.aimbotTargetMode,
-        Callback = function(Value) Config.aimbotTargetMode = Value end
+        Callback = function(Value)
+            Config.aimbotTargetMode = Value
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Aimbot",
+                    Description = "Target Type: " .. Value,
+                    Time = 2
+                })
+            end
+        end
     })
 
     CombatLeftGroup:AddDropdown("AimbotPriorityMode", {
         Text = "Priority",
         Values = {"Nearest", "Farthest", "LowestHealth", "HighestHealth"},
         Default = Config.aimbotPriorityMode,
-        Callback = function(Value) Config.aimbotPriorityMode = Value end
+        Callback = function(Value)
+            Config.aimbotPriorityMode = Value
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Aimbot",
+                    Description = "Priority: " .. Value,
+                    Time = 2
+                })
+            end
+        end
     })
 
     CombatLeftGroup:AddDropdown("AimbotAimPart", {
@@ -94,6 +121,13 @@ function UI.createCombatTab()
             Config.aimbotAutoFireEnabled = Value
             if not Value and Combat.setAutoFireActive then
                 Combat.setAutoFireActive(false)
+            end
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Aimbot",
+                    Description = Value and "Auto Fire enabled" or "Auto Fire disabled",
+                    Time = 2
+                })
             end
         end
     })
@@ -143,6 +177,13 @@ function UI.createCombatTab()
         Callback = function(Value)
             Config.hitboxEnabled = Value
             Combat.updateAllHitboxes(Value)
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Hitbox",
+                    Description = Value and "Hitbox Expander enabled" or "Hitbox Expander disabled",
+                    Time = 2
+                })
+            end
         end
     })
 
@@ -159,7 +200,16 @@ function UI.createCombatTab()
     CombatRightGroup:AddToggle("TrigerSkillDupeEnabled", {
         Text = "Enable TrigerSkill Dupe",
         Default = Config.trigerSkillDupeEnabled,
-        Callback = function(Value) Config.trigerSkillDupeEnabled = Value end
+        Callback = function(Value)
+            Config.trigerSkillDupeEnabled = Value
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "TrigerSkill Dupe",
+                    Description = Value and "TrigerSkill Dupe enabled" or "TrigerSkill Dupe disabled",
+                    Time = 2
+                })
+            end
+        end
     })
 
     CombatRightGroup:AddSlider("TrigerSkillDupeCount", {
@@ -178,6 +228,13 @@ function UI.createCombatTab()
         Callback = function(Value)
             Config.autoRotateEnabled = Value
             Combat.toggleAutoRotate(Value)
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Auto Rotate",
+                    Description = Value and "Aimbot 360° enabled" or "Aimbot 360° disabled",
+                    Time = 2
+                })
+            end
         end
     })
 
@@ -215,6 +272,13 @@ function UI.createESPTab()
                 for _, data in pairs(ESP.zombieESPObjects) do
                     ESP.hideZombieESP(data)
                 end
+            end
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "ESP",
+                    Description = Value and "Zombie ESP enabled" or "Zombie ESP disabled",
+                    Time = 2
+                })
             end
         end
     })
@@ -271,6 +335,13 @@ function UI.createESPTab()
         Callback = function(Value)
             Config.espChestEnabled = Value
             if Value then ESP.applyChestESP() else ESP.clearChestESP() end
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "ESP",
+                    Description = Value and "Chest ESP enabled" or "Chest ESP disabled",
+                    Time = 2
+                })
+            end
         end
     })
 
@@ -298,6 +369,13 @@ function UI.createESPTab()
                 for _, data in pairs(ESP.playerESPObjects) do
                     ESP.hidePlayerESP(data)
                 end
+            end
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "ESP",
+                    Description = Value and "Player ESP enabled" or "Player ESP disabled",
+                    Time = 2
+                })
             end
         end
     })
@@ -373,6 +451,13 @@ function UI.createMovementTab()
         Callback = function(Value)
             Config.speedEnabled = Value
             Movement.applySpeed()
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Movement",
+                    Description = Value and "Speed Boost enabled" or "Speed Boost disabled",
+                    Time = 2
+                })
+            end
         end
     })
 
@@ -392,6 +477,13 @@ function UI.createMovementTab()
         Callback = function(Value)
             Config.noClipEnabled = Value
             Movement.applyNoClip()
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Movement",
+                    Description = Value and "NoClip enabled" or "NoClip disabled",
+                    Time = 2
+                })
+            end
         end
     })
 
@@ -401,6 +493,13 @@ function UI.createMovementTab()
         Callback = function(Value)
             Config.antiZombieEnabled = Value
             Movement.applyAntiZombie()
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Movement",
+                    Description = Value and "Anti-Zombie enabled" or "Anti-Zombie disabled",
+                    Time = 2
+                })
+            end
         end
     })
 
@@ -421,6 +520,13 @@ function UI.createMovementTab()
         Callback = function(Value)
             Config.antiAFKEnabled = Value
             Movement.applyAntiAFK()
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Movement",
+                    Description = Value and "Anti AFK enabled" or "Anti AFK disabled",
+                    Time = 2
+                })
+            end
         end
     })
 
@@ -433,7 +539,16 @@ function UI.createMovementTab()
     MovementRightGroup:AddToggle("CameraTeleport", {
         Text = "Camera Teleport (X)",
         Default = Config.cameraTeleportEnabled,
-        Callback = function(Value) Config.cameraTeleportEnabled = Value end
+        Callback = function(Value)
+            Config.cameraTeleportEnabled = Value
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Camera Teleport",
+                    Description = Value and "Camera Teleport enabled" or "Camera Teleport disabled",
+                    Time = 2
+                })
+            end
+        end
     })
 
     MovementRightGroup:AddDropdown("CameraTargetMode", {
@@ -545,14 +660,39 @@ function UI.createMapTab()
 
     MapGroup:AddButton({
         Text = "Teleport & Start Map",
-        Func = function() Map.teleportToWaitAreaAndStart() end
+        Func = function()
+            Map.teleportToWaitAreaAndStart()
+            if Config.UI and Config.UI.Library then
+                local mapName = "Unknown"
+                for display, id in pairs(mapIdByDisplay) do
+                    if id == Config.selectedWorldId then
+                        mapName = display
+                        break
+                    end
+                end
+                Config.UI.Library:Notify({
+                    Title = "Map Teleport",
+                    Description = "Teleporting to " .. mapName .. "...",
+                    Time = 3
+                })
+            end
+        end
     })
 
     MapGroup:AddToggle("AutoReplay", {
         Text = "Auto Replay Match",
         Tooltip = "Automatically replay when the match ends",
         Default = Config.autoReplayEnabled,
-        Callback = function(Value) Config.autoReplayEnabled = Value end
+        Callback = function(Value)
+            Config.autoReplayEnabled = Value
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Auto Replay",
+                    Description = Value and "Auto Replay enabled" or "Auto Replay disabled",
+                    Time = 2
+                })
+            end
+        end
     })
 
     MapGroup:AddDivider()
@@ -567,6 +707,13 @@ function UI.createMapTab()
                 Map.startSupplyESP()
             else
                 Map.stopSupplyESP()
+            end
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Supply ESP",
+                    Description = Value and "Supply ESP enabled" or "Supply ESP disabled",
+                    Time = 2
+                })
             end
         end
     })
@@ -587,6 +734,22 @@ function UI.createMapTab()
         Func = function()
             if Config.supplyESPEnabled then
                 Map.updateSupplyDisplay()
+                if Config.UI and Config.UI.Library then
+                    local supplyCount = #Map.supplyItems
+                    Config.UI.Library:Notify({
+                        Title = "Supply ESP",
+                        Description = "Found " .. supplyCount .. " supply item(s)",
+                        Time = 2
+                    })
+                end
+            else
+                if Config.UI and Config.UI.Library then
+                    Config.UI.Library:Notify({
+                        Title = "Supply ESP",
+                        Description = "Please enable Supply ESP first",
+                        Time = 2
+                    })
+                end
             end
         end
     })
@@ -600,6 +763,13 @@ function UI.createMapTab()
         Callback = function(Value)
             Config.autoDoorEnabled = Value
             Map.toggleAutoDoor(Value)
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Map",
+                    Description = Value and "Auto Open Door enabled" or "Auto Open Door disabled",
+                    Time = 2
+                })
+            end
         end
     })
 
@@ -624,6 +794,13 @@ function UI.createEventTab()
                 ESP.startBobESP()
             else
                 ESP.stopBobESP()
+            end
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Bob ESP",
+                    Description = Value and "Bob ESP enabled" or "Bob ESP disabled",
+                    Time = 2
+                })
             end
         end
     })
@@ -686,13 +863,31 @@ function UI.createFarmTab()
     FarmGroup:AddToggle("AutoBulletBox", {
         Text = "Auto BulletBox + Items",
         Default = Config.autoBulletBoxEnabled,
-        Callback = function(Value) Config.autoBulletBoxEnabled = Value end
+        Callback = function(Value)
+            Config.autoBulletBoxEnabled = Value
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Farm",
+                    Description = Value and "Auto BulletBox enabled" or "Auto BulletBox disabled",
+                    Time = 2
+                })
+            end
+        end
     })
 
     FarmGroup:AddToggle("Teleport", {
         Text = "Auto Chest (T Key)",
         Default = Config.teleportEnabled,
-        Callback = function(Value) Config.teleportEnabled = Value end
+        Callback = function(Value)
+            Config.teleportEnabled = Value
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Farm",
+                    Description = Value and "Auto Chest enabled" or "Auto Chest disabled",
+                    Time = 2
+                })
+            end
+        end
     })
 
     FarmGroup:AddDivider()
@@ -703,6 +898,13 @@ function UI.createFarmTab()
         Func = function()
             if Farm and Farm.buyAndDrinkPotion then
                 Farm.buyAndDrinkPotion("CommonAttack")
+                if Config.UI and Config.UI.Library then
+                    Config.UI.Library:Notify({
+                        Title = "Potion",
+                        Description = "Common Attack potion purchased and consumed!",
+                        Time = 3
+                    })
+                end
             end
         end
     })
@@ -712,6 +914,13 @@ function UI.createFarmTab()
         Func = function()
             if Farm and Farm.buyAndDrinkPotion then
                 Farm.buyAndDrinkPotion("CommonHealth")
+                if Config.UI and Config.UI.Library then
+                    Config.UI.Library:Notify({
+                        Title = "Potion",
+                        Description = "Common Health potion purchased and consumed!",
+                        Time = 3
+                    })
+                end
             end
         end
     })
@@ -721,6 +930,13 @@ function UI.createFarmTab()
         Func = function()
             if Farm and Farm.buyAndDrinkPotion then
                 Farm.buyAndDrinkPotion("CommonLuck")
+                if Config.UI and Config.UI.Library then
+                    Config.UI.Library:Notify({
+                        Title = "Potion",
+                        Description = "Common Luck potion purchased and consumed!",
+                        Time = 3
+                    })
+                end
             end
         end
     })
@@ -733,6 +949,13 @@ function UI.createFarmTab()
         Func = function()
             if Farm and Farm.buyAndDrinkPotion then
                 Farm.buyAndDrinkPotion("RareAttack")
+                if Config.UI and Config.UI.Library then
+                    Config.UI.Library:Notify({
+                        Title = "Potion",
+                        Description = "Rare Attack potion purchased and consumed!",
+                        Time = 3
+                    })
+                end
             end
         end
     })
@@ -742,6 +965,13 @@ function UI.createFarmTab()
         Func = function()
             if Farm and Farm.buyAndDrinkPotion then
                 Farm.buyAndDrinkPotion("RareHealth")
+                if Config.UI and Config.UI.Library then
+                    Config.UI.Library:Notify({
+                        Title = "Potion",
+                        Description = "Rare Health potion purchased and consumed!",
+                        Time = 3
+                    })
+                end
             end
         end
     })
@@ -751,6 +981,13 @@ function UI.createFarmTab()
         Func = function()
             if Farm and Farm.buyAndDrinkPotion then
                 Farm.buyAndDrinkPotion("RareLuck")
+                if Config.UI and Config.UI.Library then
+                    Config.UI.Library:Notify({
+                        Title = "Potion",
+                        Description = "Rare Luck potion purchased and consumed!",
+                        Time = 3
+                    })
+                end
             end
         end
     })
@@ -763,6 +1000,13 @@ function UI.createFarmTab()
         Tooltip = "RAID1212, CHRISTMAS, UPD1212",
         Func = function()
             Farm.redeemAllCodes()
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Codes",
+                    Description = "Redeemed all codes! (RAID1212, CHRISTMAS, UPD1212)",
+                    Time = 3
+                })
+            end
         end
     })
 
@@ -814,6 +1058,13 @@ function UI.createCharacterTab()
             local selectedId = idMap[Value]
             if selectedId then
                 Config.selectedCharacterId = selectedId
+            end
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Character",
+                    Description = "Selected: " .. Value,
+                    Time = 2
+                })
             end
         end
     })
@@ -879,6 +1130,13 @@ function UI.createCharacterTab()
         Default = Config.autoSkillEnabled,
         Callback = function(Value)
             Config.autoSkillEnabled = Value
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Character",
+                    Description = Value and "Auto Skill enabled" or "Auto Skill disabled",
+                    Time = 2
+                })
+            end
         end
     })
 
@@ -946,6 +1204,13 @@ function UI.createSettingsTab(cleanupCallback)
         Text = "Open Keybind Menu",
         Callback = function(value)
             UI.Library.KeybindFrame.Visible = value
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Settings",
+                    Description = value and "Keybind Menu opened" or "Keybind Menu closed",
+                    Time = 2
+                })
+            end
         end,
     })
 
@@ -954,6 +1219,13 @@ function UI.createSettingsTab(cleanupCallback)
         Default = true,
         Callback = function(Value)
             UI.Library.ShowCustomCursor = Value
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Settings",
+                    Description = Value and "Custom Cursor enabled" or "Custom Cursor disabled",
+                    Time = 2
+                })
+            end
         end,
     })
 
@@ -963,6 +1235,13 @@ function UI.createSettingsTab(cleanupCallback)
         Text = "Notification Side",
         Callback = function(Value)
             UI.Library:SetNotifySide(Value)
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Settings",
+                    Description = "Notification side: " .. Value,
+                    Time = 2
+                })
+            end
         end,
     })
 
@@ -974,6 +1253,13 @@ function UI.createSettingsTab(cleanupCallback)
             Value = Value:gsub("%%", "")
             local DPI = tonumber(Value)
             UI.Library:SetDPIScale(DPI)
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Settings",
+                    Description = "DPI Scale: " .. Value .. "%",
+                    Time = 2
+                })
+            end
         end,
     })
 
@@ -984,6 +1270,14 @@ function UI.createSettingsTab(cleanupCallback)
         Text = "Unload Script",
         Tooltip = "Unload all scripts and delete GUI",
         Func = function()
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Script",
+                    Description = "Unloading script...",
+                    Time = 2
+                })
+            end
+            task.wait(0.1)
             -- Unload Obsidian UI library (this will trigger OnUnload callback which calls cleanupCallback)
             if UI.Library then
                 UI.Library:Unload()
@@ -1192,6 +1486,13 @@ function UI.createHUDTab()
         Default = false,
         Callback = function(Value)
             HUD.toggleCustomHUD(Value)
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "HUD",
+                    Description = Value and "Custom HUD enabled" or "Custom HUD disabled",
+                    Time = 2
+                })
+            end
         end
     })
 
@@ -1259,6 +1560,13 @@ function UI.createHUDTab()
         Tooltip = "Display EXP at the bottom right of the screen",
         Default = true,
         Callback = function(Value)
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "HUD",
+                    Description = Value and "EXP Display enabled" or "EXP Display disabled",
+                    Time = 2
+                })
+            end
             HUD.toggleExpDisplay(Value)
         end
     })
@@ -1327,6 +1635,21 @@ function UI.createHUDTab()
         Func = function()
             if HUD.customHUDEnabled then
                 HUD.applyCustomHUD()
+                if Config.UI and Config.UI.Library then
+                    Config.UI.Library:Notify({
+                        Title = "HUD",
+                        Description = "HUD changes applied!",
+                        Time = 2
+                    })
+                end
+            else
+                if Config.UI and Config.UI.Library then
+                    Config.UI.Library:Notify({
+                        Title = "HUD",
+                        Description = "Please enable Custom HUD first",
+                        Time = 2
+                    })
+                end
             end
         end
     })
@@ -1336,6 +1659,13 @@ function UI.createHUDTab()
         Tooltip = "Restore HUD to original",
         Func = function()
             HUD.restoreOriginalHUD()
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "HUD",
+                    Description = "HUD restored to original!",
+                    Time = 2
+                })
+            end
         end
     })
 
@@ -1462,6 +1792,13 @@ function UI.createVisualsTab()
         Callback = function(Value)
             Config.removeFogEnabled = Value
             Visuals.toggleRemoveFog(Value)
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Visuals",
+                    Description = Value and "Remove Fog enabled" or "Remove Fog disabled",
+                    Time = 2
+                })
+            end
         end
     })
 
@@ -1474,6 +1811,13 @@ function UI.createVisualsTab()
         Callback = function(Value)
             Config.fullbrightEnabled = Value
             Visuals.toggleFullbright(Value)
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Visuals",
+                    Description = Value and "Fullbright enabled" or "Fullbright disabled",
+                    Time = 2
+                })
+            end
         end
     })
 
@@ -1486,6 +1830,13 @@ function UI.createVisualsTab()
         Callback = function(Value)
             Config.customTimeEnabled = Value
             Visuals.toggleCustomTime(Value)
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Visuals",
+                    Description = Value and "Custom Time enabled" or "Custom Time disabled",
+                    Time = 2
+                })
+            end
         end
     })
 
@@ -1507,6 +1858,18 @@ function UI.createVisualsTab()
     VisualsLeftGroup:AddToggle("RemoveEffects", {
         Text = "Auto Remove Effects",
         Tooltip = "Automatically remove effects when duping for the first time",
+        Default = Config.removeEffectsEnabled,
+        Callback = function(Value)
+            Config.removeEffectsEnabled = Value
+            if Config.UI and Config.UI.Library then
+                Config.UI.Library:Notify({
+                    Title = "Visuals",
+                    Description = Value and "Auto Remove Effects enabled" or "Auto Remove Effects disabled",
+                    Time = 2
+                })
+            end
+        end
+    })
         Default = Config.removeEffectsEnabled,
         Callback = function(Value) Config.removeEffectsEnabled = Value end
     })
