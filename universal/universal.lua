@@ -357,11 +357,6 @@ AimbotGroup:AddToggle("AimbotTeamCheck", {
 	Tooltip = "Ignore teammates when aiming at players",
 })
 
-AimbotGroup:AddDropdown("AimbotTarget", {
-	Values = { "Zombies", "Players", "All" },
-	Default = 1,
-	Text = "Target Type",
-})
 
 AimbotGroup:AddDropdown("AimbotAimPart", {
 	Values = { "Head", "UpperTorso", "HumanoidRootPart" },
@@ -493,27 +488,13 @@ end)
 -- Aimbot helpers
 local function getAimbotTargets()
 	local targets = {}
-	local mode = Options.AimbotTarget and Options.AimbotTarget.Value or "Zombies"
 
-	if mode == "Players" or mode == "All" then
-		for _, player in ipairs(Players:GetPlayers()) do
-			if player ~= LocalPlayer and player.Character then
-				local hum = player.Character:FindFirstChildOfClass("Humanoid")
-				if hum and hum.Health > 0 then
-					if not (Toggles.AimbotTeamCheck and Toggles.AimbotTeamCheck.Value) or player.Team ~= LocalPlayer.Team then
-						table.insert(targets, player.Character)
-					end
-				end
-			end
-		end
-	end
-
-	if (mode == "Zombies" or mode == "All") and EntityFolder then
-		for _, model in ipairs(EntityFolder:GetChildren()) do
-			if model:IsA("Model") then
-				local hum = model:FindFirstChildOfClass("Humanoid")
-				if hum and hum.Health > 0 then
-					table.insert(targets, model)
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and player.Character then
+			local hum = player.Character:FindFirstChildOfClass("Humanoid")
+			if hum and hum.Health > 0 then
+				if not (Toggles.AimbotTeamCheck and Toggles.AimbotTeamCheck.Value) or player.Team ~= LocalPlayer.Team then
+					table.insert(targets, player.Character)
 				end
 			end
 		end
