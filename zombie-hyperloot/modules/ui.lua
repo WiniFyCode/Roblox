@@ -105,13 +105,31 @@ function UI.createCombatTab()
         Text = "Aim Part",
         Values = {"Head", "UpperTorso", "HumanoidRootPart", "Random"},
         Default = Config.aimbotAimPart,
-        Callback = function(Value) Config.aimbotAimPart = Value end
+        Callback = function(Value)
+            Config.aimbotAimPart = Value
+            if UI.Library then
+                UI.Library:Notify({
+                    Title = "Aimbot",
+                    Description = "Aim Part: " .. Value,
+                    Time = 2
+                })
+            end
+        end
     })
 
     CombatLeftGroup:AddToggle("AimbotHoldMouse2", {
         Text = "Hold Right Click",
         Default = Config.aimbotHoldMouse2,
-        Callback = function(Value) Config.aimbotHoldMouse2 = Value end
+        Callback = function(Value)
+            Config.aimbotHoldMouse2 = Value
+            if UI.Library then
+                UI.Library:Notify({
+                    Title = "Aimbot",
+                    Description = Value and "Hold Right Click enabled" or "Hold Right Click disabled",
+                    Time = 2
+                })
+            end
+        end
     })
 
     CombatLeftGroup:AddToggle("AimbotAutoFire", {
@@ -135,7 +153,16 @@ function UI.createCombatTab()
     CombatLeftGroup:AddToggle("AimbotFOV", {
         Text = "FOV Circle",
         Default = Config.aimbotFOVEnabled,
-        Callback = function(Value) Config.aimbotFOVEnabled = Value end
+        Callback = function(Value)
+            Config.aimbotFOVEnabled = Value
+            if UI.Library then
+                UI.Library:Notify({
+                    Title = "Aimbot",
+                    Description = Value and "FOV Circle enabled" or "FOV Circle disabled",
+                    Time = 2
+                })
+            end
+        end
     })
 
     CombatLeftGroup:AddSlider("AimbotFOVRadius", {
@@ -148,7 +175,16 @@ function UI.createCombatTab()
     CombatLeftGroup:AddToggle("AimbotWallCheck", {
         Text = "Wall Check (Decoration)",
         Default = Config.aimbotWallCheckEnabled,
-        Callback = function(Value) Config.aimbotWallCheckEnabled = Value end
+        Callback = function(Value)
+            Config.aimbotWallCheckEnabled = Value
+            if UI.Library then
+                UI.Library:Notify({
+                    Title = "Aimbot",
+                    Description = Value and "Wall Check enabled" or "Wall Check disabled",
+                    Time = 2
+                })
+            end
+        end
     })
 
     CombatLeftGroup:AddSlider("AimbotSmoothness", {
@@ -292,25 +328,61 @@ function UI.createESPTab()
     ESPLeftGroup:AddToggle("ESPZombieBoxes", {
         Text = "Zombie Boxes",
         Default = Config.espZombieBoxes,
-        Callback = function(Value) Config.espZombieBoxes = Value end
+        Callback = function(Value)
+            Config.espZombieBoxes = Value
+            if UI.Library then
+                UI.Library:Notify({
+                    Title = "ESP",
+                    Description = Value and "Zombie Boxes enabled" or "Zombie Boxes disabled",
+                    Time = 2
+                })
+            end
+        end
     })
 
     ESPLeftGroup:AddToggle("ESPZombieTracers", {
         Text = "Zombie Tracers",
         Default = Config.espZombieTracers,
-        Callback = function(Value) Config.espZombieTracers = Value end
+        Callback = function(Value)
+            Config.espZombieTracers = Value
+            if UI.Library then
+                UI.Library:Notify({
+                    Title = "ESP",
+                    Description = Value and "Zombie Tracers enabled" or "Zombie Tracers disabled",
+                    Time = 2
+                })
+            end
+        end
     })
 
     ESPLeftGroup:AddToggle("ESPZombieNames", {
         Text = "Zombie Names",
         Default = Config.espZombieNames,
-        Callback = function(Value) Config.espZombieNames = Value end
+        Callback = function(Value)
+            Config.espZombieNames = Value
+            if UI.Library then
+                UI.Library:Notify({
+                    Title = "ESP",
+                    Description = Value and "Zombie Names enabled" or "Zombie Names disabled",
+                    Time = 2
+                })
+            end
+        end
     })
 
     ESPLeftGroup:AddToggle("ESPZombieHealth", {
         Text = "Zombie Health Bars",
         Default = Config.espZombieHealth,
-        Callback = function(Value) Config.espZombieHealth = Value end
+        Callback = function(Value)
+            Config.espZombieHealth = Value
+            if UI.Library then
+                UI.Library:Notify({
+                    Title = "ESP",
+                    Description = Value and "Zombie Health Bars enabled" or "Zombie Health Bars disabled",
+                    Time = 2
+                })
+            end
+        end
     })
 
     ESPLeftGroup:AddToggle("ESPZombieHighlight", {
@@ -322,6 +394,13 @@ function UI.createESPTab()
                 for zombie, highlight in pairs(ESP.zombieHighlights) do
                     ESP.removeZombieHighlight(zombie)
                 end
+            end
+            if UI.Library then
+                UI.Library:Notify({
+                    Title = "ESP",
+                    Description = Value and "Zombie Highlight enabled" or "Zombie Highlight disabled",
+                    Time = 2
+                })
             end
         end
     })
@@ -401,25 +480,61 @@ function UI.createESPTab()
     ESPRightGroup:AddToggle("ESPPlayerTracers", {
         Text = "Player Tracers",
         Default = Config.espPlayerTracers,
-        Callback = function(Value) Config.espPlayerTracers = Value end
+        Callback = function(Value)
+            Config.espPlayerTracers = Value
+            if UI.Library then
+                UI.Library:Notify({
+                    Title = "ESP",
+                    Description = Value and "Player Tracers enabled" or "Player Tracers disabled",
+                    Time = 2
+                })
+            end
+        end
     })
 
     ESPRightGroup:AddToggle("ESPPlayerNames", {
         Text = "Player Names",
         Default = Config.espPlayerNames,
-        Callback = function(Value) Config.espPlayerNames = Value end
+        Callback = function(Value)
+            Config.espPlayerNames = Value
+            if UI.Library then
+                UI.Library:Notify({
+                    Title = "ESP",
+                    Description = Value and "Player Names enabled" or "Player Names disabled",
+                    Time = 2
+                })
+            end
+        end
     })
 
     ESPRightGroup:AddToggle("ESPPlayerHealth", {
         Text = "Player Health Bars",
         Default = Config.espPlayerHealth,
-        Callback = function(Value) Config.espPlayerHealth = Value end
+        Callback = function(Value)
+            Config.espPlayerHealth = Value
+            if UI.Library then
+                UI.Library:Notify({
+                    Title = "ESP",
+                    Description = Value and "Player Health Bars enabled" or "Player Health Bars disabled",
+                    Time = 2
+                })
+            end
+        end
     })
 
     ESPRightGroup:AddToggle("ESPPlayerTeamCheck", {
         Text = "Team Check",
         Default = Config.espPlayerTeamCheck,
-        Callback = function(Value) Config.espPlayerTeamCheck = Value end
+        Callback = function(Value)
+            Config.espPlayerTeamCheck = Value
+            if UI.Library then
+                UI.Library:Notify({
+                    Title = "ESP",
+                    Description = Value and "Team Check enabled" or "Team Check disabled",
+                    Time = 2
+                })
+            end
+        end
     })
 
     ESPRightGroup:AddToggle("ESPPlayerHighlight", {
@@ -431,6 +546,13 @@ function UI.createESPTab()
                 for player, highlight in pairs(ESP.playerHighlights) do
                     ESP.removePlayerHighlight(player)
                 end
+            end
+            if UI.Library then
+                UI.Library:Notify({
+                    Title = "ESP",
+                    Description = Value and "Player Highlight enabled" or "Player Highlight disabled",
+                    Time = 2
+                })
             end
         end
     })
@@ -555,7 +677,16 @@ function UI.createMovementTab()
         Text = "Target Mode",
         Values = {"LowestHealth", "Nearest"},
         Default = Config.cameraTargetMode,
-        Callback = function(Value) Config.cameraTargetMode = Value end
+        Callback = function(Value)
+            Config.cameraTargetMode = Value
+            if UI.Library then
+                UI.Library:Notify({
+                    Title = "Camera Teleport",
+                    Description = "Target Mode: " .. Value,
+                    Time = 2
+                })
+            end
+        end
     })
 
     MovementRightGroup:AddSlider("CameraTeleportWaveDelay", {
@@ -568,7 +699,16 @@ function UI.createMovementTab()
     MovementRightGroup:AddToggle("TeleportToLastZombie", {
         Text = "Teleport to Last Zombie",
         Default = Config.teleportToLastZombie,
-        Callback = function(Value) Config.teleportToLastZombie = Value end
+        Callback = function(Value)
+            Config.teleportToLastZombie = Value
+            if UI.Library then
+                UI.Library:Notify({
+                    Title = "Camera Teleport",
+                    Description = Value and "Teleport to Last Zombie enabled" or "Teleport to Last Zombie disabled",
+                    Time = 2
+                })
+            end
+        end
     })
 
     MovementRightGroup:AddDivider()
@@ -1502,6 +1642,13 @@ function UI.createHUDTab()
         Default = true,
         Callback = function(Value)
             HUD.toggleApplyToOtherPlayers(Value)
+            if UI.Library then
+                UI.Library:Notify({
+                    Title = "HUD",
+                    Description = Value and "Apply to Other Players enabled" or "Apply to Other Players disabled",
+                    Time = 2
+                })
+            end
         end
     })
 
