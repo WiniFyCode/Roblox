@@ -490,8 +490,6 @@ ESPGroup:AddLabel("Highlight Color"):AddColorPicker("HighlightColor", {
 -- ESP Functions
 local function createESP(player)
 	if player == LocalPlayer then return end
-	-- If ESP for this player already exists, just reuse it
-	if espObjects[player] then return end
 	if not player.Character then return end
 
 	local character = player.Character
@@ -507,7 +505,7 @@ local function createESP(player)
 		healthBar = nil,
 	}
 
-	-- Box (always created, toggled in updateESP)
+	-- Box (luôn tạo, bật/tắt bằng toggle trong updateESP)
 	local box = Drawing.new("Square")
 	box.Visible = false
 	box.Color = Options.ESPColor.Value
@@ -609,125 +607,119 @@ end
 
 local function updateESP()
 	if not Toggles.PlayerESP.Value then return end
-	
+
 	for player, espData in pairs(espObjects) do
-		local character = player.Character
-		if character then
-			local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-			local humanoid = character:FindFirstChildOfClass("Humanoid")
-			if humanoidRootPart and humanoid then
-				local ok, cf, size = pcall(character.GetBoundingBox, character)
-				if not ok or not cf or not size then
-					removeESP(player)
+		if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+			local humanoidRootPart = player.Character.HumanoidRootPart
+			local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+			local size = humanoidRootPart.Size + Vector3.new(2, 3, 1)
+			local points, allVisible = getBoxScreenPoints(humanoidRootPart.CFrame, size)
+
+			if espData then
+				if not allVisible or #points == 0 then
+					if espData.box then espData.box.Visible = false end
+					if espData.tracer then espData.tracer.Visible = false end
+					if espData.label then espData.label.Visible = false end
+					if espData.healthBar then espData.healthBar.Visible = false end
 				else
-					local points, allVisible = getBoxScreenPoints(cf, size)
-					
-					if espData then
-						if not allVisible or #points == 0 then
-							if espData.box then espData.box.Visible = false end
-							if espData.tracer then espData.tracer.Visible = false end
-							if espData.label then espData.label.Visible = false end
-							if espData.healthBar then espData.healthBar.Visible = false end
-						else
-							local minX, minY, maxX, maxY = math.huge, math.huge, -math.huge, -math.huge
-							for _, pt in ipairs(points) do
-								minX = math.min(minX, pt.X)
-								minY = math.min(minY, pt.Y)
-								maxX = math.max(maxX, pt.X)
-								maxY = math.max(maxY, pt.Y)
-							end
-							
-							local boxWidth, boxHeight = maxX - minX, maxY - minY
-							if boxWidth <= 3 or boxHeight <= 4 then
-								if espData.box then espData.box.Visible = false end
-								if espData.tracer then espData.tracer.Visible = false end
-								if espData.label then espData.label.Visible = false end
-								if espData.healthBar then espData.healthBar.Visible = false end
+					local minX, minY, maxX, maxY = math.huge, math.huge, -math.huge, -math.huge
+					for _, pt in ipairs(points) do
+						minX = math.min(minX, pt.X)
+						minY = math.min(minY, pt.Y)
+						maxX = math.max(maxX, pt.X)
+						maxY = math.max(maxY, pt.Y)
+					end
+
+					local boxWidth, boxHeight = maxX - minX, maxY - minY
+					if boxWidth <= 3 or boxHeight <= 4 then
+						if espData.box then espData.box.Visible = false end
+						if espData.tracer then espData.tracer.Visible = false end
+						if espData.label then espData.label.Visible = false end
+						if espData.healthBar then espData.healthBar.Visible = false end
+					else
+						local slimWidth = boxWidth * 0.7
+						local slimX = minX + (boxWidth - slimWidth) / 2
+						local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+
+						local isEnemy = false
+						if Toggles.ESPTeamCheck and Toggles.ESPTeamCheck.Value then
+							if LocalPlayer.Team and player.Team then
+								isEnemy = player.Team ~= LocalPlayer.Team
+							elseif LocalPlayer.TeamColor and player.TeamColor then
+								isEnemy = player.TeamColor ~= LocalPlayer.TeamColor
 							else
-								local slimWidth = boxWidth * 0.7
-								local slimX = minX + (boxWidth - slimWidth) / 2
-								local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-								
-								local isEnemy = false
-								if Toggles.ESPTeamCheck and Toggles.ESPTeamCheck.Value then
-									if LocalPlayer.Team and player.Team then
-										isEnemy = player.Team ~= LocalPlayer.Team
-									elseif LocalPlayer.TeamColor and player.TeamColor then
-										isEnemy = player.TeamColor ~= LocalPlayer.TeamColor
-									else
-										-- If game has no teams, treat all other players as enemies
-										isEnemy = player ~= LocalPlayer
-									end
-								end
-								
-								local baseColor = Options.ESPColor and Options.ESPColor.Value or Color3.fromRGB(255, 255, 255)
-								if isEnemy and Options.EnemyESPColor then
-									baseColor = Options.EnemyESPColor.Value
-								end
-								
-								-- Box
-								if espData.box and Toggles.ESPBoxes.Value then
-									espData.box.Visible = true
-									espData.box.Position = Vector2.new(slimX, minY)
-									espData.box.Size = Vector2.new(slimWidth, boxHeight)
-									espData.box.Color = baseColor
-								elseif espData.box then
-									espData.box.Visible = false
-								end
-								
-								-- Name + distance
-								if espData.label then
-									local parts = {}
-									if Toggles.ESPNames.Value then
-										if humanoid then
-											table.insert(parts,
-												string.format("%s [%d]", player.Name, math.floor(humanoid.Health)))
-										else
-											table.insert(parts, player.Name)
-										end
-									end
-									if Toggles.ESPDistance.Value and rootPart then
-										local distance = math.floor((rootPart.Position - humanoidRootPart.Position).Magnitude)
-										table.insert(parts, tostring(distance) .. " studs")
-									end
-									local text = table.concat(parts, " | ")
-									if text ~= "" then
-										espData.label.Visible = true
-										espData.label.Text = text
-										espData.label.Position = Vector2.new(slimX + slimWidth / 2, minY - 18)
-										espData.label.Color = baseColor
-									else
-										espData.label.Visible = false
-									end
-								end
-								
-								-- Tracer
-								if espData.tracer and Toggles.ESPTracers.Value then
-									espData.tracer.Visible = true
-									espData.tracer.From = screenCenter
-									espData.tracer.To = Vector2.new(slimX + slimWidth / 2, maxY)
-									espData.tracer.Color = baseColor
-								elseif espData.tracer then
-									espData.tracer.Visible = false
-								end
-								
-								-- Health bar
-								if espData.healthBar and Toggles.ESPHealth.Value and humanoid and humanoid.MaxHealth > 0 then
-									local hp = humanoid.Health
-									local maxHp = humanoid.MaxHealth
-									local ratio = math.clamp(hp / maxHp, 0, 1)
-									local barHeight = boxHeight * ratio
-									espData.healthBar.Visible = true
-									espData.healthBar.From = Vector2.new(slimX - 5, maxY)
-									espData.healthBar.To = Vector2.new(slimX - 5, maxY - barHeight)
-									espData.healthBar.Color = Color3.fromRGB((1 - ratio) * 255, ratio * 255, 0)
-								elseif espData.healthBar then
-									espData.healthBar.Visible = false
+								-- Nếu game không dùng team, coi tất cả người chơi khác là enemy
+								isEnemy = player ~= LocalPlayer
+							end
+						end
+
+						local baseColor = Options.ESPColor and Options.ESPColor.Value or Color3.fromRGB(255, 255, 255)
+						if isEnemy and Options.EnemyESPColor then
+							baseColor = Options.EnemyESPColor.Value
+						end
+
+						-- Box
+						if espData.box and Toggles.ESPBoxes.Value then
+							espData.box.Visible = true
+							espData.box.Position = Vector2.new(slimX, minY)
+							espData.box.Size = Vector2.new(slimWidth, boxHeight)
+							espData.box.Color = baseColor
+						elseif espData.box then
+							espData.box.Visible = false
+						end
+
+						-- Name + distance
+						if espData.label then
+							local parts = {}
+							if Toggles.ESPNames.Value then
+								if humanoid then
+									table.insert(parts,
+										string.format("%s [%d]", player.Name, math.floor(humanoid.Health)))
+								else
+									table.insert(parts, player.Name)
 								end
 							end
+							if Toggles.ESPDistance.Value and rootPart then
+								local distance = math.floor((rootPart.Position - humanoidRootPart.Position).Magnitude)
+								table.insert(parts, tostring(distance) .. " studs")
+							end
+							local text = table.concat(parts, " | ")
+							if text ~= "" then
+								espData.label.Visible = true
+								espData.label.Text = text
+								espData.label.Position = Vector2.new(slimX + slimWidth / 2, minY - 18)
+								espData.label.Color = baseColor
+							else
+								espData.label.Visible = false
+							end
+						end
+
+						-- Tracer
+						if espData.tracer and Toggles.ESPTracers.Value then
+							espData.tracer.Visible = true
+							espData.tracer.From = screenCenter
+							espData.tracer.To = Vector2.new(slimX + slimWidth / 2, maxY)
+							espData.tracer.Color = baseColor
+						elseif espData.tracer then
+							espData.tracer.Visible = false
+						end
+
+						-- Health bar
+						if espData.healthBar and Toggles.ESPHealth.Value and humanoid and humanoid.MaxHealth > 0 then
+							local hp = humanoid.Health
+							local maxHp = humanoid.MaxHealth
+							local ratio = math.clamp(hp / maxHp, 0, 1)
+							local barHeight = boxHeight * ratio
+							espData.healthBar.Visible = true
+							espData.healthBar.From = Vector2.new(slimX - 5, maxY)
+							espData.healthBar.To = Vector2.new(slimX - 5, maxY - barHeight)
+							espData.healthBar.Color = Color3.fromRGB((1 - ratio) * 255, ratio * 255, 0)
+						elseif espData.healthBar then
+							espData.healthBar.Visible = false
 						end
 					end
 				end
+			end
 		else
 			removeESP(player)
 		end
@@ -793,22 +785,17 @@ RunService.RenderStepped:Connect(updateESP)
 
 -- Player Added/Removed
 Players.PlayerAdded:Connect(function(player)
-	local function onCharacterAdded()
-		if Toggles.PlayerESP.Value then
-			createESP(player)
-		end
+	if Toggles.PlayerESP.Value then
+		createESP(player)
+	end
+	if Toggles.HighlightESP and Toggles.HighlightESP.Value then
+		createHighlight(player)
+	end
+	player.CharacterAdded:Connect(function()
 		if Toggles.HighlightESP and Toggles.HighlightESP.Value then
 			createHighlight(player)
 		end
-	end
-
-	-- If character already exists when player joins
-	if player.Character then
-		onCharacterAdded()
-	end
-
-	-- Ensure ESP/Highlight are created when character spawns
-	player.CharacterAdded:Connect(onCharacterAdded)
+	end)
 end)
 
 Players.PlayerRemoving:Connect(function(player)
