@@ -891,6 +891,11 @@ local function updateESP()
 						if espData.tracer then espData.tracer.Visible = false end
 						if espData.label then espData.label.Visible = false end
 						if espData.healthBar then espData.healthBar.Visible = false end
+						if espData.skeleton then
+							for _, line in ipairs(espData.skeleton) do
+								line.Visible = false
+							end
+						end
 					else
 						local minX, minY, maxX, maxY = math.huge, math.huge, -math.huge, -math.huge
 						for _, pt in ipairs(points) do
@@ -906,6 +911,11 @@ local function updateESP()
 							if espData.tracer then espData.tracer.Visible = false end
 							if espData.label then espData.label.Visible = false end
 							if espData.healthBar then espData.healthBar.Visible = false end
+							if espData.skeleton then
+								for _, line in ipairs(espData.skeleton) do
+									line.Visible = false
+								end
+							end
 						else
 							local slimWidth = boxWidth * 0.7
 							local slimX = minX + (boxWidth - slimWidth) / 2
