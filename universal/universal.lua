@@ -1,6 +1,13 @@
 -- Universal Script với Obsidian UI
 -- Script này hoạt động trên mọi game Roblox
 
+-- Compat: some executors không có cloneref, tạo stub để Obsidian Library không lỗi
+if not cloneref then
+	cloneref = function(obj)
+		return obj
+	end
+end
+
 local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
 local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
