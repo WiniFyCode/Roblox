@@ -59,7 +59,6 @@ function UI.createCombatTab()
     })
 
     CombatLeftGroup:AddDivider()
-    CombatLeftGroup:AddLabel("Aimbot Settings")
 
     CombatLeftGroup:AddDropdown("AimbotTargetMode", {
         Text = "Target Type",
@@ -137,7 +136,6 @@ function UI.createCombatTab()
     local CombatRightGroup = CombatTab:AddRightGroupbox("Combat Settings")
 
     CombatRightGroup:AddDivider()
-    CombatRightGroup:AddLabel("Hitbox Settings")
 
     CombatRightGroup:AddToggle("Hitbox", {
         Text = "Hitbox Expander",
@@ -157,7 +155,6 @@ function UI.createCombatTab()
     })
 
     CombatRightGroup:AddDivider()
-    CombatRightGroup:AddLabel("TrigerSkill Dupe")
 
     CombatRightGroup:AddToggle("TrigerSkillDupeEnabled", {
         Text = "Enable TrigerSkill Dupe",
@@ -173,10 +170,9 @@ function UI.createCombatTab()
     })
 
     CombatRightGroup:AddDivider()
-    CombatRightGroup:AddLabel("Auto Camera Rotation 360°")
 
     CombatRightGroup:AddToggle("AutoRotate", {
-        Text = "Auto Rotate to Zombies 360°",
+        Text = "Aimbot 360°",
         Tooltip = "Camera automatically rotates to the nearest zombie (press R to toggle)",
         Default = Config.autoRotateEnabled,
         Callback = function(Value)
@@ -495,13 +491,11 @@ function UI.createMapTab()
     local MapGroup = MapTab:AddLeftGroupbox("Map")
 
     MapGroup:AddDivider()
-    MapGroup:AddLabel("Auto Map Teleport")
 
     local mapDisplayNames = {
         "Exclusion [1001]",
         "Virus Laboratory [1002]",
         "Biology Laboratory [1003]",
-        "Backrooms [1004]",
         "Wave Mode [102]",
         "Raid Mode [201]",
     }
@@ -510,7 +504,6 @@ function UI.createMapTab()
         ["Exclusion [1001]"] = 1001,
         ["Virus Laboratory [1002]"] = 1002,
         ["Biology Laboratory [1003]"] = 1003,
-        ["Backrooms [1004]"] = 1004,
         ["Wave Mode [102]"] = 102,
         ["Raid Mode [201]"] = 201,
     }
@@ -561,7 +554,6 @@ function UI.createMapTab()
     })
 
     MapGroup:AddDivider()
-    MapGroup:AddLabel("Supply ESP")
 
     MapGroup:AddToggle("SupplyESP", {
         Text = "Supply ESP (Right Side)",
@@ -598,7 +590,6 @@ function UI.createMapTab()
     })
 
     MapGroup:AddDivider()
-    MapGroup:AddLabel("Auto Door")
 
     MapGroup:AddToggle("AutoDoor", {
         Text = "Auto Open Door",
@@ -620,7 +611,6 @@ function UI.createEventTab()
     local EventGroup = EventTab:AddLeftGroupbox("Event")
 
     EventGroup:AddDivider()
-    EventGroup:AddLabel("Bob ESP")
 
     EventGroup:AddToggle("ESPBob", {
         Text = "ESP Bob",
@@ -785,7 +775,6 @@ function UI.createCharacterTab()
     local CharacterGroup = CharacterTab:AddLeftGroupbox("Character")
 
     CharacterGroup:AddDivider()
-    CharacterGroup:AddLabel("Character Selection")
 
     local displayList, displayToId = Character.getCharacterDisplayList()
 
@@ -864,7 +853,6 @@ function UI.createCharacterTab()
     })
 
     CharacterGroup:AddDivider()
-    CharacterGroup:AddLabel("Auto Skill")
 
     -- Lấy character ID hiện tại để quyết định hiển thị skill nào
     local currentCharacterId = Character.getCurrentCharacterId()
@@ -1193,7 +1181,7 @@ end
 ----------------------------------------------------------
 -- 🔹 HUD Customization Tab
 function UI.createHUDTab()
-    local HUDTab = UI.Window:AddTab("HUD Customize", "layout")
+    local HUDTab = UI.Window:AddTab("HUD Customize", "monitor")
     local HUDLeftGroup = HUDTab:AddLeftGroupbox("HUD Settings")
 
     HUDLeftGroup:AddToggle("CustomHUD", {
@@ -1258,18 +1246,6 @@ function UI.createHUDTab()
             if HUD.customHUDEnabled then
                 HUD.applyCustomHUD()
             end
-        end
-    })
-
-    HUDLeftGroup:AddDivider()
-    HUDLeftGroup:AddLabel("Lobby UI")
-
-    HUDLeftGroup:AddToggle("LobbyPlayerInfoVisible", {
-        Text = "Show Lobby PlayerInfo",
-        Tooltip = "Show/hide PlayerInfo in Lobby",
-        Default = true,
-        Callback = function(Value)
-            HUD.toggleLobbyPlayerInfo(Value)
         end
     })
 
@@ -1476,7 +1452,6 @@ function UI.createVisualsTab()
     local VisualsLeftGroup = VisualsTab:AddLeftGroupbox("Visuals")
 
     VisualsLeftGroup:AddDivider()
-    VisualsLeftGroup:AddLabel("Fog")
 
     VisualsLeftGroup:AddToggle("RemoveFog", {
         Text = "Remove Fog",
@@ -1489,7 +1464,6 @@ function UI.createVisualsTab()
     })
 
     VisualsLeftGroup:AddDivider()
-    VisualsLeftGroup:AddLabel("Lighting")
 
     VisualsLeftGroup:AddToggle("Fullbright", {
         Text = "Fullbright",
@@ -1502,7 +1476,6 @@ function UI.createVisualsTab()
     })
 
     VisualsLeftGroup:AddDivider()
-    VisualsLeftGroup:AddLabel("Time Control")
 
     VisualsLeftGroup:AddToggle("CustomTime", {
         Text = "Custom Time",
@@ -1528,7 +1501,6 @@ function UI.createVisualsTab()
     })
 
     VisualsLeftGroup:AddDivider()
-    VisualsLeftGroup:AddLabel("Effects")
 
     VisualsLeftGroup:AddToggle("RemoveEffects", {
         Text = "Auto Remove Effects",

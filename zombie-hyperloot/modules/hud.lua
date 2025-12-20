@@ -25,7 +25,6 @@ HUD.titleVisible = true
 HUD.playerNameVisible = true
 HUD.classVisible = true
 HUD.levelVisible = true
-HUD.lobbyPlayerInfoVisible = true
 
 -- Gradient Colors (sẽ được set từ original values)
 HUD.titleGradientColor1 = Color3.fromRGB(255, 0, 0) -- Red
@@ -539,46 +538,9 @@ function HUD.toggleExpDisplay(enabled)
 end
 
 ----------------------------------------------------------
--- 🔹 Lobby PlayerInfo Functions
-function HUD.getLobbyPlayerInfo()
-    local playerGui = Config.localPlayer:FindFirstChild("PlayerGui")
-    if not playerGui then return nil end
-    
-    local gamePanel = playerGui:FindFirstChild("GamePanel")
-    if not gamePanel then return nil end
-    
-    local lobbyPanel = gamePanel:FindFirstChild("LobbyPanel")
-    if not lobbyPanel then return nil end
-    
-    local main = lobbyPanel:FindFirstChild("Main")
-    if not main then return nil end
-    
-    return main:FindFirstChild("PlayerInfo")
-end
-
-function HUD.toggleLobbyPlayerInfo(visible)
-    HUD.lobbyPlayerInfoVisible = visible
-    
-    local playerInfo = HUD.getLobbyPlayerInfo()
-    if playerInfo then
-        playerInfo.Visible = visible
-    end
-end
-
-function HUD.applyLobbyPlayerInfoVisibility()
-    local playerInfo = HUD.getLobbyPlayerInfo()
-    if playerInfo then
-        playerInfo.Visible = HUD.lobbyPlayerInfoVisible
-    end
-end
-
-----------------------------------------------------------
 -- 🔹 Cleanup
 function HUD.cleanup()
     HUD.restoreOriginalHUD()
-    -- Restore lobby player info
-    HUD.lobbyPlayerInfoVisible = true
-    HUD.applyLobbyPlayerInfoVisibility()
     -- Stop exp display
     HUD.stopExpDisplay()
     -- Restore all other players
