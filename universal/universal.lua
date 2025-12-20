@@ -1076,7 +1076,12 @@ end
 Toggles.PlayerESP:OnChanged(function()
 	if Toggles.PlayerESP.Value then
 		for _, player in pairs(Players:GetPlayers()) do
-			createESP(player)
+			if player ~= LocalPlayer then
+				createESP(player)
+				if Toggles.HighlightESP and Toggles.HighlightESP.Value then
+					createHighlight(player)
+				end
+			end
 		end
 	else
 		-- Tắt toàn bộ ESP khi PlayerESP off
@@ -1086,20 +1091,18 @@ Toggles.PlayerESP:OnChanged(function()
 		for player, _ in pairs(highlightObjects) do
 			removeHighlight(player)
 		end
-		-- Đồng bộ always: PlayerESP off thì HighlightESP cũng off
-		if Toggles.HighlightESP and Toggles.HighlightESP.Value then
-			Toggles.HighlightESP:SetValue(false)
-		end
 	end
 end)
 
+-- Highlight là sub-option của PlayerESP
 Toggles.HighlightESP:OnChanged(function()
+	if not Toggles.PlayerESP.Value then return end -- Chỉ hoạt động khi PlayerESP bật
+	
 	if Toggles.HighlightESP.Value then
 		for _, player in pairs(Players:GetPlayers()) do
-			createHighlight(player)
-			player.CharacterAdded:Connect(function()
+			if player ~= LocalPlayer then
 				createHighlight(player)
-			end)
+			end
 		end
 	else
 		for player, _ in pairs(highlightObjects) do
@@ -1136,15 +1139,26 @@ RunService.RenderStepped:Connect(updateESP)
 
 -- Player Added/Removed
 Players.PlayerAdded:Connect(function(player)
-	if Toggles.PlayerESP.Value then
-		createESP(player)
+	if player == LocalPlayer then return end
+	
+	-- Tạo ESP và Highlight ngay nếu player đã có character
+	if player.Character then
+		if Toggles.PlayerESP.Value then
+			createESP(player)
+			if Toggles.HighlightESP and Toggles.HighlightESP.Value then
+				createHighlight(player)
+			end
+		end
 	end
-	if Toggles.HighlightESP and Toggles.HighlightESP.Value then
-		createHighlight(player)
-	end
+
+	-- Khi character spawn (bao gồm lần đầu và respawn)
 	player.CharacterAdded:Connect(function()
-		if Toggles.HighlightESP and Toggles.HighlightESP.Value then
-			createHighlight(player)
+		task.wait(0.1) -- Đợi character load xong
+		if Toggles.PlayerESP.Value then
+			createESP(player)
+			if Toggles.HighlightESP and Toggles.HighlightESP.Value then
+				createHighlight(player)
+			end
 		end
 	end)
 end)
