@@ -533,6 +533,192 @@ UI.loadLibraries()
 UI.createWindow()
 UI.buildAllTabs(cleanupScript)
 
+-- 🔹 Server Tab (ported from Universal Script)
+do
+    local Library = UI.Library
+    local Window = UI.Window
+    local Options = Library and Library.Options
+    local TeleportService = game:GetService("TeleportService")
+    local HttpService = game:GetService("HttpService")
+    local Players = Config.Players
+    local LocalPlayer = Config.localPlayer
+
+    if Library and Window and Options then
+        local ServerTab = Window:AddTab("Server", "server")
+
+        local ServerInfoGroup = ServerTab:AddLeftGroupbox("Server Information", "server")
+        ServerInfoGroup:AddLabel("Current server info:")
+        ServerInfoGroup:AddLabel("PlaceId: " .. tostring(game.PlaceId))
+        ServerInfoGroup:AddLabel("JobId: " .. tostring(game.JobId))
+        ServerInfoGroup:AddLabel("Players: " .. tostring(#Players:GetPlayers()) .. "/" .. tostring(Players.MaxPlayers or "?"))
+
+        ServerInfoGroup:AddButton({
+            Text = "Rejoin Server",
+            Func = function()
+                TeleportService:Teleport(game.PlaceId, LocalPlayer)
+            end,
+            Risky = true,
+        })
+
+        local ServerListGroup = ServerTab:AddRightGroupbox("Server List", "server")
+        local serverList = {}
+        local serverListDisplay = {}
+        local serverDropdown = ServerListGroup:AddDropdown("ZHServerList", {
+            Values = {},
+            Text = "Server List",
+        })
+
+        ServerListGroup:AddButton({
+            Text = "Refresh server list",
+            Func = function()
+                local success, result = pcall(function()
+                    return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" ..
+                        game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+                end)
+
+                if not success or not result or not result.data then
+                    if Library then
+                        Library:Notify({
+                            Title = "Server",
+                            Description = "Failed to load server list",
+                            Time = 3,
+                        })
+                    end
+                    return
+                end
+
+                serverList = {}
+                serverListDisplay = {}
+
+                for _, server in ipairs(result.data) do
+                    if server.id ~= game.JobId then
+                        local currentPlayers = server.playing or server.playerCount or 0
+                        local maxPlayers = server.maxPlayers or "?"
+                        local ping = server.ping or server.latency or "?"
+                        local fps = server.fps or "?"
+                        local shortId = typeof(server.id) == "string" and string.sub(server.id, 1, 6) or tostring(server.id)
+                        local display = string.format("%d/%s|ping: %s|fps: %s|%s", currentPlayers, maxPlayers, tostring(ping), tostring(fps), shortId)
+                        table.insert(serverList, server)
+                        table.insert(serverListDisplay, display)
+                    end
+                end
+
+                if #serverListDisplay == 0 then
+                    if Library then
+                        Library:Notify({
+                            Title = "Server",
+                            Description = "No other servers found",
+                            Time = 3,
+                        })
+                    end
+                else
+                    if Library then
+                        Library:Notify({
+                            Title = "Server",
+                            Description = "Refreshed " .. tostring(#serverListDisplay) .. " servers",
+                            Time = 3,
+                        })
+                    end
+                end
+
+                if serverDropdown and serverDropdown.SetValues then
+                    serverDropdown:SetValues(serverListDisplay)
+                end
+            end,
+        })
+
+        ServerListGroup:AddButton({
+            Text = "Join Selected Server",
+            Func = function()
+                if not Options or not Options.ZHServerList then
+                    if Library then
+                        Library:Notify({
+                            Title = "Server",
+                            Description = "You haven't selected any server",
+                            Time = 3,
+                        })
+                    end
+                    return
+                end
+
+                local selected = Options.ZHServerList.Value
+                if not selected or selected == "" then
+                    if Library then
+                        Library:Notify({
+                            Title = "Server",
+                            Description = "You haven't selected any server",
+                            Time = 3,
+                        })
+                    end
+                    return
+                end
+
+                local selectedIndex
+                for i, display in ipairs(serverListDisplay) do
+                    if display == selected then
+                        selectedIndex = i
+                        break
+                    end
+                end
+
+                if not selectedIndex then
+                    if Library then
+                        Library:Notify({
+                            Title = "Server",
+                            Description = "Selected server not found",
+                            Time = 3,
+                        })
+                    end
+                    return
+                end
+
+                local serverData = serverList[selectedIndex]
+                if serverData and serverData.id then
+                    TeleportService:TeleportToPlaceInstance(game.PlaceId, serverData.id, LocalPlayer)
+                else
+                    if Library then
+                        Library:Notify({
+                            Title = "Server",
+                            Description = "Invalid server data",
+                            Time = 3,
+                        })
+                    end
+                end
+            end,
+            Risky = true,
+        })
+
+        ServerListGroup:AddButton({
+            Text = "Server Hop",
+            Func = function()
+                local success, servers = pcall(function()
+                    return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" ..
+                        game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+                end)
+
+                if not success or not servers or not servers.data then
+                    if Library then
+                        Library:Notify({
+                            Title = "Server",
+                            Description = "Failed to load server list",
+                            Time = 3,
+                        })
+                    end
+                    return
+                end
+
+                for _, server in pairs(servers.data) do
+                    if server.id ~= game.JobId then
+                        TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer)
+                        break
+                    end
+                end
+            end,
+            Risky = true,
+        })
+    end
+end
+
 -- Success notification
 if Config.UI and Config.UI.Library then
     Config.UI.Library:Notify({
