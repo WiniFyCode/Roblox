@@ -712,6 +712,28 @@ do
 	end
 end
 
+-- Skeleton bones (ưu tiên R15, tự bỏ qua phần thiếu)
+local skeletonBones = {
+	{ "Head", "UpperTorso" },
+	{ "UpperTorso", "LowerTorso" },
+
+	{ "LowerTorso", "LeftUpperLeg" },
+	{ "LeftUpperLeg", "LeftLowerLeg" },
+	{ "LeftLowerLeg", "LeftFoot" },
+
+	{ "LowerTorso", "RightUpperLeg" },
+	{ "RightUpperLeg", "RightLowerLeg" },
+	{ "RightLowerLeg", "RightFoot" },
+
+	{ "UpperTorso", "LeftUpperArm" },
+	{ "LeftUpperArm", "LeftLowerArm" },
+	{ "LeftLowerArm", "LeftHand" },
+
+	{ "UpperTorso", "RightUpperArm" },
+	{ "RightUpperArm", "RightLowerArm" },
+	{ "RightLowerArm", "RightHand" },
+}
+
 local function createESP(player)
 	if player == LocalPlayer then return end
 	if not player.Character then return end
@@ -764,7 +786,7 @@ local function createESP(player)
 	espData.healthBar = bar
 
 	-- Skeleton lines (pre-create a pool to reuse)
-	for i = 1, 20 do
+	for i = 1, #skeletonBones do
 		local line = Drawing.new("Line")
 		line.Visible = false
 		line.Thickness = 1.5
@@ -964,6 +986,41 @@ local function updateESP()
 								espData.healthBar.Color = Color3.fromRGB((1 - ratio) * 255, ratio * 255, 0)
 							elseif espData.healthBar then
 								espData.healthBar.Visible = false
+							end
+
+							-- Skeleton
+							if espData.skeleton then
+								if Toggles.ESPSkeleton and Toggles.ESPSkeleton.Value then
+									local lineIndex = 1
+									for _, bone in ipairs(skeletonBones) do
+										local part0 = character:FindFirstChild(bone[1])
+										local part1 = character:FindFirstChild(bone[2])
+										if part0 and part1 then
+											local p0, v0 = Camera:WorldToViewportPoint(part0.Position)
+											local p1, v1 = Camera:WorldToViewportPoint(part1.Position)
+											if v0 and v1 and p0.Z > 0 and p1.Z > 0 then
+												local line = espData.skeleton[lineIndex]
+												if line then
+													line.Visible = true
+													line.From = Vector2.new(p0.X, p0.Y)
+													line.To = Vector2.new(p1.X, p1.Y)
+													line.Color = baseColor
+												end
+												lineIndex = lineIndex + 1
+											end
+										end
+									end
+									for i = lineIndex, #espData.skeleton do
+										local line = espData.skeleton[i]
+										if line then
+											line.Visible = false
+										end
+									end
+								else
+									for _, line in ipairs(espData.skeleton) do
+										line.Visible = false
+									end
+								end
 							end
 						end
 					end
