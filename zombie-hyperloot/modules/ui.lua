@@ -496,6 +496,7 @@ function UI.createMapTab()
         "Exclusion [1001]",
         "Virus Laboratory [1002]",
         "Biology Laboratory [1003]",
+        "The Backrooms [1004]",
         "Wave Mode [102]",
         "Raid Mode [201]",
     }
@@ -504,6 +505,7 @@ function UI.createMapTab()
         ["Exclusion [1001]"] = 1001,
         ["Virus Laboratory [1002]"] = 1002,
         ["Biology Laboratory [1003]"] = 1003,
+        ["The Backrooms [1004]"] = 1004,
         ["Wave Mode [102]"] = 102,
         ["Raid Mode [201]"] = 201,
     }
