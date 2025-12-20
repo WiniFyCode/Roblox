@@ -48,7 +48,6 @@ local Tabs = {
 
 -- Variables
 local character, humanoid, rootPart
-local flyBodyVelocity, flyBodyGyro
 local noclipConnection
 local espObjects = {}
 local hitboxOriginals = {}
@@ -105,27 +104,6 @@ MovementGroup:AddSlider("JumpValue", {
 	Min = 1,
 	Max = 500,
 	Rounding = 0,
-})
-
-MovementGroup:AddToggle("Fly", {
-	Text = "Fly",
-	Default = false,
-	Tooltip = "Fly in the air",
-})
-
-MovementGroup:AddSlider("FlySpeed", {
-	Text = "Fly Speed",
-	Default = 50,
-	Min = 1,
-	Max = 200,
-	Rounding = 0,
-})
-
-MovementGroup:AddLabel("Fly Keybind"):AddKeyPicker("FlyKeybind", {
-	Default = "E",
-	Mode = "Toggle",
-	NoUI = false,
-	Text = "Fly Keybind",
 })
 
 MovementGroup:AddToggle("Noclip", {
@@ -278,78 +256,6 @@ Options.JumpValue:OnChanged(function()
 	end
 end)
 
--- Fly
-local function startFly()
-	if not rootPart then return end
-	
-	flyBodyVelocity = Instance.new("BodyVelocity")
-	flyBodyVelocity.MaxForce = Vector3.new(4000, 4000, 4000)
-	flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
-	flyBodyVelocity.Parent = rootPart
-	
-	flyBodyGyro = Instance.new("BodyGyro")
-	flyBodyGyro.MaxTorque = Vector3.new(4000, 4000, 4000)
-	flyBodyGyro.CFrame = rootPart.CFrame
-	flyBodyGyro.Parent = rootPart
-end
-
-local function stopFly()
-	if flyBodyVelocity then
-		flyBodyVelocity:Destroy()
-		flyBodyVelocity = nil
-	end
-	if flyBodyGyro then
-		flyBodyGyro:Destroy()
-		flyBodyGyro = nil
-	end
-end
-
-Toggles.Fly:OnChanged(function()
-	if Toggles.Fly.Value then
-		startFly()
-	else
-		stopFly()
-	end
-end)
-
-Options.FlyKeybind:OnClick(function()
-	Toggles.Fly:SetValue(not Toggles.Fly.Value)
-end)
-
--- Fly Movement
-RunService.Heartbeat:Connect(function()
-	if Toggles.Fly.Value and flyBodyVelocity and flyBodyGyro and rootPart then
-		local cam = Camera
-		local moveVector = Vector3.new(0, 0, 0)
-		
-		if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-			moveVector = moveVector + cam.CFrame.LookVector
-		end
-		if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-			moveVector = moveVector - cam.CFrame.LookVector
-		end
-		if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-			moveVector = moveVector - cam.CFrame.RightVector
-		end
-		if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-			moveVector = moveVector + cam.CFrame.RightVector
-		end
-		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-			moveVector = moveVector + Vector3.new(0, 1, 0)
-		end
-		if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-			moveVector = moveVector - Vector3.new(0, 1, 0)
-		end
-		
-		flyBodyVelocity.Velocity = moveVector * Options.FlySpeed.Value
-		flyBodyGyro.CFrame = cam.CFrame
-	end
-end)
-
-Options.FlySpeed:OnChanged(function()
-	-- Speed updated in heartbeat
-end)
-
 -- Noclip
 Toggles.Noclip:OnChanged(function()
 	if Toggles.Noclip.Value then
@@ -430,7 +336,7 @@ CombatGroup:AddDropdown("HitboxPart", {
 local function getHitboxTargets()
 	local targets = {}
 	local mode = Options.HitboxTarget and Options.HitboxTarget.Value or "Players"
-	
+
 	if mode == "Players" or mode == "All" then
 		for _, player in ipairs(Players:GetPlayers()) do
 			if player ~= LocalPlayer and player.Character then
@@ -441,7 +347,7 @@ local function getHitboxTargets()
 			end
 		end
 	end
-	
+
 	if (mode == "NPCs" or mode == "All") and EntityFolder then
 		for _, model in ipairs(EntityFolder:GetChildren()) do
 			if model:IsA("Model") then
@@ -452,7 +358,7 @@ local function getHitboxTargets()
 			end
 		end
 	end
-	
+
 	return targets
 end
 
@@ -475,14 +381,14 @@ local function applyHitbox()
 		resetHitbox()
 		return
 	end
-	
+
 	local sizeValue = Options.HitboxSize and Options.HitboxSize.Value or 10
 	local modePart = Options.HitboxPart and Options.HitboxPart.Value or "HumanoidRootPart"
-	
+
 	for _, character in ipairs(getHitboxTargets()) do
 		local parts = {}
 		if modePart == "All" then
-			for _, name in ipairs({"Head", "HumanoidRootPart", "UpperTorso"}) do
+			for _, name in ipairs({ "Head", "HumanoidRootPart", "UpperTorso" }) do
 				local p = character:FindFirstChild(name)
 				if p and p:IsA("BasePart") then
 					table.insert(parts, p)
@@ -494,7 +400,7 @@ local function applyHitbox()
 				table.insert(parts, p)
 			end
 		end
-		
+
 		for _, part in ipairs(parts) do
 			if not hitboxOriginals[part] then
 				hitboxOriginals[part] = {
@@ -516,220 +422,6 @@ end
 
 RunService.Heartbeat:Connect(function()
 	applyHitbox()
-end)
-
--- ============================================
--- COMBAT TAB - AIMBOT
--- ============================================
-local AimbotGroup = Tabs.Combat:AddRightGroupbox("Aimbot", "crosshair")
-
-AimbotGroup:AddToggle("Aimbot", {
-	Text = "Aimbot",
-	Default = false,
-	Tooltip = "Automatically aim at targets",
-	Risky = true,
-})
-
-AimbotGroup:AddToggle("AimbotShowFOV", {
-	Text = "Show FOV",
-	Default = true,
-	Tooltip = "Show FOV circle",
-})
-
-AimbotGroup:AddSlider("AimbotFOV", {
-	Text = "FOV Size",
-	Default = 100,
-	Min = 10,
-	Max = 500,
-	Rounding = 0,
-})
-
-AimbotGroup:AddSlider("AimbotSmoothness", {
-	Text = "Smoothness",
-	Default = 10,
-	Min = 1,
-	Max = 50,
-	Rounding = 0,
-})
-
-AimbotGroup:AddDropdown("AimbotTarget", {
-	Values = { "Players", "NPCs", "All" },
-	Default = 1,
-	Text = "Target Type",
-})
-
-AimbotGroup:AddDropdown("AimbotPart", {
-	Values = { "Head", "HumanoidRootPart", "UpperTorso", "LowerTorso" },
-	Default = 1,
-	Text = "Aim Part",
-})
-
-AimbotGroup:AddToggle("AimbotTeamCheck", {
-	Text = "Team Check",
-	Default = false,
-	Tooltip = "Only aim at enemies",
-})
-
-AimbotGroup:AddLabel("FOV Color"):AddColorPicker("AimbotFOVColor", {
-	Default = Color3.fromRGB(255, 255, 255),
-	Title = "FOV Color",
-})
-
-AimbotGroup:AddLabel("Aimbot Keybind"):AddKeyPicker("AimbotKeybind", {
-	Default = "Q",
-	Mode = "Hold",
-	NoUI = false,
-	Text = "Aimbot Keybind",
-})
-
--- Aimbot Variables
-local fovCircle = Drawing.new("Circle")
-fovCircle.Visible = false
-fovCircle.Transparency = 1
-fovCircle.Color = Color3.fromRGB(255, 255, 255)
-fovCircle.Thickness = 2
-fovCircle.Filled = false
-fovCircle.NumSides = 100
-
--- Get Aimbot Targets
-local function getAimbotTargets()
-	local targets = {}
-	local mode = Options.AimbotTarget and Options.AimbotTarget.Value or "Players"
-	
-	if mode == "Players" or mode == "All" then
-		for _, player in ipairs(Players:GetPlayers()) do
-			if player ~= LocalPlayer and player.Character then
-				local hum = player.Character:FindFirstChildOfClass("Humanoid")
-				if hum and hum.Health > 0 then
-					-- Team check
-					local shouldAdd = true
-					if Toggles.AimbotTeamCheck and Toggles.AimbotTeamCheck.Value then
-						local isEnemy = false
-						if LocalPlayer.Team and player.Team then
-							isEnemy = player.Team ~= LocalPlayer.Team
-						elseif LocalPlayer.TeamColor and player.TeamColor then
-							isEnemy = player.TeamColor ~= LocalPlayer.TeamColor
-						else
-							isEnemy = true
-						end
-						shouldAdd = isEnemy
-					end
-					
-					if shouldAdd then
-						table.insert(targets, player.Character)
-					end
-				end
-			end
-		end
-	end
-	
-	if (mode == "NPCs" or mode == "All") and EntityFolder then
-		for _, model in ipairs(EntityFolder:GetChildren()) do
-			if model:IsA("Model") then
-				local hum = model:FindFirstChildOfClass("Humanoid")
-				if hum and hum.Health > 0 then
-					table.insert(targets, model)
-				end
-			end
-		end
-	end
-	
-	return targets
-end
-
--- Get closest target within FOV
-local function getClosestTargetInFOV()
-	if not rootPart or not Camera then return nil end
-	
-	local targets = getAimbotTargets()
-	local closestTarget = nil
-	local closestDistance = math.huge
-	local aimPart = Options.AimbotPart and Options.AimbotPart.Value or "Head"
-	local fovRadius = Options.AimbotFOV and Options.AimbotFOV.Value or 100
-	local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-	
-	for _, character in ipairs(targets) do
-		local targetPart = character:FindFirstChild(aimPart)
-		if not targetPart then
-			targetPart = character:FindFirstChild("Head") or character:FindFirstChild("HumanoidRootPart")
-		end
-		
-		if targetPart then
-			local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
-			if onScreen then
-				local screenPoint = Vector2.new(screenPos.X, screenPos.Y)
-				local distance = (screenPoint - screenCenter).Magnitude
-				
-				if distance <= fovRadius and distance < closestDistance then
-					closestDistance = distance
-					closestTarget = targetPart
-				end
-			end
-		end
-	end
-	
-	return closestTarget, closestDistance
-end
-
--- Smooth aim function
-local function smoothAim(targetPart)
-	if not targetPart or not Camera or not rootPart then return end
-	
-	local targetPosition = targetPart.Position
-	local currentCFrame = Camera.CFrame
-	local targetCFrame = CFrame.lookAt(currentCFrame.Position, targetPosition)
-	
-	local smoothness = Options.AimbotSmoothness and Options.AimbotSmoothness.Value or 10
-	local smoothFactor = math.max(1, smoothness)
-	
-	local newCFrame = currentCFrame:Lerp(targetCFrame, 1 / smoothFactor)
-	Camera.CFrame = newCFrame
-end
-
--- Update FOV Circle
-local function updateFOVCircle()
-	if not Toggles.Aimbot.Value or not Toggles.AimbotShowFOV.Value then
-		fovCircle.Visible = false
-		return
-	end
-	
-	fovCircle.Visible = true
-	fovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-	fovCircle.Radius = Options.AimbotFOV and Options.AimbotFOV.Value or 100
-	if Options.AimbotFOVColor then
-		fovCircle.Color = Options.AimbotFOVColor.Value
-	end
-end
-
--- Aimbot Main Loop
-RunService.Heartbeat:Connect(function()
-	updateFOVCircle()
-	
-	if Toggles.Aimbot.Value and Options.AimbotKeybind:GetState() then
-		local targetPart = getClosestTargetInFOV()
-		if targetPart then
-			smoothAim(targetPart)
-		end
-	end
-end)
-
--- Aimbot Toggle
-Toggles.Aimbot:OnChanged(function()
-	if not Toggles.Aimbot.Value then
-		fovCircle.Visible = false
-	end
-end)
-
-Toggles.AimbotShowFOV:OnChanged(function()
-	updateFOVCircle()
-end)
-
-Options.AimbotFOV:OnChanged(function()
-	updateFOVCircle()
-end)
-
-Options.AimbotFOVColor:OnChanged(function()
-	updateFOVCircle()
 end)
 
 -- ============================================
@@ -799,11 +491,11 @@ ESPGroup:AddLabel("Highlight Color"):AddColorPicker("HighlightColor", {
 local function createESP(player)
 	if player == LocalPlayer then return end
 	if not player.Character then return end
-	
+
 	local character = player.Character
 	local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
 	if not humanoidRootPart then return end
-	
+
 	local espData = {
 		player = player,
 		character = character,
@@ -812,7 +504,7 @@ local function createESP(player)
 		label = nil,
 		healthBar = nil,
 	}
-	
+
 	-- Box (luôn tạo, bật/tắt bằng toggle trong updateESP)
 	local box = Drawing.new("Square")
 	box.Visible = false
@@ -821,14 +513,14 @@ local function createESP(player)
 	box.Filled = false
 	box.Transparency = 1
 	espData.box = box
-	
+
 	-- Tracer
 	local tracer = Drawing.new("Line")
 	tracer.Visible = false
 	tracer.Color = Options.ESPColor.Value
 	tracer.Thickness = 2
 	espData.tracer = tracer
-	
+
 	-- Label
 	local label = Drawing.new("Text")
 	label.Visible = false
@@ -838,14 +530,14 @@ local function createESP(player)
 	label.Outline = true
 	label.Font = 2
 	espData.label = label
-	
+
 	-- Health bar
 	local bar = Drawing.new("Line")
 	bar.Visible = false
 	bar.Thickness = 2
 	bar.Color = Color3.fromRGB(0, 255, 0)
 	espData.healthBar = bar
-	
+
 	espObjects[player] = espData
 end
 
@@ -862,15 +554,15 @@ end
 
 local function createHighlight(player)
 	if not player.Character then return end
-	
+
 	local character = player.Character
 	local highlight = highlightObjects[player]
-	
+
 	if highlight and highlight.Parent then
 		highlight.Adornee = character
 		return
 	end
-	
+
 	highlight = Instance.new("Highlight")
 	highlight.FillColor = (Options.HighlightColor and Options.HighlightColor.Value) or Color3.fromRGB(0, 255, 0)
 	highlight.OutlineColor = highlight.FillColor
@@ -880,7 +572,7 @@ local function createHighlight(player)
 	highlight.Adornee = character
 	-- Parent vào CoreGui để đảm bảo luôn render trên mọi thứ (xuyên tường)
 	highlight.Parent = CoreGui
-	
+
 	highlightObjects[player] = highlight
 end
 
@@ -896,7 +588,7 @@ local function getBoxScreenPoints(cf, size)
 	local half = size / 2
 	local points = {}
 	local visible = true
-	
+
 	for x = -1, 1, 2 do
 		for y = -1, 1, 2 do
 			for z = -1, 1, 2 do
@@ -909,20 +601,20 @@ local function getBoxScreenPoints(cf, size)
 			end
 		end
 	end
-	
+
 	return points, visible
 end
 
 local function updateESP()
 	if not Toggles.PlayerESP.Value then return end
-	
+
 	for player, espData in pairs(espObjects) do
 		if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
 			local humanoidRootPart = player.Character.HumanoidRootPart
 			local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
 			local size = humanoidRootPart.Size + Vector3.new(2, 3, 1)
 			local points, allVisible = getBoxScreenPoints(humanoidRootPart.CFrame, size)
-			
+
 			if espData then
 				if not allVisible or #points == 0 then
 					if espData.box then espData.box.Visible = false end
@@ -937,7 +629,7 @@ local function updateESP()
 						maxX = math.max(maxX, pt.X)
 						maxY = math.max(maxY, pt.Y)
 					end
-					
+
 					local boxWidth, boxHeight = maxX - minX, maxY - minY
 					if boxWidth <= 3 or boxHeight <= 4 then
 						if espData.box then espData.box.Visible = false end
@@ -948,7 +640,7 @@ local function updateESP()
 						local slimWidth = boxWidth * 0.7
 						local slimX = minX + (boxWidth - slimWidth) / 2
 						local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-						
+
 						local isEnemy = false
 						if Toggles.ESPTeamCheck and Toggles.ESPTeamCheck.Value then
 							if LocalPlayer.Team and player.Team then
@@ -960,12 +652,12 @@ local function updateESP()
 								isEnemy = player ~= LocalPlayer
 							end
 						end
-						
+
 						local baseColor = Options.ESPColor and Options.ESPColor.Value or Color3.fromRGB(255, 255, 255)
 						if isEnemy and Options.EnemyESPColor then
 							baseColor = Options.EnemyESPColor.Value
 						end
-						
+
 						-- Box
 						if espData.box and Toggles.ESPBoxes.Value then
 							espData.box.Visible = true
@@ -975,13 +667,14 @@ local function updateESP()
 						elseif espData.box then
 							espData.box.Visible = false
 						end
-						
+
 						-- Name + distance
 						if espData.label then
 							local parts = {}
 							if Toggles.ESPNames.Value then
 								if humanoid then
-									table.insert(parts, string.format("%s [%d]", player.Name, math.floor(humanoid.Health)))
+									table.insert(parts,
+										string.format("%s [%d]", player.Name, math.floor(humanoid.Health)))
 								else
 									table.insert(parts, player.Name)
 								end
@@ -1000,7 +693,7 @@ local function updateESP()
 								espData.label.Visible = false
 							end
 						end
-						
+
 						-- Tracer
 						if espData.tracer and Toggles.ESPTracers.Value then
 							espData.tracer.Visible = true
@@ -1010,7 +703,7 @@ local function updateESP()
 						elseif espData.tracer then
 							espData.tracer.Visible = false
 						end
-						
+
 						-- Health bar
 						if espData.healthBar and Toggles.ESPHealth.Value and humanoid and humanoid.MaxHealth > 0 then
 							local hp = humanoid.Health
@@ -1152,19 +845,6 @@ end)
 -- ============================================
 local TeleportGroup = Tabs.Teleport:AddLeftGroupbox("Teleport", "map-pin")
 
-TeleportGroup:AddToggle("ClickTP", {
-	Text = "Click Teleport",
-	Default = false,
-	Tooltip = "Click to teleport",
-})
-
-TeleportGroup:AddLabel("Click TP Keybind"):AddKeyPicker("ClickTPKeybind", {
-	Default = "T",
-	Mode = "Toggle",
-	NoUI = false,
-	Text = "Click TP Keybind",
-})
-
 TeleportGroup:AddDropdown("TeleportPlayer", {
 	SpecialType = "Player",
 	ExcludeLocalPlayer = true,
@@ -1187,27 +867,6 @@ TeleportGroup:AddButton({
 		end
 	end,
 })
-
--- Click TP
-local clickTPConnection
-Toggles.ClickTP:OnChanged(function()
-	if Toggles.ClickTP.Value then
-		clickTPConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
-			if gameProcessed then return end
-			if input.UserInputType == Enum.UserInputType.MouseButton1 and Options.ClickTPKeybind:GetState() then
-				local mouse = LocalPlayer:GetMouse()
-				if rootPart then
-					rootPart.CFrame = CFrame.new(mouse.Hit.Position + Vector3.new(0, 3, 0))
-				end
-			end
-		end)
-	else
-		if clickTPConnection then
-			clickTPConnection:Disconnect()
-			clickTPConnection = nil
-		end
-	end
-end)
 
 -- ============================================
 -- SERVER TAB
@@ -1240,7 +899,8 @@ ServerListGroup:AddButton({
 	Text = "Refresh server list",
 	Func = function()
 		local success, result = pcall(function()
-			return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+			return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" ..
+			game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
 		end)
 
 		if not success or not result or not result.data then
@@ -1262,7 +922,8 @@ ServerListGroup:AddButton({
 				local ping = server.ping or server.latency or "?"
 				local fps = server.fps or "?"
 				local shortId = typeof(server.id) == "string" and string.sub(server.id, 1, 6) or tostring(server.id)
-				local display = string.format("%d/%s|ping: %s|fps: %s|%s", currentPlayers, maxPlayers, tostring(ping), tostring(fps), shortId)
+				local display = string.format("%d/%s|ping: %s|fps: %s|%s", currentPlayers, maxPlayers, tostring(ping),
+					tostring(fps), shortId)
 				table.insert(serverList, server)
 				table.insert(serverListDisplay, display)
 			end
@@ -1336,7 +997,8 @@ ServerListGroup:AddButton({
 ServerListGroup:AddButton({
 	Text = "Server Hop",
 	Func = function()
-		local servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+		local servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" ..
+		game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
 		for _, server in pairs(servers.data) do
 			if server.id ~= game.JobId then
 				TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer)
@@ -1443,16 +1105,7 @@ Library:OnUnload(function()
 	for player, _ in pairs(highlightObjects) do
 		removeHighlight(player)
 	end
-	
-	-- Cleanup Aimbot FOV
-	if fovCircle then
-		fovCircle:Remove()
-		fovCircle = nil
-	end
-	
-	-- Cleanup Fly
-	stopFly()
-	
+
 	-- Cleanup Noclip
 	if noclipConnection then
 		noclipConnection:Disconnect()
@@ -1465,19 +1118,13 @@ Library:OnUnload(function()
 			end
 		end
 	end
-	
-	-- Cleanup Click TP
-	if clickTPConnection then
-		clickTPConnection:Disconnect()
-		clickTPConnection = nil
-	end
-	
+
 	-- Cleanup Anti AFK
 	if antiAFKConnection then
 		antiAFKConnection:Disconnect()
 		antiAFKConnection = nil
 	end
-	
+
 	-- Reset Hitbox
 	for part, original in pairs(hitboxOriginals) do
 		if part and part.Parent then
@@ -1490,7 +1137,7 @@ Library:OnUnload(function()
 		end
 	end
 	hitboxOriginals = {}
-	
+
 	-- Reset Humanoid
 	if humanoid then
 		humanoid.WalkSpeed = 16
@@ -1514,7 +1161,7 @@ Library:OnUnload(function()
 		jpCharAddedConnection:Disconnect()
 		jpCharAddedConnection = nil
 	end
-	
+
 	-- Reset Lighting
 	Lighting.Brightness = 1
 	Lighting.Ambient = Color3.fromRGB(128, 128, 128)
@@ -1526,4 +1173,3 @@ Library:Notify({
 	Description = "Loaded successfully!",
 	Time = 5,
 })
-
