@@ -1,13 +1,6 @@
 -- Universal Script với Obsidian UI
 -- Script này hoạt động trên mọi game Roblox
 
--- Compat: some executors không có cloneref, tạo stub để Obsidian Library không lỗi
-if not cloneref then
-	cloneref = function(obj)
-		return obj
-	end
-end
-
 local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
 local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
@@ -467,12 +460,6 @@ ESPGroup:AddToggle("ESPHealth", {
 	Default = false,
 })
 
-ESPGroup:AddToggle("ESPSkeleton", {
-	Text = "Skeleton",
-	Default = false,
-	Tooltip = "Draw skeleton for players",
-})
-
 ESPGroup:AddLabel("ESP Color"):AddColorPicker("ESPColor", {
 	Default = Color3.fromRGB(0, 255, 0),
 	Title = "ESP Color",
@@ -518,7 +505,6 @@ local function createESP(player)
 		tracer = nil,
 		label = nil,
 		healthBar = nil,
-		skeleton = nil,
 	}
 
 	-- Box (always created, toggled in updateESP)
@@ -554,47 +540,6 @@ local function createESP(player)
 	bar.Color = Color3.fromRGB(0, 255, 0)
 	espData.healthBar = bar
 
-	-- Skeleton lines (R15/R6 friendly)
-	local skeleton = {}
-	local bones = {
-		{"Head", "UpperTorso"},
-		{"UpperTorso", "LowerTorso"},
-		{"UpperTorso", "LeftUpperArm"},
-		{"LeftUpperArm", "LeftLowerArm"},
-		{"LeftLowerArm", "LeftHand"},
-		{"UpperTorso", "RightUpperArm"},
-		{"RightUpperArm", "RightLowerArm"},
-		{"RightLowerArm", "RightHand"},
-		{"LowerTorso", "LeftUpperLeg"},
-		{"LeftUpperLeg", "LeftLowerLeg"},
-		{"LeftLowerLeg", "LeftFoot"},
-		{"LowerTorso", "RightUpperLeg"},
-		{"RightUpperLeg", "RightLowerLeg"},
-		{"RightLowerLeg", "RightFoot"},
-		-- R6 fallback bones
-		{"Head", "Torso"},
-		{"Torso", "LeftArm"},
-		{"LeftArm", "LeftLeg"},
-		{"Torso", "RightArm"},
-		{"RightArm", "RightLeg"},
-		{"Torso", "LeftLeg"},
-		{"Torso", "RightLeg"},
-	}
-
-	for _, bone in ipairs(bones) do
-		local line = Drawing.new("Line")
-		line.Visible = false
-		line.Thickness = 2
-		line.Color = Options.ESPColor.Value
-		table.insert(skeleton, {
-			fromName = bone[1],
-			toName = bone[2],
-			line = line,
-		})
-	end
-
-	espData.skeleton = skeleton
-
 	espObjects[player] = espData
 end
 
@@ -605,13 +550,6 @@ local function removeESP(player)
 		if espData.tracer then espData.tracer:Remove() end
 		if espData.label then espData.label:Remove() end
 		if espData.healthBar then espData.healthBar:Remove() end
-		if espData.skeleton then
-			for _, seg in pairs(espData.skeleton) do
-				if seg.line then
-					seg.line:Remove()
-				end
-			end
-		end
 		espObjects[player] = nil
 	end
 end
@@ -785,36 +723,6 @@ local function updateESP()
 									espData.healthBar.Color = Color3.fromRGB((1 - ratio) * 255, ratio * 255, 0)
 								elseif espData.healthBar then
 									espData.healthBar.Visible = false
-								end
-
-								-- Skeleton
-								if espData.skeleton then
-									if Toggles.ESPSkeleton and Toggles.ESPSkeleton.Value then
-										for _, seg in ipairs(espData.skeleton) do
-											local fromPart = character:FindFirstChild(seg.fromName)
-											local toPart = character:FindFirstChild(seg.toName)
-											if fromPart and toPart then
-												local p1, onScreen1 = Camera:WorldToViewportPoint(fromPart.Position)
-												local p2, onScreen2 = Camera:WorldToViewportPoint(toPart.Position)
-												if onScreen1 and onScreen2 then
-													seg.line.Visible = true
-													seg.line.From = Vector2.new(p1.X, p1.Y)
-													seg.line.To = Vector2.new(p2.X, p2.Y)
-													seg.line.Color = baseColor
-												else
-													seg.line.Visible = false
-												end
-											elseif seg.line then
-												seg.line.Visible = false
-											end
-										end
-									else
-										for _, seg in ipairs(espData.skeleton) do
-											if seg.line then
-												seg.line.Visible = false
-											end
-										end
-									end
 								end
 							end
 						end
