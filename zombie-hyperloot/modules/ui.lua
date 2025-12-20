@@ -1,15 +1,15 @@
 --[[
     UI Module - Zombie Hyperloot
-    Fluent UI setup + tất cả tabs
+    Obsidian UI setup + tất cả tabs
 ]]
 
 local UI = {}
 local Config, Combat, ESP, Movement, Map, Farm, HUD, Visuals, Character = nil, nil, nil, nil, nil, nil, nil, nil, nil
 
 UI.Window = nil
-UI.Fluent = nil
+UI.Library = nil
 UI.SaveManager = nil
-UI.InterfaceManager = nil
+UI.ThemeManager = nil
 
 function UI.init(config, combat, esp, movement, map, farm, hud, visuals, character)
     Config = config
@@ -24,68 +24,72 @@ function UI.init(config, combat, esp, movement, map, farm, hud, visuals, charact
 end
 
 function UI.loadLibraries()
-    UI.Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
-    UI.SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
-    UI.InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+    local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
+    UI.Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
+    UI.SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
+    UI.ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
     
-    -- Store Fluent reference in Config for notifications
-    Config.UI.Fluent = UI.Fluent
+    -- Store Library reference in Config for notifications
+    Config.UI.Library = UI.Library
+    Config.UI.Fluent = UI.Library -- Keep for backward compatibility with notifications
 end
 
 function UI.createWindow()
-    UI.Window = UI.Fluent:CreateWindow({
+    UI.Library.ForceCheckbox = false
+    UI.Library.ShowToggleFrameInKeybinds = true
+    
+    UI.Window = UI.Library:CreateWindow({
         Title = "Zombie Hyperloot",
-        SubTitle = "by WiniFy",
-        TabWidth = 160,
-        Size = UDim2.fromOffset(580, 460),
-        Acrylic = false,
-        Theme = "Dark",
-        MinimizeKey = Enum.KeyCode.RightControl
+        Footer = "by WiniFy",
+        NotifySide = "Right",
+        ShowCustomCursor = true,
     })
 end
 
 ----------------------------------------------------------
 -- 🔹 Combat Tab
 function UI.createCombatTab()
-    local CombatTab = UI.Window:AddTab({ Title = "Combat" })
+    local CombatTab = UI.Window:AddTab("Combat", "sword")
+    local CombatGroup = CombatTab:AddLeftGroupbox("Combat")
 
-    CombatTab:AddToggle("Aimbot", {
-        Title = "Aimbot",
+    CombatGroup:AddToggle("Aimbot", {
+        Text = "Aimbot",
         Default = Config.aimbotEnabled,
         Callback = function(Value) Config.aimbotEnabled = Value end
     })
 
-    CombatTab:AddSection("Aimbot Settings")
+    CombatGroup:AddDivider()
+    CombatGroup:AddLabel("Aimbot Settings")
 
-    CombatTab:AddDropdown("AimbotTargetMode", {
-        Title = "Target Type",
+    CombatGroup:AddDropdown("AimbotTargetMode", {
+        Text = "Target Type",
         Values = {"Zombies", "Players", "All"},
         Default = Config.aimbotTargetMode,
         Callback = function(Value) Config.aimbotTargetMode = Value end
     })
 
-    CombatTab:AddDropdown("AimbotPriorityMode", {
-        Title = "Priority",
+    CombatGroup:AddDropdown("AimbotPriorityMode", {
+        Text = "Priority",
         Values = {"Nearest", "Farthest", "LowestHealth", "HighestHealth"},
         Default = Config.aimbotPriorityMode,
         Callback = function(Value) Config.aimbotPriorityMode = Value end
     })
 
-    CombatTab:AddDropdown("AimbotAimPart", {
-        Title = "Aim Part",
+    CombatGroup:AddDropdown("AimbotAimPart", {
+        Text = "Aim Part",
         Values = {"Head", "UpperTorso", "HumanoidRootPart", "Random"},
         Default = Config.aimbotAimPart,
         Callback = function(Value) Config.aimbotAimPart = Value end
     })
 
-    CombatTab:AddToggle("AimbotHoldMouse2", {
-        Title = "Hold Right Click",
+    CombatGroup:AddToggle("AimbotHoldMouse2", {
+        Text = "Hold Right Click",
         Default = Config.aimbotHoldMouse2,
         Callback = function(Value) Config.aimbotHoldMouse2 = Value end
     })
 
-    CombatTab:AddToggle("AimbotAutoFire", {
-        Title = "Auto Fire (Mouse1)",
+    CombatGroup:AddToggle("AimbotAutoFire", {
+        Text = "Auto Fire (Mouse1)",
         Default = Config.aimbotAutoFireEnabled,
         Callback = function(Value)
             Config.aimbotAutoFireEnabled = Value
@@ -95,45 +99,45 @@ function UI.createCombatTab()
         end
     })
 
-    CombatTab:AddToggle("AimbotFOV", {
-
-        Title = "FOV Circle",
+    CombatGroup:AddToggle("AimbotFOV", {
+        Text = "FOV Circle",
         Default = Config.aimbotFOVEnabled,
         Callback = function(Value) Config.aimbotFOVEnabled = Value end
     })
 
-    CombatTab:AddSlider("AimbotFOVRadius", {
-        Title = "FOV Radius",
+    CombatGroup:AddSlider("AimbotFOVRadius", {
+        Text = "FOV Radius",
         Default = Config.aimbotFOVRadius,
         Min = 50, Max = 500, Rounding = 0,
         Callback = function(Value) Config.aimbotFOVRadius = Value end
     })
 
-    CombatTab:AddToggle("AimbotWallCheck", {
-        Title = "Wall Check (Decoration)",
+    CombatGroup:AddToggle("AimbotWallCheck", {
+        Text = "Wall Check (Decoration)",
         Default = Config.aimbotWallCheckEnabled,
         Callback = function(Value) Config.aimbotWallCheckEnabled = Value end
     })
 
-    CombatTab:AddSlider("AimbotSmoothness", {
-        Title = "Smoothness",
-        Description = "0 = Instant Lock | Higher = Smoother/Slower",
+    CombatGroup:AddSlider("AimbotSmoothness", {
+        Text = "Smoothness",
+        Tooltip = "0 = Instant Lock | Higher = Smoother/Slower",
         Default = Config.aimbotSmoothness,
         Min = 0, Max = 0.9, Rounding = 2,
         Callback = function(Value) Config.aimbotSmoothness = Value end
     })
 
-    CombatTab:AddSlider("AimbotPrediction", {
-        Title = "Prediction",
+    CombatGroup:AddSlider("AimbotPrediction", {
+        Text = "Prediction",
         Default = Config.aimbotPrediction,
         Min = 0, Max = 0.2, Rounding = 3,
         Callback = function(Value) Config.aimbotPrediction = Value end
     })
 
-    CombatTab:AddSection("Hitbox Settings")
+    CombatGroup:AddDivider()
+    CombatGroup:AddLabel("Hitbox Settings")
 
-    CombatTab:AddToggle("Hitbox", {
-        Title = "Hitbox Expander",
+    CombatGroup:AddToggle("Hitbox", {
+        Text = "Hitbox Expander",
         Default = Config.hitboxEnabled,
         Callback = function(Value)
             Config.hitboxEnabled = Value
@@ -141,34 +145,36 @@ function UI.createCombatTab()
         end
     })
 
-    CombatTab:AddSlider("HitboxSize", {
-        Title = "Hitbox Size",
+    CombatGroup:AddSlider("HitboxSize", {
+        Text = "Hitbox Size",
         Default = 4, Min = 1, Max = 20, Rounding = 1,
         Callback = function(Value)
             Config.hitboxSize = Vector3.new(Value, Value, Value)
         end
     })
 
-    CombatTab:AddSection("TrigerSkill Dupe")
+    CombatGroup:AddDivider()
+    CombatGroup:AddLabel("TrigerSkill Dupe")
 
-    CombatTab:AddToggle("TrigerSkillDupeEnabled", {
-        Title = "Enable TrigerSkill Dupe",
+    CombatGroup:AddToggle("TrigerSkillDupeEnabled", {
+        Text = "Enable TrigerSkill Dupe",
         Default = Config.trigerSkillDupeEnabled,
         Callback = function(Value) Config.trigerSkillDupeEnabled = Value end
     })
 
-    CombatTab:AddSlider("TrigerSkillDupeCount", {
-        Title = "Dupe Count",
+    CombatGroup:AddSlider("TrigerSkillDupeCount", {
+        Text = "Dupe Count",
         Default = Config.trigerSkillDupeCount,
         Min = 1, Max = 20, Rounding = 0,
         Callback = function(Value) Config.trigerSkillDupeCount = Value end
     })
 
-    CombatTab:AddSection("Auto Camera Rotation 360°")
+    CombatGroup:AddDivider()
+    CombatGroup:AddLabel("Auto Camera Rotation 360°")
 
-    CombatTab:AddToggle("AutoRotate", {
-        Title = "Auto Rotate to Zombies 360°",
-        Description = "Camera tự động xoay tới zombie gần nhất (R key toggle)",
+    CombatGroup:AddToggle("AutoRotate", {
+        Text = "Auto Rotate to Zombies 360°",
+        Tooltip = "Camera automatically rotates to the nearest zombie (press R to toggle)",
         Default = Config.autoRotateEnabled,
         Callback = function(Value)
             Config.autoRotateEnabled = Value
@@ -176,9 +182,9 @@ function UI.createCombatTab()
         end
     })
 
-    CombatTab:AddSlider("AutoRotateSmoothness", {
-        Title = "Rotation Smoothness",
-        Description = "0 = Instant Lock | Higher = Smoother/Slower",
+    CombatGroup:AddSlider("AutoRotateSmoothness", {
+        Text = "Rotation Smoothness",
+        Tooltip = "0 = Instant Lock | Higher = Smoother/Slower",
         Default = Config.autoRotateSmoothness,
         Min = 0, Max = 0.9, Rounding = 2,
         Callback = function(Value)
@@ -194,12 +200,14 @@ end
 ----------------------------------------------------------
 -- 🔹 ESP Tab
 function UI.createESPTab()
-    local ESPTab = UI.Window:AddTab({ Title = "ESP" })
+    local ESPTab = UI.Window:AddTab("ESP", "eye")
+    local ESPGroup = ESPTab:AddLeftGroupbox("ESP")
 
-    ESPTab:AddSection("Zombie ESP")
+    ESPGroup:AddDivider()
+    ESPGroup:AddLabel("Zombie ESP")
 
-    ESPTab:AddToggle("ESPZombie", {
-        Title = "ESP Zombie",
+    ESPGroup:AddToggle("ESPZombie", {
+        Text = "ESP Zombie",
         Default = Config.espZombieEnabled,
         Callback = function(Value)
             Config.espZombieEnabled = Value
@@ -212,38 +220,38 @@ function UI.createESPTab()
         end
     })
 
-    ESPTab:AddColorpicker("ESPZombieColor", {
-        Title = "Zombie ESP Color",
+    ESPGroup:AddLabel("Zombie ESP Color"):AddColorPicker("ESPZombieColor", {
         Default = Config.espColorZombie,
+        Title = "Zombie ESP Color",
         Callback = function(Value) Config.espColorZombie = Value end
     })
 
-    ESPTab:AddToggle("ESPZombieBoxes", {
-        Title = "Zombie Boxes",
+    ESPGroup:AddToggle("ESPZombieBoxes", {
+        Text = "Zombie Boxes",
         Default = Config.espZombieBoxes,
         Callback = function(Value) Config.espZombieBoxes = Value end
     })
 
-    ESPTab:AddToggle("ESPZombieTracers", {
-        Title = "Zombie Tracers",
+    ESPGroup:AddToggle("ESPZombieTracers", {
+        Text = "Zombie Tracers",
         Default = Config.espZombieTracers,
         Callback = function(Value) Config.espZombieTracers = Value end
     })
 
-    ESPTab:AddToggle("ESPZombieNames", {
-        Title = "Zombie Names",
+    ESPGroup:AddToggle("ESPZombieNames", {
+        Text = "Zombie Names",
         Default = Config.espZombieNames,
         Callback = function(Value) Config.espZombieNames = Value end
     })
 
-    ESPTab:AddToggle("ESPZombieHealth", {
-        Title = "Zombie Health Bars",
+    ESPGroup:AddToggle("ESPZombieHealth", {
+        Text = "Zombie Health Bars",
         Default = Config.espZombieHealth,
         Callback = function(Value) Config.espZombieHealth = Value end
     })
 
-    ESPTab:AddToggle("ESPZombieHighlight", {
-        Title = "Zombie Highlight",
+    ESPGroup:AddToggle("ESPZombieHighlight", {
+        Text = "Zombie Highlight",
         Default = Config.espZombieHighlight,
         Callback = function(Value)
             Config.espZombieHighlight = Value
@@ -255,10 +263,11 @@ function UI.createESPTab()
         end
     })
 
-    ESPTab:AddSection("Chest ESP")
+    ESPGroup:AddDivider()
+    ESPGroup:AddLabel("Chest ESP")
 
-    ESPTab:AddToggle("ESPChest", {
-        Title = "ESP Chest",
+    ESPGroup:AddToggle("ESPChest", {
+        Text = "ESP Chest",
         Default = Config.espChestEnabled,
         Callback = function(Value)
             Config.espChestEnabled = Value
@@ -266,19 +275,20 @@ function UI.createESPTab()
         end
     })
 
-    ESPTab:AddColorpicker("ESPChestColor", {
-        Title = "Chest ESP Color",
+    ESPGroup:AddLabel("Chest ESP Color"):AddColorPicker("ESPChestColor", {
         Default = Config.espColorChest,
+        Title = "Chest ESP Color",
         Callback = function(Value)
             Config.espColorChest = Value
             ESP.refreshChestHighlights(Value)
         end
     })
 
-    ESPTab:AddSection("Player ESP")
+    ESPGroup:AddDivider()
+    ESPGroup:AddLabel("Player ESP")
 
-    ESPTab:AddToggle("ESPPlayer", {
-        Title = "ESP Player",
+    ESPGroup:AddToggle("ESPPlayer", {
+        Text = "ESP Player",
         Default = Config.espPlayerEnabled,
         Callback = function(Value)
             Config.espPlayerEnabled = Value
@@ -290,50 +300,50 @@ function UI.createESPTab()
         end
     })
 
-    ESPTab:AddColorpicker("ESPPlayerColor", {
-        Title = "Player ESP Color",
+    ESPGroup:AddLabel("Player ESP Color"):AddColorPicker("ESPPlayerColor", {
         Default = Config.espColorPlayer,
+        Title = "Player ESP Color",
         Callback = function(Value) Config.espColorPlayer = Value end
     })
 
-    ESPTab:AddColorpicker("ESPEnemyColor", {
-        Title = "Enemy ESP Color",
+    ESPGroup:AddLabel("Enemy ESP Color"):AddColorPicker("ESPEnemyColor", {
         Default = Config.espColorEnemy,
+        Title = "Enemy ESP Color",
         Callback = function(Value) Config.espColorEnemy = Value end
     })
 
-    ESPTab:AddToggle("ESPPlayerBoxes", {
-        Title = "Player Boxes",
+    ESPGroup:AddToggle("ESPPlayerBoxes", {
+        Text = "Player Boxes",
         Default = Config.espPlayerBoxes,
         Callback = function(Value) Config.espPlayerBoxes = Value end
     })
 
-    ESPTab:AddToggle("ESPPlayerTracers", {
-        Title = "Player Tracers",
+    ESPGroup:AddToggle("ESPPlayerTracers", {
+        Text = "Player Tracers",
         Default = Config.espPlayerTracers,
         Callback = function(Value) Config.espPlayerTracers = Value end
     })
 
-    ESPTab:AddToggle("ESPPlayerNames", {
-        Title = "Player Names",
+    ESPGroup:AddToggle("ESPPlayerNames", {
+        Text = "Player Names",
         Default = Config.espPlayerNames,
         Callback = function(Value) Config.espPlayerNames = Value end
     })
 
-    ESPTab:AddToggle("ESPPlayerHealth", {
-        Title = "Player Health Bars",
+    ESPGroup:AddToggle("ESPPlayerHealth", {
+        Text = "Player Health Bars",
         Default = Config.espPlayerHealth,
         Callback = function(Value) Config.espPlayerHealth = Value end
     })
 
-    ESPTab:AddToggle("ESPPlayerTeamCheck", {
-        Title = "Team Check",
+    ESPGroup:AddToggle("ESPPlayerTeamCheck", {
+        Text = "Team Check",
         Default = Config.espPlayerTeamCheck,
         Callback = function(Value) Config.espPlayerTeamCheck = Value end
     })
 
-    ESPTab:AddToggle("ESPPlayerHighlight", {
-        Title = "Player Highlight",
+    ESPGroup:AddToggle("ESPPlayerHighlight", {
+        Text = "Player Highlight",
         Default = Config.espPlayerHighlight,
         Callback = function(Value)
             Config.espPlayerHighlight = Value
@@ -352,10 +362,11 @@ end
 ----------------------------------------------------------
 -- 🔹 Movement Tab
 function UI.createMovementTab()
-    local MovementTab = UI.Window:AddTab({ Title = "Movement" })
+    local MovementTab = UI.Window:AddTab("Movement", "move")
+    local MovementGroup = MovementTab:AddLeftGroupbox("Movement")
 
-    MovementTab:AddToggle("Speed", {
-        Title = "Speed Boost",
+    MovementGroup:AddToggle("Speed", {
+        Text = "Speed Boost",
         Default = Config.speedEnabled,
         Callback = function(Value)
             Config.speedEnabled = Value
@@ -363,8 +374,8 @@ function UI.createMovementTab()
         end
     })
 
-    MovementTab:AddSlider("SpeedValue", {
-        Title = "Speed Bonus",
+    MovementGroup:AddSlider("SpeedValue", {
+        Text = "Speed Bonus",
         Default = Config.speedValue,
         Min = 1, Max = 100, Rounding = 1,
         Callback = function(Value)
@@ -373,8 +384,8 @@ function UI.createMovementTab()
         end
     })
 
-    MovementTab:AddToggle("NoClip", {
-        Title = "NoClip",
+    MovementGroup:AddToggle("NoClip", {
+        Text = "NoClip",
         Default = Config.noClipEnabled,
         Callback = function(Value)
             Config.noClipEnabled = Value
@@ -382,8 +393,8 @@ function UI.createMovementTab()
         end
     })
 
-    MovementTab:AddToggle("AntiZombie", {
-        Title = "Anti-Zombie",
+    MovementGroup:AddToggle("AntiZombie", {
+        Text = "Anti-Zombie",
         Default = Config.antiZombieEnabled,
         Callback = function(Value)
             Config.antiZombieEnabled = Value
@@ -391,8 +402,8 @@ function UI.createMovementTab()
         end
     })
 
-    MovementTab:AddSlider("HipHeight", {
-        Title = "HipHeight",
+    MovementGroup:AddSlider("HipHeight", {
+        Text = "HipHeight",
         Default = Config.hipHeightValue,
         Min = 0, Max = 200, Rounding = 1,
         Callback = function(Value)
@@ -401,8 +412,8 @@ function UI.createMovementTab()
         end
     })
 
-    MovementTab:AddToggle("NoclipCam", {
-        Title = "Noclip Cam",
+    MovementGroup:AddToggle("NoclipCam", {
+        Text = "Noclip Cam",
         Default = Config.noclipCamEnabled,
         Callback = function(Value)
             Config.noclipCamEnabled = Value
@@ -410,52 +421,54 @@ function UI.createMovementTab()
         end
     })
 
-    MovementTab:AddSection("Camera Teleport")
+    MovementGroup:AddDivider()
+    MovementGroup:AddLabel("Camera Teleport")
 
-    MovementTab:AddToggle("CameraTeleport", {
-        Title = "Camera Teleport (X)",
+    MovementGroup:AddToggle("CameraTeleport", {
+        Text = "Camera Teleport (X)",
         Default = Config.cameraTeleportEnabled,
         Callback = function(Value) Config.cameraTeleportEnabled = Value end
     })
 
-    MovementTab:AddDropdown("CameraTargetMode", {
-        Title = "Target Mode",
+    MovementGroup:AddDropdown("CameraTargetMode", {
+        Text = "Target Mode",
         Values = {"LowestHealth", "Nearest"},
         Default = Config.cameraTargetMode,
         Callback = function(Value) Config.cameraTargetMode = Value end
     })
 
-    MovementTab:AddSlider("CameraTeleportWaveDelay", {
-        Title = "Wave Wait Time (s)",
+    MovementGroup:AddSlider("CameraTeleportWaveDelay", {
+        Text = "Wave Wait Time (s)",
         Default = Config.cameraTeleportWaveDelay,
         Min = 0, Max = 15, Rounding = 0,
         Callback = function(Value) Config.cameraTeleportWaveDelay = Value end
     })
 
-    MovementTab:AddToggle("TeleportToLastZombie", {
-        Title = "Teleport to Last Zombie",
+    MovementGroup:AddToggle("TeleportToLastZombie", {
+        Text = "Teleport to Last Zombie",
         Default = Config.teleportToLastZombie,
         Callback = function(Value) Config.teleportToLastZombie = Value end
     })
 
-    MovementTab:AddSection("Camera Offset")
+    MovementGroup:AddDivider()
+    MovementGroup:AddLabel("Camera Offset")
 
-    MovementTab:AddSlider("CameraOffsetX", {
-        Title = "Camera Offset X",
+    MovementGroup:AddSlider("CameraOffsetX", {
+        Text = "Camera Offset X",
         Default = Config.cameraOffsetX,
         Min = -360, Max = 360, Rounding = 1,
         Callback = function(Value) Config.cameraOffsetX = Value end
     })
 
-    MovementTab:AddSlider("CameraOffsetY", {
-        Title = "Camera Offset Y",
+    MovementGroup:AddSlider("CameraOffsetY", {
+        Text = "Camera Offset Y",
         Default = Config.cameraOffsetY,
         Min = -360, Max = 360, Rounding = 1,
         Callback = function(Value) Config.cameraOffsetY = Value end
     })
 
-    MovementTab:AddSlider("CameraOffsetZ", {
-        Title = "Camera Offset Z",
+    MovementGroup:AddSlider("CameraOffsetZ", {
+        Text = "Camera Offset Z",
         Default = Config.cameraOffsetZ,
         Min = -360, Max = 360, Rounding = 1,
         Callback = function(Value) Config.cameraOffsetZ = Value end
@@ -468,9 +481,11 @@ end
 ----------------------------------------------------------
 -- 🔹 Map Tab
 function UI.createMapTab()
-    local MapTab = UI.Window:AddTab({ Title = "Map" })
+    local MapTab = UI.Window:AddTab("Map", "map-pin")
+    local MapGroup = MapTab:AddLeftGroupbox("Map")
 
-    MapTab:AddSection("Auto Map Teleport")
+    MapGroup:AddDivider()
+    MapGroup:AddLabel("Auto Map Teleport")
 
     local mapDisplayNames = {
         "Exclusion [1001]",
@@ -488,8 +503,8 @@ function UI.createMapTab()
         ["Raid Mode [201]"] = 201,
     }
 
-    MapTab:AddDropdown("MapWorld", {
-        Title = "Map",
+    MapGroup:AddDropdown("MapWorld", {
+        Text = "Map",
         Values = mapDisplayNames,
         Default = mapDisplayNames[1],
         Callback = function(Value)
@@ -498,8 +513,8 @@ function UI.createMapTab()
         end
     })
 
-    MapTab:AddDropdown("MapDifficulty", {
-        Title = "Difficulty",
+    MapGroup:AddDropdown("MapDifficulty", {
+        Text = "Difficulty",
         Values = {"1 - Normal", "2 - Hard", "3 - Nightmare"},
         Default = "1 - Normal",
         Callback = function(Value)
@@ -508,36 +523,37 @@ function UI.createMapTab()
         end
     })
 
-    MapTab:AddSlider("MapMaxCount", {
-        Title = "Max Players",
+    MapGroup:AddSlider("MapMaxCount", {
+        Text = "Max Players",
         Default = Config.selectedMaxCount,
         Min = 1, Max = 4, Rounding = 0,
         Callback = function(Value) Config.selectedMaxCount = Value end
     })
 
-    MapTab:AddToggle("MapFriendOnly", {
-        Title = "Friend Only",
+    MapGroup:AddToggle("MapFriendOnly", {
+        Text = "Friend Only",
         Default = Config.selectedFriendOnly,
         Callback = function(Value) Config.selectedFriendOnly = Value end
     })
 
-    MapTab:AddButton({
-        Title = "Teleport & Start Map",
-        Callback = function() Map.teleportToWaitAreaAndStart() end
+    MapGroup:AddButton({
+        Text = "Teleport & Start Map",
+        Func = function() Map.teleportToWaitAreaAndStart() end
     })
 
-    MapTab:AddToggle("AutoReplay", {
-        Title = "Auto Replay Match",
-        Description = "Tự động replay khi kết thúc trận",
+    MapGroup:AddToggle("AutoReplay", {
+        Text = "Auto Replay Match",
+        Tooltip = "Automatically replay when the match ends",
         Default = Config.autoReplayEnabled,
         Callback = function(Value) Config.autoReplayEnabled = Value end
     })
 
-    MapTab:AddSection("Supply ESP")
+    MapGroup:AddDivider()
+    MapGroup:AddLabel("Supply ESP")
 
-    MapTab:AddToggle("SupplyESP", {
-        Title = "Supply ESP (Right Side)",
-        Description = "Hiển thị tất cả Supply items bên phải màn hình",
+    MapGroup:AddToggle("SupplyESP", {
+        Text = "Supply ESP (Right Side)",
+        Tooltip = "Display all Supply items on the right side of the screen",
         Default = Config.supplyESPEnabled,
         Callback = function(Value)
             Config.supplyESPEnabled = Value
@@ -549,8 +565,8 @@ function UI.createMapTab()
         end
     })
 
-    MapTab:AddDropdown("SupplyESPPosition", {
-        Title = "Supply Position",
+    MapGroup:AddDropdown("SupplyESPPosition", {
+        Text = "Supply Position",
         Values = {"Left", "Right"},
         Default = Config.supplyESPPosition,
         Callback = function(Value)
@@ -559,21 +575,22 @@ function UI.createMapTab()
         end
     })
 
-    MapTab:AddButton({
-        Title = "Refresh Supply List",
-        Description = "Tìm lại tất cả Supply items ngay lập tức",
-        Callback = function()
+    MapGroup:AddButton({
+        Text = "Refresh Supply List",
+        Tooltip = "Find all Supply items instantly",
+        Func = function()
             if Config.supplyESPEnabled then
                 Map.updateSupplyDisplay()
             end
         end
     })
 
-    MapTab:AddSection("Auto Door")
+    MapGroup:AddDivider()
+    MapGroup:AddLabel("Auto Door")
 
-    MapTab:AddToggle("AutoDoor", {
-        Title = "Auto Open Door",
-        Description = "Tự động mở các cửa khi có trong game (check 5s)",
+    MapGroup:AddToggle("AutoDoor", {
+        Text = "Auto Open Door",
+        Tooltip = "Automatically open doors when available (check every 5s)",
         Default = Config.autoDoorEnabled,
         Callback = function(Value)
             Config.autoDoorEnabled = Value
@@ -587,13 +604,15 @@ end
 ----------------------------------------------------------
 -- 🔹 Event Tab
 function UI.createEventTab()
-    local EventTab = UI.Window:AddTab({ Title = "Event" })
+    local EventTab = UI.Window:AddTab("Event", "calendar")
+    local EventGroup = EventTab:AddLeftGroupbox("Event")
 
-    EventTab:AddSection("Bob ESP")
+    EventGroup:AddDivider()
+    EventGroup:AddLabel("Bob ESP")
 
-    EventTab:AddToggle("ESPBob", {
-        Title = "ESP Bob",
-        Description = "Hiển thị ESP cho Bob (refresh mỗi 5s)",
+    EventGroup:AddToggle("ESPBob", {
+        Text = "ESP Bob",
+        Tooltip = "Display ESP for Bob (refresh every 5s)",
         Default = Config.espBobEnabled,
         Callback = function(Value)
             Config.espBobEnabled = Value
@@ -605,12 +624,12 @@ function UI.createEventTab()
         end
     })
 
-    EventTab:AddColorpicker("ESPBobColor", {
-        Title = "Bob ESP Color",
+    EventGroup:AddLabel("Bob ESP Color"):AddColorPicker("ESPBobColor", {
         Default = Config.espColorBob,
+        Title = "Bob ESP Color",
         Callback = function(Value)
             Config.espColorBob = Value
-            -- Refresh highlights với màu mới
+            -- Refresh highlights with new color
             for model, highlight in pairs(ESP.bobHighlights) do
                 if highlight then
                     highlight.FillColor = Value
@@ -626,25 +645,25 @@ function UI.createEventTab()
         end
     })
 
-    EventTab:AddButton({
-        Title = "Teleport to Bob",
-        Description = "Teleport tới Bob gần nhất",
-        Callback = function()
+    EventGroup:AddButton({
+        Text = "Teleport to Bob",
+        Tooltip = "Teleport to the nearest Bob",
+        Func = function()
             local success = ESP.teleportToBob()
             if success then
-                if Config.UI and Config.UI.Fluent then
-                    Config.UI.Fluent:Notify({
+                if Config.UI and Config.UI.Library then
+                    Config.UI.Library:Notify({
                         Title = "Bob ESP",
-                        Content = "Đã teleport tới Bob!",
-                        Duration = 2
+                        Description = "Teleported to Bob!",
+                        Time = 2
                     })
                 end
             else
-                if Config.UI and Config.UI.Fluent then
-                    Config.UI.Fluent:Notify({
+                if Config.UI and Config.UI.Library then
+                    Config.UI.Library:Notify({
                         Title = "Bob ESP",
-                        Content = "Không tìm thấy Bob!",
-                        Duration = 2
+                        Description = "Bob not found!",
+                        Time = 2
                     })
                 end
             end
@@ -657,84 +676,88 @@ end
 ----------------------------------------------------------
 -- 🔹 Farm Tab
 function UI.createFarmTab()
-    local FarmTab = UI.Window:AddTab({ Title = "Farm" })
+    local FarmTab = UI.Window:AddTab("Farm", "package")
+    local FarmGroup = FarmTab:AddLeftGroupbox("Farm")
 
-    FarmTab:AddToggle("AutoBulletBox", {
-        Title = "Auto BulletBox + Items",
+    FarmGroup:AddToggle("AutoBulletBox", {
+        Text = "Auto BulletBox + Items",
         Default = Config.autoBulletBoxEnabled,
         Callback = function(Value) Config.autoBulletBoxEnabled = Value end
     })
 
-    FarmTab:AddToggle("Teleport", {
-        Title = "Auto Chest (T Key)",
+    FarmGroup:AddToggle("Teleport", {
+        Text = "Auto Chest (T Key)",
         Default = Config.teleportEnabled,
         Callback = function(Value) Config.teleportEnabled = Value end
     })
 
-    FarmTab:AddSection("Potions - Common")
+    FarmGroup:AddDivider()
+    FarmGroup:AddLabel("Potions - Common")
 
-    FarmTab:AddButton({
-        Title = "Common Attack (Buy + Drink)",
-        Callback = function()
+    FarmGroup:AddButton({
+        Text = "Common Attack (Buy + Drink)",
+        Func = function()
             if Farm and Farm.buyAndDrinkPotion then
                 Farm.buyAndDrinkPotion("CommonAttack")
             end
         end
     })
 
-    FarmTab:AddButton({
-        Title = "Common Health (Buy + Drink)",
-        Callback = function()
+    FarmGroup:AddButton({
+        Text = "Common Health (Buy + Drink)",
+        Func = function()
             if Farm and Farm.buyAndDrinkPotion then
                 Farm.buyAndDrinkPotion("CommonHealth")
             end
         end
     })
 
-    FarmTab:AddButton({
-        Title = "Common Luck (Buy + Drink)",
-        Callback = function()
+    FarmGroup:AddButton({
+        Text = "Common Luck (Buy + Drink)",
+        Func = function()
             if Farm and Farm.buyAndDrinkPotion then
                 Farm.buyAndDrinkPotion("CommonLuck")
             end
         end
     })
 
-    FarmTab:AddSection("Potions - Rare")
+    FarmGroup:AddDivider()
+    FarmGroup:AddLabel("Potions - Rare")
 
-    FarmTab:AddButton({
-        Title = "Rare Attack (Buy + Drink)",
-        Callback = function()
+    FarmGroup:AddButton({
+        Text = "Rare Attack (Buy + Drink)",
+        Func = function()
             if Farm and Farm.buyAndDrinkPotion then
                 Farm.buyAndDrinkPotion("RareAttack")
             end
         end
     })
 
-    FarmTab:AddButton({
-        Title = "Rare Health (Buy + Drink)",
-        Callback = function()
+    FarmGroup:AddButton({
+        Text = "Rare Health (Buy + Drink)",
+        Func = function()
             if Farm and Farm.buyAndDrinkPotion then
                 Farm.buyAndDrinkPotion("RareHealth")
             end
         end
     })
 
-    FarmTab:AddButton({
-        Title = "Rare Luck (Buy + Drink)",
-        Callback = function()
+    FarmGroup:AddButton({
+        Text = "Rare Luck (Buy + Drink)",
+        Func = function()
             if Farm and Farm.buyAndDrinkPotion then
                 Farm.buyAndDrinkPotion("RareLuck")
             end
         end
     })
 
-    FarmTab:AddSection("Codes")
+    FarmGroup:AddDivider()
+    FarmGroup:AddLabel("Codes")
 
-    FarmTab:AddButton({
-        Title = "Redeem All Codes",
-        Description = "RAID1212, CHRISTMAS, UPD1212",
-        Callback = function()
+    FarmGroup:AddButton({
+        Text = "Redeem All Codes",
+        Tooltip = "RAID1212, CHRISTMAS, UPD1212",
+        Func = function()
             Farm.redeemAllCodes()
         end
     })
@@ -746,9 +769,11 @@ end
 ----------------------------------------------------------
 -- 🔹 Character Tab
 function UI.createCharacterTab()
-    local CharacterTab = UI.Window:AddTab({ Title = "Character" })
+    local CharacterTab = UI.Window:AddTab("Character", "user")
+    local CharacterGroup = CharacterTab:AddLeftGroupbox("Character")
 
-    CharacterTab:AddSection("Character Selection")
+    CharacterGroup:AddDivider()
+    CharacterGroup:AddLabel("Character Selection")
 
     local displayList, displayToId = Character.getCharacterDisplayList()
 
@@ -776,8 +801,8 @@ function UI.createCharacterTab()
         Config.selectedCharacterDisplay = defaultDisplay
     end
 
-    CharacterTab:AddDropdown("SelectedCharacter", {
-        Title = "Character",
+    CharacterGroup:AddDropdown("SelectedCharacter", {
+        Text = "Character",
         Values = displayList,
         Default = defaultDisplay,
         Callback = function(Value)
@@ -790,17 +815,17 @@ function UI.createCharacterTab()
         end
     })
 
-    CharacterTab:AddButton({
-        Title = "Equip Selected Character",
-        Description = "Equip nhân vật đã chọn (và dùng cho Auto Skill)",
-        Callback = function()
+    CharacterGroup:AddButton({
+        Text = "Equip Selected Character",
+        Tooltip = "Equip the selected character (and use for Auto Skill)",
+        Func = function()
             local id = Config.selectedCharacterId
             if not id then
-                if Config.UI and Config.UI.Fluent then
-                    Config.UI.Fluent:Notify({
+                if Config.UI and Config.UI.Library then
+                    Config.UI.Library:Notify({
                         Title = "Character",
-                        Content = "Chưa chọn nhân vật trong dropdown!",
-                        Duration = 3
+                        Description = "No character selected in dropdown!",
+                        Time = 3
                     })
                 end
                 return
@@ -808,46 +833,47 @@ function UI.createCharacterTab()
 
             local success, err = Character.equipCharacter(id)
 
-            if Config.UI and Config.UI.Fluent then
+            if Config.UI and Config.UI.Library then
                 if success then
-                    Config.UI.Fluent:Notify({
+                    Config.UI.Library:Notify({
                         Title = "Character",
-                        Content = "Đã gửi yêu cầu equip nhân vật " .. tostring(Config.selectedCharacterDisplay or id),
-                        Duration = 3
+                        Description = "Sent request to equip character " .. tostring(Config.selectedCharacterDisplay or id),
+                        Time = 3
                     })
                 else
-                    Config.UI.Fluent:Notify({
+                    Config.UI.Library:Notify({
                         Title = "Character",
-                        Content = "Equip thất bại: " .. tostring(err),
-                        Duration = 3
+                        Description = "Equip failed: " .. tostring(err),
+                        Time = 3
                     })
                 end
             end
         end
     })
 
-    CharacterTab:AddSection("Auto Skill")
+    CharacterGroup:AddDivider()
+    CharacterGroup:AddLabel("Auto Skill")
 
     -- Lấy character ID hiện tại để quyết định hiển thị skill nào
     local currentCharacterId = Character.getCurrentCharacterId()
     
-    -- Tạo toggle Auto Skill với description động
-    local autoSkillDesc = "Tự động dùng skill phù hợp với character hiện tại"
+    -- Create Auto Skill toggle with dynamic tooltip
+    local autoSkillTooltip = "Automatically use the appropriate skill for the current character"
     if currentCharacterId == 1006 then
-        autoSkillDesc = "Tự động dùng Armsmaster Ultimate + Healing"
+        autoSkillTooltip = "Automatically use Armsmaster Ultimate + Healing"
     elseif currentCharacterId == 1003 then
-        autoSkillDesc = "Tự động dùng Wraith Ultimate + Healing"
+        autoSkillTooltip = "Automatically use Wraith Ultimate + Healing"
     elseif currentCharacterId == 1001 then
-        autoSkillDesc = "Tự động dùng Assault Ultimate + Healing"
+        autoSkillTooltip = "Automatically use Assault Ultimate + Healing"
     elseif currentCharacterId == 1004 then
-        autoSkillDesc = "Tự động dùng Flag Bearer Ultimate + Healing"
+        autoSkillTooltip = "Automatically use Flag Bearer Ultimate + Healing"
     elseif currentCharacterId then
-        autoSkillDesc = "Tự động dùng Healing (character này không có ultimate riêng)"
+        autoSkillTooltip = "Automatically use Healing (this character doesn't have a unique ultimate)"
     end
 
-    CharacterTab:AddToggle("AutoSkill", {
-        Title = "Auto Skill",
-        Description = autoSkillDesc,
+    CharacterGroup:AddToggle("AutoSkill", {
+        Text = "Auto Skill",
+        Tooltip = autoSkillTooltip,
         Default = Config.autoSkillEnabled,
         Callback = function(Value)
             Config.autoSkillEnabled = Value
@@ -855,18 +881,18 @@ function UI.createCharacterTab()
     })
 
     -- Healing Skill (luôn hiển thị - character nào cũng có)
-    CharacterTab:AddSlider("HealingSkillInterval", {
-        Title = "F Skill (Healing) Interval (s)",
-        Description = "Skill F - Character nào cũng có",
+    CharacterGroup:AddSlider("HealingSkillInterval", {
+        Text = "F Skill (Healing) Interval (s)",
+        Tooltip = "Skill F - All characters have",
         Default = Config.healingSkillInterval,
         Min = 15, Max = 60, Rounding = 0,
         Callback = function(Value) Config.healingSkillInterval = Value end
     })
 
-    -- Armsmaster Ultimate (chỉ hiển thị khi character = 1006)
+    -- Armsmaster Ultimate (only show when character = 1006)
     if currentCharacterId == 1006 then
-        CharacterTab:AddSlider("ArmsmasterUltimateInterval", {
-            Title = "Armsmaster Ultimate Interval (s)",
+        CharacterGroup:AddSlider("ArmsmasterUltimateInterval", {
+            Text = "Armsmaster Ultimate Interval (s)",
             Default = Config.armsmasterUltimateInterval,
             Min = 15, Max = 60, Rounding = 0,
             Callback = function(Value) Config.armsmasterUltimateInterval = Value end
@@ -875,8 +901,8 @@ function UI.createCharacterTab()
 
     -- Wraith Ultimate (chỉ hiển thị khi character = 1003)
     if currentCharacterId == 1003 then
-        CharacterTab:AddSlider("WraithUltimateInterval", {
-            Title = "Wraith Ultimate Interval (s)",
+        CharacterGroup:AddSlider("WraithUltimateInterval", {
+            Text = "Wraith Ultimate Interval (s)",
             Default = Config.wraithUltimateInterval,
             Min = 0.3, Max = 60, Rounding = 1,
             Callback = function(Value) Config.wraithUltimateInterval = Value end
@@ -885,8 +911,8 @@ function UI.createCharacterTab()
 
     -- Assault Ultimate (chỉ hiển thị khi character = 1001)
     if currentCharacterId == 1001 then
-        CharacterTab:AddSlider("AssaultUltimateInterval", {
-            Title = "Assault Ultimate Interval (s)",
+        CharacterGroup:AddSlider("AssaultUltimateInterval", {
+            Text = "Assault Ultimate Interval (s)",
             Default = Config.assaultUltimateInterval,
             Min = 0.3, Max = 60, Rounding = 1,
             Callback = function(Value) Config.assaultUltimateInterval = Value end
@@ -895,8 +921,8 @@ function UI.createCharacterTab()
 
     -- Flag Bearer Ultimate (chỉ hiển thị khi character = 1004)
     if currentCharacterId == 1004 then
-        CharacterTab:AddSlider("FlagBearerUltimateInterval", {
-            Title = "Flag Bearer Ultimate Interval (s)",
+        CharacterGroup:AddSlider("FlagBearerUltimateInterval", {
+            Text = "Flag Bearer Ultimate Interval (s)",
             Default = Config.flagBearerUltimateInterval,
             Min = 5, Max = 60, Rounding = 0,
             Callback = function(Value) Config.flagBearerUltimateInterval = Value end
@@ -910,27 +936,28 @@ end
 ----------------------------------------------------------
 -- 🔹 Settings Tab
 function UI.createSettingsTab(cleanupCallback)
-    local SettingsTab = UI.Window:AddTab({ Title = "Settings" })
+    local SettingsTab = UI.Window:AddTab("Settings", "settings")
+    local SettingsGroup = SettingsTab:AddLeftGroupbox("Settings")
 
-    SettingsTab:AddSection("Reset Script")
+    SettingsGroup:AddDivider()
+    SettingsGroup:AddLabel("Reset Script")
 
-    SettingsTab:AddButton({
-        Title = "Unload Script",
-        Description = "Unload toàn bộ script và xóa GUI",
-        Callback = function()
+    SettingsGroup:AddButton({
+        Text = "Unload Script",
+        Tooltip = "Unload all scripts and delete GUI",
+        Func = function()
             if cleanupCallback then cleanupCallback() end
         end
     })
 
     -- Config Save / Load
-    UI.SaveManager:SetLibrary(UI.Fluent)
-    UI.InterfaceManager:SetLibrary(UI.Fluent)
+    UI.SaveManager:SetLibrary(UI.Library)
+    UI.ThemeManager:SetLibrary(UI.Library)
     UI.SaveManager:IgnoreThemeSettings()
     UI.SaveManager:SetIgnoreIndexes({})
-    UI.InterfaceManager:SetFolder("ZombieHyperloot")
     UI.SaveManager:SetFolder("ZombieHyperloot/Configs")
-    UI.InterfaceManager:BuildInterfaceSection(SettingsTab)
     UI.SaveManager:BuildConfigSection(SettingsTab)
+    UI.ThemeManager:ApplyToTab(SettingsTab)
     UI.SaveManager:LoadAutoloadConfig()
 
     return SettingsTab
@@ -939,59 +966,54 @@ end
 ----------------------------------------------------------
 -- 🔹 Info Tab
 function UI.createInfoTab()
-    local InfoTab = UI.Window:AddTab({ Title = "Info" })
+    local InfoTab = UI.Window:AddTab("Info", "info")
+    local InfoGroup = InfoTab:AddLeftGroupbox("Info")
 
-    InfoTab:AddParagraph({
-        Title = "Controls",
-        Content = [[
-            Right Click - Activate Aimbot (if enabled)
-            T Key - Auto Open All Chests  
-            X Key - Camera Teleport to Zombies
-            M Key - Toggle Anti-Zombie
-            N Key - Toggle Noclip Cam
-            R Key - Toggle Auto Rotate 360°
-            Right Ctrl - Open/Close Menu
-            
-            Auto Rotate 360° - Camera tự xoay tới zombie gần nhất
-            Supply ESP - Hiển thị bên trái màn hình
-            Auto refresh mỗi 15 giây
-        ]]
-    })
+    InfoGroup:AddLabel("Controls", true)
+    InfoGroup:AddLabel([[
+Right Click - Activate Aimbot (if enabled)
+T Key - Auto Open All Chests  
+X Key - Camera Teleport to Zombies
+M Key - Toggle Anti-Zombie
+N Key - Toggle Noclip Cam
+R Key - Toggle Auto Rotate 360°
+Right Ctrl - Open/Close Menu
 
-    InfoTab:AddParagraph({
-        Title = "Tips",
-        Content = [[
-            • Combine Aimbot + Hitbox for maximum efficiency
-            • Use ESP to track zombies through walls
-            • ESP Player shows enemies through walls with boxes
-            • Anti-Zombie keeps you safe from attacks
-            • Auto Skill provides continuous damage
-            • Camera Teleport is great for farming
-            • Auto Chest collects all loot instantly
-            • Aimbot targets both zombies and players
-            • Auto Rotate 360° (R key) tự động nhắm zombie gần nhất
+Auto Rotate 360° - Camera tự xoay tới zombie gần nhất
+Supply ESP - Hiển thị bên trái màn hình
+Auto refresh mỗi 15 giây
+]], true)
 
-        ]]
-    })
+    InfoGroup:AddDivider()
+    InfoGroup:AddLabel("Tips", true)
+    InfoGroup:AddLabel([[
+• Combine Aimbot + Hitbox for maximum efficiency
+• Use ESP to track zombies through walls
+• ESP Player shows enemies through walls with boxes
+• Anti-Zombie keeps you safe from attacks
+• Auto Skill provides continuous damage
+• Camera Teleport is great for farming
+• Auto Chest collects all loot instantly
+• Aimbot targets both zombies and players
+• Auto Rotate 360° (R key) tự động nhắm zombie gần nhất
+]], true)
 
-    InfoTab:AddParagraph({
-        Title = "Cleanup",
-        Content = [[
-            • End key - Unload script & cleanup everything
-            • Right Ctrl - Toggle menu
-            • Camera Teleport (X) tự tắt aimbot, tự bật lại khi kết thúc
-        ]]
-    })
+    InfoGroup:AddDivider()
+    InfoGroup:AddLabel("Cleanup", true)
+    InfoGroup:AddLabel([[
+• End key - Unload script & cleanup everything
+• Right Ctrl - Toggle menu
+• Camera Teleport (X) tự tắt aimbot, tự bật lại khi kết thúc
+]], true)
 
-    InfoTab:AddParagraph({
-        Title = "Important",
-        Content = [[
-            • Some features may not work in all games
-            • Use responsibly to avoid detection
-            • Adjust settings based on your playstyle
-            • Disable features if experiencing lag
-        ]]
-    })
+    InfoGroup:AddDivider()
+    InfoGroup:AddLabel("Important", true)
+    InfoGroup:AddLabel([[
+• Some features may not work in all games
+• Use responsibly to avoid detection
+• Adjust settings based on your playstyle
+• Disable features if experiencing lag
+]], true)
 
     return InfoTab
 end
@@ -999,30 +1021,32 @@ end
 ----------------------------------------------------------
 -- 🔹 HUD Customization Tab
 function UI.createHUDTab()
-    local HUDTab = UI.Window:AddTab({ Title = "HUD Customize" })
+    local HUDTab = UI.Window:AddTab("HUD Customize", "layout")
+    local HUDGroup = HUDTab:AddLeftGroupbox("HUD Customize")
 
-    HUDTab:AddToggle("CustomHUD", {
-        Title = "Enable Custom HUD",
-        Description = "Bật/tắt custom HUD",
+    HUDGroup:AddToggle("CustomHUD", {
+        Text = "Enable Custom HUD",
+        Tooltip = "Bật/tắt custom HUD",
         Default = false,
         Callback = function(Value)
             HUD.toggleCustomHUD(Value)
         end
     })
 
-    HUDTab:AddToggle("ApplyToOtherPlayers", {
-        Title = "Apply to Other Players",
-        Description = "Áp dụng custom HUD cho tất cả players khác",
+    HUDGroup:AddToggle("ApplyToOtherPlayers", {
+        Text = "Apply to Other Players",
+        Tooltip = "Áp dụng custom HUD cho tất cả players khác",
         Default = true,
         Callback = function(Value)
             HUD.toggleApplyToOtherPlayers(Value)
         end
     })
 
-    HUDTab:AddSection("Visibility Settings")
+    HUDGroup:AddDivider()
+    HUDGroup:AddLabel("Visibility Settings")
 
-    HUDTab:AddToggle("TitleVisible", {
-        Title = "Show Title",
+    HUDGroup:AddToggle("TitleVisible", {
+        Text = "Show Title",
         Default = true,
         Callback = function(Value)
             HUD.titleVisible = Value
@@ -1032,8 +1056,8 @@ function UI.createHUDTab()
         end
     })
 
-    HUDTab:AddToggle("PlayerNameVisible", {
-        Title = "Show Player Name",
+    HUDGroup:AddToggle("PlayerNameVisible", {
+        Text = "Show Player Name",
         Default = true,
         Callback = function(Value)
             HUD.playerNameVisible = Value
@@ -1043,8 +1067,8 @@ function UI.createHUDTab()
         end
     })
 
-    HUDTab:AddToggle("ClassVisible", {
-        Title = "Show Class",
+    HUDGroup:AddToggle("ClassVisible", {
+        Text = "Show Class",
         Default = true,
         Callback = function(Value)
             HUD.classVisible = Value
@@ -1054,8 +1078,8 @@ function UI.createHUDTab()
         end
     })
 
-    HUDTab:AddToggle("LevelVisible", {
-        Title = "Show Level",
+    HUDGroup:AddToggle("LevelVisible", {
+        Text = "Show Level",
         Default = true,
         Callback = function(Value)
             HUD.levelVisible = Value
@@ -1065,33 +1089,36 @@ function UI.createHUDTab()
         end
     })
 
-    HUDTab:AddSection("Lobby UI")
+    HUDGroup:AddDivider()
+    HUDGroup:AddLabel("Lobby UI")
 
-    HUDTab:AddToggle("LobbyPlayerInfoVisible", {
-        Title = "Show Lobby PlayerInfo",
-        Description = "Hiện/ẩn PlayerInfo trong Lobby",
+    HUDGroup:AddToggle("LobbyPlayerInfoVisible", {
+        Text = "Show Lobby PlayerInfo",
+        Tooltip = "Show/hide PlayerInfo in Lobby",
         Default = true,
         Callback = function(Value)
             HUD.toggleLobbyPlayerInfo(Value)
         end
     })
 
-    HUDTab:AddSection("EXP Display")
+    HUDGroup:AddDivider()
+    HUDGroup:AddLabel("EXP Display")
 
-    HUDTab:AddToggle("ExpDisplay", {
-        Title = "Show EXP Display",
-        Description = "Hiển thị EXP ở góc phải dưới màn hình",
+    HUDGroup:AddToggle("ExpDisplay", {
+        Text = "Show EXP Display",
+        Tooltip = "Display EXP at the bottom right of the screen",
         Default = true,
         Callback = function(Value)
             HUD.toggleExpDisplay(Value)
         end
     })
 
-    HUDTab:AddSection("Text Customization")
+    HUDGroup:AddDivider()
+    HUDGroup:AddLabel("Text Customization")
 
-    HUDTab:AddInput("CustomTitle", {
-        Title = "Custom Title",
-        Description = "Để trống để giữ nguyên",
+    HUDGroup:AddInput("CustomTitle", {
+        Text = "Custom Title",
+        Tooltip = "Leave empty to keep original",
         Default = "CHEATER",
         Placeholder = "Enter title...",
         Callback = function(Value)
@@ -1102,9 +1129,9 @@ function UI.createHUDTab()
         end
     })
 
-    HUDTab:AddInput("CustomPlayerName", {
-        Title = "Custom Player Name",
-        Description = "Để trống để giữ nguyên",
+    HUDGroup:AddInput("CustomPlayerName", {
+        Text = "Custom Player Name",
+        Tooltip = "Leave empty to keep original",
         Default = "WiniFy",
         Placeholder = "Enter name...",
         Callback = function(Value)
@@ -1115,9 +1142,9 @@ function UI.createHUDTab()
         end
     })
 
-    HUDTab:AddInput("CustomClass", {
-        Title = "Custom Class",
-        Description = "Để trống để giữ nguyên",
+    HUDGroup:AddInput("CustomClass", {
+        Text = "Custom Class",
+        Tooltip = "Leave empty to keep original",
         Default = "",
         Placeholder = "Enter class...",
         Callback = function(Value)
@@ -1128,9 +1155,9 @@ function UI.createHUDTab()
         end
     })
 
-    HUDTab:AddInput("CustomLevel", {
-        Title = "Custom Level",
-        Description = "Để trống để giữ nguyên",
+    HUDGroup:AddInput("CustomLevel", {
+        Text = "Custom Level",
+        Tooltip = "Leave empty to keep original",
         Default = "",
         Placeholder = "Enter level...",
         Callback = function(Value)
@@ -1141,11 +1168,12 @@ function UI.createHUDTab()
         end
     })
 
-    HUDTab:AddSection("Title Gradient Colors")
+    HUDGroup:AddDivider()
+    HUDGroup:AddLabel("Title Gradient Colors")
 
-    HUDTab:AddColorpicker("TitleGradient1", {
-        Title = "Title Color 1",
+    HUDGroup:AddLabel("Title Color 1"):AddColorPicker("TitleGradient1", {
         Default = Color3.fromRGB(255, 0, 0), -- Red
+        Title = "Title Color 1",
         Callback = function(Value)
             HUD.titleGradientColor1 = Value
             if HUD.customHUDEnabled then
@@ -1154,9 +1182,9 @@ function UI.createHUDTab()
         end
     })
 
-    HUDTab:AddColorpicker("TitleGradient2", {
-        Title = "Title Color 2",
+    HUDGroup:AddLabel("Title Color 2"):AddColorPicker("TitleGradient2", {
         Default = Color3.fromRGB(255, 255, 255), -- White
+        Title = "Title Color 2",
         Callback = function(Value)
             HUD.titleGradientColor2 = Value
             if HUD.customHUDEnabled then
@@ -1165,11 +1193,12 @@ function UI.createHUDTab()
         end
     })
 
-    HUDTab:AddSection("Player Name Gradient Colors")
+    HUDGroup:AddDivider()
+    HUDGroup:AddLabel("Player Name Gradient Colors")
 
-    HUDTab:AddColorpicker("PlayerNameGradient1", {
-        Title = "Name Color 1",
+    HUDGroup:AddLabel("Name Color 1"):AddColorPicker("PlayerNameGradient1", {
         Default = HUD.playerNameGradientColor1 or Color3.fromRGB(255, 255, 255),
+        Title = "Name Color 1",
         Callback = function(Value)
             HUD.playerNameGradientColor1 = Value
             if HUD.customHUDEnabled then
@@ -1178,9 +1207,9 @@ function UI.createHUDTab()
         end
     })
 
-    HUDTab:AddColorpicker("PlayerNameGradient2", {
-        Title = "Name Color 2",
+    HUDGroup:AddLabel("Name Color 2"):AddColorPicker("PlayerNameGradient2", {
         Default = HUD.playerNameGradientColor2 or Color3.fromRGB(255, 255, 255),
+        Title = "Name Color 2",
         Callback = function(Value)
             HUD.playerNameGradientColor2 = Value
             if HUD.customHUDEnabled then
@@ -1189,11 +1218,12 @@ function UI.createHUDTab()
         end
     })
 
-    HUDTab:AddSection("Class Gradient Colors")
+    HUDGroup:AddDivider()
+    HUDGroup:AddLabel("Class Gradient Colors")
 
-    HUDTab:AddColorpicker("ClassGradient1", {
-        Title = "Class Color 1",
+    HUDGroup:AddLabel("Class Color 1"):AddColorPicker("ClassGradient1", {
         Default = HUD.classGradientColor1 or Color3.fromRGB(255, 255, 255),
+        Title = "Class Color 1",
         Callback = function(Value)
             HUD.classGradientColor1 = Value
             if HUD.customHUDEnabled then
@@ -1202,9 +1232,9 @@ function UI.createHUDTab()
         end
     })
 
-    HUDTab:AddColorpicker("ClassGradient2", {
-        Title = "Class Color 2",
+    HUDGroup:AddLabel("Class Color 2"):AddColorPicker("ClassGradient2", {
         Default = HUD.classGradientColor2 or Color3.fromRGB(255, 255, 255),
+        Title = "Class Color 2",
         Callback = function(Value)
             HUD.classGradientColor2 = Value
             if HUD.customHUDEnabled then
@@ -1213,11 +1243,12 @@ function UI.createHUDTab()
         end
     })
 
-    HUDTab:AddSection("Level Gradient Colors")
+    HUDGroup:AddDivider()
+    HUDGroup:AddLabel("Level Gradient Colors")
 
-    HUDTab:AddColorpicker("LevelGradient1", {
-        Title = "Level Color 1",
+    HUDGroup:AddLabel("Level Color 1"):AddColorPicker("LevelGradient1", {
         Default = HUD.levelGradientColor1 or Color3.fromRGB(255, 255, 255),
+        Title = "Level Color 1",
         Callback = function(Value)
             HUD.levelGradientColor1 = Value
             if HUD.customHUDEnabled then
@@ -1226,9 +1257,9 @@ function UI.createHUDTab()
         end
     })
 
-    HUDTab:AddColorpicker("LevelGradient2", {
-        Title = "Level Color 2",
+    HUDGroup:AddLabel("Level Color 2"):AddColorPicker("LevelGradient2", {
         Default = HUD.levelGradientColor2 or Color3.fromRGB(255, 255, 255),
+        Title = "Level Color 2",
         Callback = function(Value)
             HUD.levelGradientColor2 = Value
             if HUD.customHUDEnabled then
@@ -1237,22 +1268,23 @@ function UI.createHUDTab()
         end
     })
 
-    HUDTab:AddSection("Actions")
+    HUDGroup:AddDivider()
+    HUDGroup:AddLabel("Actions")
 
-    HUDTab:AddButton({
-        Title = "Apply Changes",
-        Description = "Áp dụng tất cả thay đổi",
-        Callback = function()
+    HUDGroup:AddButton({
+        Text = "Apply Changes",
+        Tooltip = "Apply all changes",
+        Func = function()
             if HUD.customHUDEnabled then
                 HUD.applyCustomHUD()
             end
         end
     })
 
-    HUDTab:AddButton({
-        Title = "Reset to Original",
-        Description = "Khôi phục HUD về ban đầu",
-        Callback = function()
+    HUDGroup:AddButton({
+        Text = "Reset to Original",
+        Tooltip = "Restore HUD to original",
+        Func = function()
             HUD.restoreOriginalHUD()
         end
     })
@@ -1265,13 +1297,15 @@ end
 ----------------------------------------------------------
 -- 🔹 Visuals Tab
 function UI.createVisualsTab()
-    local VisualsTab = UI.Window:AddTab({ Title = "Visuals" })
+    local VisualsTab = UI.Window:AddTab("Visuals", "eye")
+    local VisualsGroup = VisualsTab:AddLeftGroupbox("Visuals")
 
-    VisualsTab:AddSection("Fog")
+    VisualsGroup:AddDivider()
+    VisualsGroup:AddLabel("Fog")
 
-    VisualsTab:AddToggle("RemoveFog", {
-        Title = "Remove Fog",
-        Description = "Xóa sương mù để nhìn xa hơn",
+    VisualsGroup:AddToggle("RemoveFog", {
+        Text = "Remove Fog",
+        Tooltip = "Remove fog to see further",
         Default = Config.removeFogEnabled,
         Callback = function(Value)
             Config.removeFogEnabled = Value
@@ -1279,11 +1313,12 @@ function UI.createVisualsTab()
         end
     })
 
-    VisualsTab:AddSection("Lighting")
+    VisualsGroup:AddDivider()
+    VisualsGroup:AddLabel("Lighting")
 
-    VisualsTab:AddToggle("Fullbright", {
-        Title = "Fullbright",
-        Description = "Làm sáng toàn bộ map",
+    VisualsGroup:AddToggle("Fullbright", {
+        Text = "Fullbright",
+        Tooltip = "Make the entire map brighter",
         Default = Config.fullbrightEnabled,
         Callback = function(Value)
             Config.fullbrightEnabled = Value
@@ -1291,11 +1326,12 @@ function UI.createVisualsTab()
         end
     })
 
-    VisualsTab:AddSection("Time Control")
+    VisualsGroup:AddDivider()
+    VisualsGroup:AddLabel("Time Control")
 
-    VisualsTab:AddToggle("CustomTime", {
-        Title = "Custom Time",
-        Description = "Tùy chỉnh thời gian trong game",
+    VisualsGroup:AddToggle("CustomTime", {
+        Text = "Custom Time",
+        Tooltip = "Customize time in game",
         Default = Config.customTimeEnabled,
         Callback = function(Value)
             Config.customTimeEnabled = Value
@@ -1303,9 +1339,9 @@ function UI.createVisualsTab()
         end
     })
 
-    VisualsTab:AddSlider("TimeValue", {
-        Title = "Time (Hour)",
-        Description = "0 = Midnight, 12 = Noon, 14 = Afternoon",
+    VisualsGroup:AddSlider("TimeValue", {
+        Text = "Time (Hour)",
+        Tooltip = "0 = Midnight, 12 = Noon, 14 = Afternoon",
         Default = Config.customTimeValue,
         Min = 0, Max = 24, Rounding = 0,
         Callback = function(Value)
@@ -1316,11 +1352,12 @@ function UI.createVisualsTab()
         end
     })
 
-    VisualsTab:AddSection("Effects")
+    VisualsGroup:AddDivider()
+    VisualsGroup:AddLabel("Effects")
 
-    VisualsTab:AddToggle("RemoveEffects", {
-        Title = "Auto Remove Effects",
-        Description = "Tự động xóa effects khi dupe lần đầu",
+    VisualsGroup:AddToggle("RemoveEffects", {
+        Text = "Auto Remove Effects",
+        Tooltip = "Automatically remove effects when duping for the first time",
         Default = Config.removeEffectsEnabled,
         Callback = function(Value) Config.removeEffectsEnabled = Value end
     })
@@ -1342,7 +1379,7 @@ function UI.buildAllTabs(cleanupCallback)
     UI.createHUDTab()
     UI.createSettingsTab(cleanupCallback)
     UI.createInfoTab()
-    UI.Window:SelectTab(1)
+    -- Obsidian UI tabs are auto-selected, no need for SelectTab
 end
 
 ----------------------------------------------------------

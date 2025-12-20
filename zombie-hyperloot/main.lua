@@ -289,12 +289,11 @@ local function cleanupScript()
     end
 
     -- Notify script unload
-    if Config.UI and Config.UI.Fluent then
-        Config.UI.Fluent:Notify({
+    if Config.UI and Config.UI.Library then
+        Config.UI.Library:Notify({
             Title = "Zombie Hyperloot",
-            Content = "Script unloaded successfully",
-            SubContent = "All features disabled and cleaned up",
-            Duration = 4
+            Description = "Script unloaded successfully\nAll features disabled and cleaned up",
+            Time = 4
         })
     end
 end
@@ -731,12 +730,11 @@ end
 screenGui:Destroy()
 
 -- Success notification
-if Config.UI and Config.UI.Fluent then
-    Config.UI.Fluent:Notify({
+if Config.UI and Config.UI.Library then
+    Config.UI.Library:Notify({
         Title = "Zombie Hyperloot",
-        Content = "Script loaded successfully!",
-        SubContent = "Press Right Ctrl to open menu | R key for Auto Rotate",
-        Duration = 6
+        Description = "Script loaded successfully!\nPress Right Ctrl to open menu | R key for Auto Rotate",
+        Time = 6
     })
 end
 
