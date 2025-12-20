@@ -1567,48 +1567,48 @@ function UI.createInfoTab()
 
     InfoGroup:AddLabel("Controls", true)
     InfoGroup:AddLabel([[
-Right Click - Activate Aimbot (if enabled)
-T Key - Auto Open All Chests  
-X Key - Camera Teleport to Zombies
-M Key - Toggle Anti-Zombie
-N Key - Toggle Noclip Cam
-R Key - Toggle Auto Rotate 360°
-Right Ctrl - Open/Close Menu
-
-Auto Rotate 360° - Camera tự xoay tới zombie gần nhất
-Supply ESP - Hiển thị bên trái màn hình
-Auto refresh mỗi 15 giây
+            Right Click - Activate Aimbot (if enabled)
+            T Key - Auto Open All Chests  
+            X Key - Camera Teleport to Zombies
+            M Key - Toggle Anti-Zombie
+            N Key - Toggle Noclip Cam
+            R Key - Toggle Auto Rotate 360°
+            Right Ctrl - Open/Close Menu
+            
+            Auto Rotate 360° - Camera tự xoay tới zombie gần nhất
+            Supply ESP - Hiển thị bên trái màn hình
+            Auto refresh mỗi 15 giây
 ]], true)
 
     InfoGroup:AddDivider()
     InfoGroup:AddLabel("Tips", true)
     InfoGroup:AddLabel([[
-• Combine Aimbot + Hitbox for maximum efficiency
-• Use ESP to track zombies through walls
-• ESP Player shows enemies through walls with boxes
-• Anti-Zombie keeps you safe from attacks
-• Auto Skill provides continuous damage
-• Camera Teleport is great for farming
-• Auto Chest collects all loot instantly
-• Aimbot targets both zombies and players
-• Auto Rotate 360° (R key) tự động nhắm zombie gần nhất
+            • Combine Aimbot + Hitbox for maximum efficiency
+            • Use ESP to track zombies through walls
+            • ESP Player shows enemies through walls with boxes
+            • Anti-Zombie keeps you safe from attacks
+            • Auto Skill provides continuous damage
+            • Camera Teleport is great for farming
+            • Auto Chest collects all loot instantly
+            • Aimbot targets both zombies and players
+            • Auto Rotate 360° (R key) tự động nhắm zombie gần nhất
 ]], true)
 
     InfoGroup:AddDivider()
     InfoGroup:AddLabel("Cleanup", true)
     InfoGroup:AddLabel([[
-• End key - Unload script & cleanup everything
-• Right Ctrl - Toggle menu
-• Camera Teleport (X) tự tắt aimbot, tự bật lại khi kết thúc
+            • End key - Unload script & cleanup everything
+            • Right Ctrl - Toggle menu
+            • Camera Teleport (X) tự tắt aimbot, tự bật lại khi kết thúc
 ]], true)
 
     InfoGroup:AddDivider()
     InfoGroup:AddLabel("Important", true)
     InfoGroup:AddLabel([[
-• Some features may not work in all games
-• Use responsibly to avoid detection
-• Adjust settings based on your playstyle
-• Disable features if experiencing lag
+            • Some features may not work in all games
+            • Use responsibly to avoid detection
+            • Adjust settings based on your playstyle
+            • Disable features if experiencing lag
 ]], true)
 
     return InfoTab

@@ -894,22 +894,15 @@ local function updateESP()
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		
 		if character and humanoid and humanoid.Health > 0 then
-			-- Ưu tiên dùng Head hoặc Torso để tính vị trí chính xác hơn
-			local head = character:FindFirstChild("Head")
-			local torso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
-			local rootPart = character:FindFirstChild("HumanoidRootPart") or torso or character.PrimaryPart
-			
-			-- Dùng torso làm reference chính cho box
-			local refPart = torso or rootPart
-			
-			if not refPart then
+			local rootPart = character:FindFirstChild("HumanoidRootPart") or character.PrimaryPart
+			if not rootPart then
 				if espData and espData.box then espData.box.Visible = false end
 				if espData and espData.tracer then espData.tracer.Visible = false end
 				if espData and espData.label then espData.label.Visible = false end
 				if espData and espData.healthBar then espData.healthBar.Visible = false end
 			else
-				local size = Vector3.new(4, 5, 2) -- Fixed size cho box
-				local points, allVisible = getBoxScreenPoints(refPart.CFrame, size)
+				local size = rootPart.Size + Vector3.new(2, 3, 1)
+				local points, allVisible = getBoxScreenPoints(rootPart.CFrame, size)
 				
 				if espData then
 					if not allVisible or #points == 0 then
@@ -985,12 +978,9 @@ local function updateESP()
 										table.insert(parts, player.Name)
 									end
 								end
-								if Toggles.ESPDistance.Value and refPart then
-									local myRoot = LocalPlayer.Character and (LocalPlayer.Character:FindFirstChild("HumanoidRootPart") or LocalPlayer.Character:FindFirstChild("Torso"))
-									if myRoot then
-										local distance = math.floor((refPart.Position - myRoot.Position).Magnitude)
-										table.insert(parts, tostring(distance) .. " studs")
-									end
+								if Toggles.ESPDistance.Value and rootPart and character.PrimaryPart then
+									local distance = math.floor((rootPart.Position - character.PrimaryPart.Position).Magnitude)
+									table.insert(parts, tostring(distance) .. " studs")
 								end
 								local text = table.concat(parts, " | ")
 								if text ~= "" then
@@ -1076,12 +1066,7 @@ end
 Toggles.PlayerESP:OnChanged(function()
 	if Toggles.PlayerESP.Value then
 		for _, player in pairs(Players:GetPlayers()) do
-			if player ~= LocalPlayer then
-				createESP(player)
-				if Toggles.HighlightESP and Toggles.HighlightESP.Value then
-					createHighlight(player)
-				end
-			end
+			createESP(player)
 		end
 	else
 		-- Tắt toàn bộ ESP khi PlayerESP off
@@ -1091,18 +1076,20 @@ Toggles.PlayerESP:OnChanged(function()
 		for player, _ in pairs(highlightObjects) do
 			removeHighlight(player)
 		end
+		-- Đồng bộ always: PlayerESP off thì HighlightESP cũng off
+		if Toggles.HighlightESP and Toggles.HighlightESP.Value then
+			Toggles.HighlightESP:SetValue(false)
+		end
 	end
 end)
 
--- Highlight là sub-option của PlayerESP
 Toggles.HighlightESP:OnChanged(function()
-	if not Toggles.PlayerESP.Value then return end -- Chỉ hoạt động khi PlayerESP bật
-	
 	if Toggles.HighlightESP.Value then
 		for _, player in pairs(Players:GetPlayers()) do
-			if player ~= LocalPlayer then
+			createHighlight(player)
+			player.CharacterAdded:Connect(function()
 				createHighlight(player)
-			end
+			end)
 		end
 	else
 		for player, _ in pairs(highlightObjects) do
@@ -1139,26 +1126,15 @@ RunService.RenderStepped:Connect(updateESP)
 
 -- Player Added/Removed
 Players.PlayerAdded:Connect(function(player)
-	if player == LocalPlayer then return end
-	
-	-- Tạo ESP và Highlight ngay nếu player đã có character
-	if player.Character then
-		if Toggles.PlayerESP.Value then
-			createESP(player)
-			if Toggles.HighlightESP and Toggles.HighlightESP.Value then
-				createHighlight(player)
-			end
-		end
+	if Toggles.PlayerESP.Value then
+		createESP(player)
 	end
-
-	-- Khi character spawn (bao gồm lần đầu và respawn)
+	if Toggles.HighlightESP and Toggles.HighlightESP.Value then
+		createHighlight(player)
+	end
 	player.CharacterAdded:Connect(function()
-		task.wait(0.1) -- Đợi character load xong
-		if Toggles.PlayerESP.Value then
-			createESP(player)
-			if Toggles.HighlightESP and Toggles.HighlightESP.Value then
-				createHighlight(player)
-			end
+		if Toggles.HighlightESP and Toggles.HighlightESP.Value then
+			createHighlight(player)
 		end
 	end)
 end)
