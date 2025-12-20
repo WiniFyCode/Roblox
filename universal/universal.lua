@@ -654,6 +654,12 @@ ESPGroup:AddToggle("ESPHealth", {
 	Default = false,
 })
 
+ESPGroup:AddToggle("ESPSkeleton", {
+	Text = "Skeleton",
+	Default = false,
+	Tooltip = "Draw skeleton lines on players",
+})
+
 ESPGroup:AddLabel("ESP Color"):AddColorPicker("ESPColor", {
 	Default = Color3.fromRGB(0, 255, 0),
 	Title = "ESP Color",
@@ -721,6 +727,7 @@ local function createESP(player)
 		tracer = nil,
 		label = nil,
 		healthBar = nil,
+		skeleton = {},
 	}
 
 	-- Box (luôn tạo, bật/tắt bằng toggle trong updateESP)
@@ -756,6 +763,15 @@ local function createESP(player)
 	bar.Color = Color3.fromRGB(0, 255, 0)
 	espData.healthBar = bar
 
+	-- Skeleton lines (pre-create a pool to reuse)
+	for i = 1, 20 do
+		local line = Drawing.new("Line")
+		line.Visible = false
+		line.Thickness = 1.5
+		line.Color = Options.ESPColor.Value
+		espData.skeleton[i] = line
+	end
+
 	espObjects[player] = espData
 end
 
@@ -766,6 +782,13 @@ local function removeESP(player)
 		if espData.tracer then espData.tracer:Remove() end
 		if espData.label then espData.label:Remove() end
 		if espData.healthBar then espData.healthBar:Remove() end
+		if espData.skeleton then
+			for _, line in ipairs(espData.skeleton) do
+				pcall(function()
+					line:Remove()
+				end)
+			end
+		end
 		espObjects[player] = nil
 	end
 end
@@ -994,6 +1017,11 @@ Options.ESPColor:OnChanged(function()
 		if espData.box then espData.box.Color = Options.ESPColor.Value end
 		if espData.tracer then espData.tracer.Color = Options.ESPColor.Value end
 		if espData.label then espData.label.Color = Options.ESPColor.Value end
+		if espData.skeleton then
+			for _, line in ipairs(espData.skeleton) do
+				line.Color = Options.ESPColor.Value
+			end
+		end
 	end
 end)
 
