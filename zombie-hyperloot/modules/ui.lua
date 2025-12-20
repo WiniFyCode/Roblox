@@ -1001,7 +1001,10 @@ function UI.createSettingsTab(cleanupCallback)
         Text = "Unload Script",
         Tooltip = "Unload all scripts and delete GUI",
         Func = function()
-            if cleanupCallback then cleanupCallback() end
+            -- Unload Obsidian UI library (this will trigger OnUnload callback which calls cleanupCallback)
+            if UI.Library then
+                UI.Library:Unload()
+            end
         end
     })
 
@@ -1084,9 +1087,9 @@ end
 -- 🔹 HUD Customization Tab
 function UI.createHUDTab()
     local HUDTab = UI.Window:AddTab("HUD Customize", "layout")
-    local HUDGroup = HUDTab:AddLeftGroupbox("HUD Customize")
+    local HUDLeftGroup = HUDTab:AddLeftGroupbox("HUD Settings")
 
-    HUDGroup:AddToggle("CustomHUD", {
+    HUDLeftGroup:AddToggle("CustomHUD", {
         Text = "Enable Custom HUD",
         Tooltip = "Bật/tắt custom HUD",
         Default = false,
@@ -1095,7 +1098,7 @@ function UI.createHUDTab()
         end
     })
 
-    HUDGroup:AddToggle("ApplyToOtherPlayers", {
+    HUDLeftGroup:AddToggle("ApplyToOtherPlayers", {
         Text = "Apply to Other Players",
         Tooltip = "Áp dụng custom HUD cho tất cả players khác",
         Default = true,
@@ -1104,10 +1107,10 @@ function UI.createHUDTab()
         end
     })
 
-    HUDGroup:AddDivider()
-    HUDGroup:AddLabel("Visibility Settings")
+    HUDLeftGroup:AddDivider()
+    HUDLeftGroup:AddLabel("Visibility Settings")
 
-    HUDGroup:AddToggle("TitleVisible", {
+    HUDLeftGroup:AddToggle("TitleVisible", {
         Text = "Show Title",
         Default = true,
         Callback = function(Value)
@@ -1118,7 +1121,7 @@ function UI.createHUDTab()
         end
     })
 
-    HUDGroup:AddToggle("PlayerNameVisible", {
+    HUDLeftGroup:AddToggle("PlayerNameVisible", {
         Text = "Show Player Name",
         Default = true,
         Callback = function(Value)
@@ -1129,7 +1132,7 @@ function UI.createHUDTab()
         end
     })
 
-    HUDGroup:AddToggle("ClassVisible", {
+    HUDLeftGroup:AddToggle("ClassVisible", {
         Text = "Show Class",
         Default = true,
         Callback = function(Value)
@@ -1140,7 +1143,7 @@ function UI.createHUDTab()
         end
     })
 
-    HUDGroup:AddToggle("LevelVisible", {
+    HUDLeftGroup:AddToggle("LevelVisible", {
         Text = "Show Level",
         Default = true,
         Callback = function(Value)
@@ -1151,10 +1154,10 @@ function UI.createHUDTab()
         end
     })
 
-    HUDGroup:AddDivider()
-    HUDGroup:AddLabel("Lobby UI")
+    HUDLeftGroup:AddDivider()
+    HUDLeftGroup:AddLabel("Lobby UI")
 
-    HUDGroup:AddToggle("LobbyPlayerInfoVisible", {
+    HUDLeftGroup:AddToggle("LobbyPlayerInfoVisible", {
         Text = "Show Lobby PlayerInfo",
         Tooltip = "Show/hide PlayerInfo in Lobby",
         Default = true,
@@ -1163,10 +1166,10 @@ function UI.createHUDTab()
         end
     })
 
-    HUDGroup:AddDivider()
-    HUDGroup:AddLabel("EXP Display")
+    HUDLeftGroup:AddDivider()
+    HUDLeftGroup:AddLabel("EXP Display")
 
-    HUDGroup:AddToggle("ExpDisplay", {
+    HUDLeftGroup:AddToggle("ExpDisplay", {
         Text = "Show EXP Display",
         Tooltip = "Display EXP at the bottom right of the screen",
         Default = true,
@@ -1175,10 +1178,10 @@ function UI.createHUDTab()
         end
     })
 
-    HUDGroup:AddDivider()
-    HUDGroup:AddLabel("Text Customization")
+    HUDLeftGroup:AddDivider()
+    HUDLeftGroup:AddLabel("Text Customization")
 
-    HUDGroup:AddInput("CustomTitle", {
+    HUDLeftGroup:AddInput("CustomTitle", {
         Text = "Custom Title",
         Tooltip = "Leave empty to keep original",
         Default = "CHEATER",
@@ -1191,7 +1194,7 @@ function UI.createHUDTab()
         end
     })
 
-    HUDGroup:AddInput("CustomPlayerName", {
+    HUDLeftGroup:AddInput("CustomPlayerName", {
         Text = "Custom Player Name",
         Tooltip = "Leave empty to keep original",
         Default = "WiniFy",
@@ -1204,7 +1207,7 @@ function UI.createHUDTab()
         end
     })
 
-    HUDGroup:AddInput("CustomClass", {
+    HUDLeftGroup:AddInput("CustomClass", {
         Text = "Custom Class",
         Tooltip = "Leave empty to keep original",
         Default = "",
@@ -1217,7 +1220,7 @@ function UI.createHUDTab()
         end
     })
 
-    HUDGroup:AddInput("CustomLevel", {
+    HUDLeftGroup:AddInput("CustomLevel", {
         Text = "Custom Level",
         Tooltip = "Leave empty to keep original",
         Default = "",
@@ -1230,10 +1233,34 @@ function UI.createHUDTab()
         end
     })
 
-    HUDGroup:AddDivider()
-    HUDGroup:AddLabel("Title Gradient Colors")
+    HUDLeftGroup:AddDivider()
+    HUDLeftGroup:AddLabel("Actions")
 
-    HUDGroup:AddLabel("Title Color 1"):AddColorPicker("TitleGradient1", {
+    HUDLeftGroup:AddButton({
+        Text = "Apply Changes",
+        Tooltip = "Apply all changes",
+        Func = function()
+            if HUD.customHUDEnabled then
+                HUD.applyCustomHUD()
+            end
+        end
+    })
+
+    HUDLeftGroup:AddButton({
+        Text = "Reset to Original",
+        Tooltip = "Restore HUD to original",
+        Func = function()
+            HUD.restoreOriginalHUD()
+        end
+    })
+
+    -- Right Groupbox
+    local HUDRightGroup = HUDTab:AddRightGroupbox("Gradient Colors")
+
+    HUDRightGroup:AddDivider()
+    HUDRightGroup:AddLabel("Title Gradient Colors")
+
+    HUDRightGroup:AddLabel("Title Color 1"):AddColorPicker("TitleGradient1", {
         Default = Color3.fromRGB(255, 0, 0), -- Red
         Title = "Title Color 1",
         Callback = function(Value)
@@ -1244,7 +1271,7 @@ function UI.createHUDTab()
         end
     })
 
-    HUDGroup:AddLabel("Title Color 2"):AddColorPicker("TitleGradient2", {
+    HUDRightGroup:AddLabel("Title Color 2"):AddColorPicker("TitleGradient2", {
         Default = Color3.fromRGB(255, 255, 255), -- White
         Title = "Title Color 2",
         Callback = function(Value)
@@ -1255,10 +1282,10 @@ function UI.createHUDTab()
         end
     })
 
-    HUDGroup:AddDivider()
-    HUDGroup:AddLabel("Player Name Gradient Colors")
+    HUDRightGroup:AddDivider()
+    HUDRightGroup:AddLabel("Player Name Gradient Colors")
 
-    HUDGroup:AddLabel("Name Color 1"):AddColorPicker("PlayerNameGradient1", {
+    HUDRightGroup:AddLabel("Name Color 1"):AddColorPicker("PlayerNameGradient1", {
         Default = HUD.playerNameGradientColor1 or Color3.fromRGB(255, 255, 255),
         Title = "Name Color 1",
         Callback = function(Value)
@@ -1269,7 +1296,7 @@ function UI.createHUDTab()
         end
     })
 
-    HUDGroup:AddLabel("Name Color 2"):AddColorPicker("PlayerNameGradient2", {
+    HUDRightGroup:AddLabel("Name Color 2"):AddColorPicker("PlayerNameGradient2", {
         Default = HUD.playerNameGradientColor2 or Color3.fromRGB(255, 255, 255),
         Title = "Name Color 2",
         Callback = function(Value)
@@ -1280,10 +1307,10 @@ function UI.createHUDTab()
         end
     })
 
-    HUDGroup:AddDivider()
-    HUDGroup:AddLabel("Class Gradient Colors")
+    HUDRightGroup:AddDivider()
+    HUDRightGroup:AddLabel("Class Gradient Colors")
 
-    HUDGroup:AddLabel("Class Color 1"):AddColorPicker("ClassGradient1", {
+    HUDRightGroup:AddLabel("Class Color 1"):AddColorPicker("ClassGradient1", {
         Default = HUD.classGradientColor1 or Color3.fromRGB(255, 255, 255),
         Title = "Class Color 1",
         Callback = function(Value)
@@ -1294,7 +1321,7 @@ function UI.createHUDTab()
         end
     })
 
-    HUDGroup:AddLabel("Class Color 2"):AddColorPicker("ClassGradient2", {
+    HUDRightGroup:AddLabel("Class Color 2"):AddColorPicker("ClassGradient2", {
         Default = HUD.classGradientColor2 or Color3.fromRGB(255, 255, 255),
         Title = "Class Color 2",
         Callback = function(Value)
@@ -1305,10 +1332,10 @@ function UI.createHUDTab()
         end
     })
 
-    HUDGroup:AddDivider()
-    HUDGroup:AddLabel("Level Gradient Colors")
+    HUDRightGroup:AddDivider()
+    HUDRightGroup:AddLabel("Level Gradient Colors")
 
-    HUDGroup:AddLabel("Level Color 1"):AddColorPicker("LevelGradient1", {
+    HUDRightGroup:AddLabel("Level Color 1"):AddColorPicker("LevelGradient1", {
         Default = HUD.levelGradientColor1 or Color3.fromRGB(255, 255, 255),
         Title = "Level Color 1",
         Callback = function(Value)
@@ -1319,7 +1346,7 @@ function UI.createHUDTab()
         end
     })
 
-    HUDGroup:AddLabel("Level Color 2"):AddColorPicker("LevelGradient2", {
+    HUDRightGroup:AddLabel("Level Color 2"):AddColorPicker("LevelGradient2", {
         Default = HUD.levelGradientColor2 or Color3.fromRGB(255, 255, 255),
         Title = "Level Color 2",
         Callback = function(Value)
@@ -1327,27 +1354,6 @@ function UI.createHUDTab()
             if HUD.customHUDEnabled then
                 HUD.applyCustomHUD()
             end
-        end
-    })
-
-    HUDGroup:AddDivider()
-    HUDGroup:AddLabel("Actions")
-
-    HUDGroup:AddButton({
-        Text = "Apply Changes",
-        Tooltip = "Apply all changes",
-        Func = function()
-            if HUD.customHUDEnabled then
-                HUD.applyCustomHUD()
-            end
-        end
-    })
-
-    HUDGroup:AddButton({
-        Text = "Reset to Original",
-        Tooltip = "Restore HUD to original",
-        Func = function()
-            HUD.restoreOriginalHUD()
         end
     })
 
@@ -1441,7 +1447,13 @@ function UI.buildAllTabs(cleanupCallback)
     UI.createHUDTab()
     UI.createSettingsTab(cleanupCallback)
     UI.createInfoTab()
-    -- Obsidian UI tabs are auto-selected, no need for SelectTab
+    
+    -- Setup OnUnload callback for Obsidian UI
+    if UI.Library and cleanupCallback then
+        UI.Library:OnUnload(function()
+            cleanupCallback()
+        end)
+    end
 end
 
 ----------------------------------------------------------

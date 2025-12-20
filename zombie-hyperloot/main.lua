@@ -118,15 +118,6 @@ local function cleanupScript()
             camera.CameraType = Enum.CameraType.Custom
         end
     end
-
-    -- Notify script unload
-    if Config.UI and Config.UI.Library then
-        Config.UI.Library:Notify({
-            Title = "Zombie Hyperloot",
-            Description = "Script unloaded successfully\nAll features disabled and cleaned up",
-            Time = 4
-        })
-    end
 end
 
 ----------------------------------------------------------
