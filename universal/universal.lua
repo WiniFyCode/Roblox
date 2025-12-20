@@ -712,8 +712,8 @@ do
 	end
 end
 
--- Skeleton bones (ưu tiên R15, tự bỏ qua phần thiếu)
-local skeletonBones = {
+-- Skeleton bones cho R15
+local skeletonBonesR15 = {
 	{ "Head", "UpperTorso" },
 	{ "UpperTorso", "LowerTorso" },
 
@@ -733,6 +733,24 @@ local skeletonBones = {
 	{ "RightUpperArm", "RightLowerArm" },
 	{ "RightLowerArm", "RightHand" },
 }
+
+-- Skeleton bones cho R6
+local skeletonBonesR6 = {
+	{ "Head", "Torso" },
+	{ "Torso", "Left Arm" },
+	{ "Torso", "Right Arm" },
+	{ "Torso", "Left Leg" },
+	{ "Torso", "Right Leg" },
+}
+
+-- Hàm detect R6 hay R15
+local function getSkeletonBones(character)
+	if character:FindFirstChild("UpperTorso") then
+		return skeletonBonesR15
+	else
+		return skeletonBonesR6
+	end
+end
 
 local function createESP(player)
 	if player == LocalPlayer then return end
@@ -785,8 +803,8 @@ local function createESP(player)
 	bar.Color = Color3.fromRGB(0, 255, 0)
 	espData.healthBar = bar
 
-	-- Skeleton lines (pre-create a pool to reuse)
-	for i = 1, #skeletonBones do
+	-- Skeleton lines (pre-create a pool to reuse) - tạo đủ cho cả R15 (14 bones)
+	for i = 1, 14 do
 		local line = Drawing.new("Line")
 		line.Visible = false
 		line.Thickness = 1.5
@@ -833,8 +851,8 @@ local function createHighlight(player)
 	highlight.OutlineTransparency = 0
 	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 	highlight.Adornee = character
-	-- Parent vào CoreGui để đảm bảo luôn render trên mọi thứ (xuyên tường)
-	highlight.Parent = CoreGui
+	-- Parent vào character thay vì CoreGui để Highlight hoạt động đúng
+	highlight.Parent = character
 
 	highlightObjects[player] = highlight
 end
@@ -1002,8 +1020,9 @@ local function updateESP()
 							-- Skeleton
 							if espData.skeleton then
 								if Toggles.ESPSkeleton and Toggles.ESPSkeleton.Value then
+									local bones = getSkeletonBones(character)
 									local lineIndex = 1
-									for _, bone in ipairs(skeletonBones) do
+									for _, bone in ipairs(bones) do
 										local part0 = character:FindFirstChild(bone[1])
 										local part1 = character:FindFirstChild(bone[2])
 										if part0 and part1 then
