@@ -894,15 +894,22 @@ local function updateESP()
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		
 		if character and humanoid and humanoid.Health > 0 then
-			local rootPart = character:FindFirstChild("HumanoidRootPart") or character.PrimaryPart
-			if not rootPart then
+			-- Ưu tiên dùng Head hoặc Torso để tính vị trí chính xác hơn
+			local head = character:FindFirstChild("Head")
+			local torso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
+			local rootPart = character:FindFirstChild("HumanoidRootPart") or torso or character.PrimaryPart
+			
+			-- Dùng torso làm reference chính cho box
+			local refPart = torso or rootPart
+			
+			if not refPart then
 				if espData and espData.box then espData.box.Visible = false end
 				if espData and espData.tracer then espData.tracer.Visible = false end
 				if espData and espData.label then espData.label.Visible = false end
 				if espData and espData.healthBar then espData.healthBar.Visible = false end
 			else
-				local size = rootPart.Size + Vector3.new(2, 3, 1)
-				local points, allVisible = getBoxScreenPoints(rootPart.CFrame, size)
+				local size = Vector3.new(4, 5, 2) -- Fixed size cho box
+				local points, allVisible = getBoxScreenPoints(refPart.CFrame, size)
 				
 				if espData then
 					if not allVisible or #points == 0 then
@@ -978,9 +985,12 @@ local function updateESP()
 										table.insert(parts, player.Name)
 									end
 								end
-								if Toggles.ESPDistance.Value and rootPart and character.PrimaryPart then
-									local distance = math.floor((rootPart.Position - character.PrimaryPart.Position).Magnitude)
-									table.insert(parts, tostring(distance) .. " studs")
+								if Toggles.ESPDistance.Value and refPart then
+									local myRoot = LocalPlayer.Character and (LocalPlayer.Character:FindFirstChild("HumanoidRootPart") or LocalPlayer.Character:FindFirstChild("Torso"))
+									if myRoot then
+										local distance = math.floor((refPart.Position - myRoot.Position).Magnitude)
+										table.insert(parts, tostring(distance) .. " studs")
+									end
 								end
 								local text = table.concat(parts, " | ")
 								if text ~= "" then
