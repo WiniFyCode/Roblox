@@ -6,206 +6,37 @@
 ]]
 
 ----------------------------------------------------------
--- 🔹 Loading Screen UI
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local HttpService = game:GetService("HttpService")
-
-----------------------------------------------------------
--- 🔹 Get Last Commit Time from GitHub
-local function getLastCommitTime()
-    local defaultTime = "2025-12-14 08:50"
-    
-    local success, result = pcall(function()
-        -- GitHub API endpoint để lấy commit cuối cùng của toàn bộ folder zombie-hyperloot
-        -- (không phải chỉ file main.lua, mà là bất kỳ file nào trong folder)
-        -- Tương đương với: https://github.com/WiniFyCode/Roblox/commits/main/zombie-hyperloot
-        local url = "https://api.github.com/repos/WiniFyCode/Roblox/commits?path=zombie-hyperloot&per_page=1"
-        local response = game:HttpGet(url, true)
-        local data = HttpService:JSONDecode(response)
-        
-        if data and data[1] and data[1].commit and data[1].commit.author and data[1].commit.author.date then
-            local commitDate = data[1].commit.author.date
-            -- Format: "2025-12-14T03:19:00Z" (UTC) -> "2025-12-14 10:19" (UTC+7)
-            local year, month, day, hour, minute = string.match(commitDate, "(%d%d%d%d)%-(%d%d)%-(%d%d)T(%d%d):(%d%d)")
-            if year and month and day and hour and minute then
-                -- Convert UTC to UTC+7 (Vietnam timezone)
-                local hourNum = tonumber(hour)
-                local minuteNum = tonumber(minute)
-                hourNum = hourNum + 7
-                
-                -- Handle day overflow
-                local dayNum = tonumber(day)
-                if hourNum >= 24 then
-                    hourNum = hourNum - 24
-                    dayNum = dayNum + 1
-                    -- Simple day increment (không xử lý month/year overflow vì ít khi xảy ra)
-                end
-                
-                local formattedHour = string.format("%02d", hourNum)
-                local formattedMinute = string.format("%02d", minuteNum)
-                local formattedDay = string.format("%02d", dayNum)
-                return string.format("%s-%s-%s %s:%s", year, month, formattedDay, formattedHour, formattedMinute)
-            end
-        end
-        return nil
-    end)
-    
-    if success and result and result ~= "" then
-        return result
-    end
-    
-    -- Fallback về default time nếu API fail
-    return defaultTime
-end
-
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "ZombieHyperlootLoader"
-screenGui.ResetOnSpawn = false
-screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-
--- Main Frame
-local mainFrame = Instance.new("Frame")
-mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 400, 0, 150)
-mainFrame.Position = UDim2.new(0.5, -200, 0.5, -75)
-mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-mainFrame.BorderSizePixel = 0
-mainFrame.Parent = screenGui
-
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 12)
-corner.Parent = mainFrame
-
--- Title
-local title = Instance.new("TextLabel")
-title.Name = "Title"
-title.Size = UDim2.new(1, -40, 0, 40)
-title.Position = UDim2.new(0, 20, 0, 15)
-title.BackgroundTransparency = 1
-title.Text = "Zombie Hyperloot"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.TextSize = 24
-title.Font = Enum.Font.GothamBold
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.Parent = mainFrame
-
--- Subtitle
-local subtitle = Instance.new("TextLabel")
-subtitle.Name = "Subtitle"
-subtitle.Size = UDim2.new(1, -40, 0, 20)
-subtitle.Position = UDim2.new(0, 20, 0, 50)
-subtitle.BackgroundTransparency = 1
-subtitle.Text = "by WiniFy - Last update: " .. getLastCommitTime()
-subtitle.TextColor3 = Color3.fromRGB(150, 150, 150)
-subtitle.TextSize = 18
-subtitle.Font = Enum.Font.Gotham
-subtitle.TextXAlignment = Enum.TextXAlignment.Left
-subtitle.Parent = mainFrame
-
--- Progress Bar Background
-local progressBg = Instance.new("Frame")
-progressBg.Name = "ProgressBg"
-progressBg.Size = UDim2.new(1, -40, 0, 8)
-progressBg.Position = UDim2.new(0, 20, 0, 85)
-progressBg.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-progressBg.BorderSizePixel = 0
-progressBg.Parent = mainFrame
-
-local progressCorner = Instance.new("UICorner")
-progressCorner.CornerRadius = UDim.new(0, 4)
-progressCorner.Parent = progressBg
-
--- Progress Bar Fill
-local progressFill = Instance.new("Frame")
-progressFill.Name = "ProgressFill"
-progressFill.Size = UDim2.new(0, 0, 1, 0)
-progressFill.BackgroundColor3 = Color3.fromRGB(100, 200, 255)
-progressFill.BorderSizePixel = 0
-progressFill.Parent = progressBg
-
-local fillCorner = Instance.new("UICorner")
-fillCorner.CornerRadius = UDim.new(0, 4)
-fillCorner.Parent = progressFill
-
--- Status Text
-local statusText = Instance.new("TextLabel")
-statusText.Name = "StatusText"
-statusText.Size = UDim2.new(1, -40, 0, 30)
-statusText.Position = UDim2.new(0, 20, 0, 105)
-statusText.BackgroundTransparency = 1
-statusText.Text = "Initializing..."
-statusText.TextColor3 = Color3.fromRGB(200, 200, 200)
-statusText.TextSize = 13
-statusText.Font = Enum.Font.Gotham
-statusText.TextXAlignment = Enum.TextXAlignment.Left
-statusText.Parent = mainFrame
-
--- Update Progress Function
-local function updateProgress(current, total, text)
-    local progress = current / total
-    progressFill:TweenSize(
-        UDim2.new(progress, 0, 1, 0),
-        Enum.EasingDirection.Out,
-        Enum.EasingStyle.Quad,
-        0.3,
-        true
-    )
-    statusText.Text = string.format("[%d/%d] %s", current, total, text)
-end
-
-----------------------------------------------------------
--- 🔹 Load Modules with Progress
+-- 🔹 Load Modules
 local Config, Visuals, Combat, ESP, Movement, Map, Farm, HUD, UI, Character
 
-updateProgress(1, 10, "Loading Config...")
 Config = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/config.lua"))()
-task.wait(0.15)
 
-updateProgress(2, 10, "Loading Visuals...")
 Visuals = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/visuals.lua"))()
 Visuals.init(Config)
-task.wait(0.15)
 
-updateProgress(3, 10, "Loading Combat...")
 Combat = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/combat.lua"))()
 Combat.init(Config, Visuals)
-task.wait(0.15)
 
-updateProgress(4, 10, "Loading ESP...")
 ESP = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/esp.lua"))()
 ESP.init(Config)
-task.wait(0.15)
 
-updateProgress(5, 10, "Loading Movement...")
 Movement = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/movement.lua"))()
 Movement.init(Config)
-task.wait(0.15)
 
-updateProgress(6, 10, "Loading Map...")
 Map = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/map.lua"))()
 Map.init(Config)
-task.wait(0.15)
 
-updateProgress(7, 10, "Loading Farm...")
 Farm = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/farm.lua"))()
 Farm.init(Config, ESP)
-task.wait(0.15)
 
-updateProgress(8, 10, "Loading HUD...")
 HUD = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/hud.lua"))()
 HUD.init(Config)
-task.wait(0.15)
 
-updateProgress(9, 10, "Loading Character...")
 Character = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/character.lua"))()
 Character.init(Config)
 
-updateProgress(10, 10, "Loading UI...")
 UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/ui.lua"))()
 UI.init(Config, Combat, ESP, Movement, Map, Farm, HUD, Visuals, Character)
-task.wait(0.3)
 
 ----------------------------------------------------------
 -- 🔹 Cleanup Function
@@ -234,7 +65,7 @@ local function cleanupScript()
     Config.speedEnabled = false
     Config.antiZombieEnabled = false
     Config.supplyESPEnabled = false
-    Config.espBobEnabled = false
+    Config.espBobEnabled = true
     Config.autoDoorEnabled = false
 
     -- Disconnect all connections
@@ -332,6 +163,9 @@ Movement.applyAntiZombie()
 if Config.noclipCamEnabled then
     task.defer(Movement.applyNoclipCam)
 end
+
+-- Setup Anti AFK
+Movement.applyAntiAFK()
 
 -- Setup Auto Rotate
 Combat.setRotationSmoothness(Config.autoRotateSmoothness)
@@ -705,29 +539,9 @@ end)
 
 ----------------------------------------------------------
 -- 🔹 Load UI
-statusText.Text = "Finalizing..."
 UI.loadLibraries()
 UI.createWindow()
 UI.buildAllTabs(cleanupScript)
-
--- Success message
-statusText.Text = "✓ Loaded successfully!"
-statusText.TextColor3 = Color3.fromRGB(100, 255, 100)
-progressFill.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
-task.wait(1)
-
--- Fade out loading screen
-for i = 0, 1, 0.1 do
-    mainFrame.BackgroundTransparency = i
-    title.TextTransparency = i
-    subtitle.TextTransparency = i
-    progressBg.BackgroundTransparency = i
-    progressFill.BackgroundTransparency = i
-    statusText.TextTransparency = i
-    task.wait(0.05)
-end
-
-screenGui:Destroy()
 
 -- Success notification
 if Config.UI and Config.UI.Library then

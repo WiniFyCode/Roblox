@@ -50,45 +50,45 @@ end
 -- 🔹 Combat Tab
 function UI.createCombatTab()
     local CombatTab = UI.Window:AddTab("Combat", "sword")
-    local CombatGroup = CombatTab:AddLeftGroupbox("Combat")
+    local CombatLeftGroup = CombatTab:AddLeftGroupbox("Combat")
 
-    CombatGroup:AddToggle("Aimbot", {
+    CombatLeftGroup:AddToggle("Aimbot", {
         Text = "Aimbot",
         Default = Config.aimbotEnabled,
         Callback = function(Value) Config.aimbotEnabled = Value end
     })
 
-    CombatGroup:AddDivider()
-    CombatGroup:AddLabel("Aimbot Settings")
+    CombatLeftGroup:AddDivider()
+    CombatLeftGroup:AddLabel("Aimbot Settings")
 
-    CombatGroup:AddDropdown("AimbotTargetMode", {
+    CombatLeftGroup:AddDropdown("AimbotTargetMode", {
         Text = "Target Type",
         Values = {"Zombies", "Players", "All"},
         Default = Config.aimbotTargetMode,
         Callback = function(Value) Config.aimbotTargetMode = Value end
     })
 
-    CombatGroup:AddDropdown("AimbotPriorityMode", {
+    CombatLeftGroup:AddDropdown("AimbotPriorityMode", {
         Text = "Priority",
         Values = {"Nearest", "Farthest", "LowestHealth", "HighestHealth"},
         Default = Config.aimbotPriorityMode,
         Callback = function(Value) Config.aimbotPriorityMode = Value end
     })
 
-    CombatGroup:AddDropdown("AimbotAimPart", {
+    CombatLeftGroup:AddDropdown("AimbotAimPart", {
         Text = "Aim Part",
         Values = {"Head", "UpperTorso", "HumanoidRootPart", "Random"},
         Default = Config.aimbotAimPart,
         Callback = function(Value) Config.aimbotAimPart = Value end
     })
 
-    CombatGroup:AddToggle("AimbotHoldMouse2", {
+    CombatLeftGroup:AddToggle("AimbotHoldMouse2", {
         Text = "Hold Right Click",
         Default = Config.aimbotHoldMouse2,
         Callback = function(Value) Config.aimbotHoldMouse2 = Value end
     })
 
-    CombatGroup:AddToggle("AimbotAutoFire", {
+    CombatLeftGroup:AddToggle("AimbotAutoFire", {
         Text = "Auto Fire (Mouse1)",
         Default = Config.aimbotAutoFireEnabled,
         Callback = function(Value)
@@ -99,26 +99,26 @@ function UI.createCombatTab()
         end
     })
 
-    CombatGroup:AddToggle("AimbotFOV", {
+    CombatLeftGroup:AddToggle("AimbotFOV", {
         Text = "FOV Circle",
         Default = Config.aimbotFOVEnabled,
         Callback = function(Value) Config.aimbotFOVEnabled = Value end
     })
 
-    CombatGroup:AddSlider("AimbotFOVRadius", {
+    CombatLeftGroup:AddSlider("AimbotFOVRadius", {
         Text = "FOV Radius",
         Default = Config.aimbotFOVRadius,
         Min = 50, Max = 500, Rounding = 0,
         Callback = function(Value) Config.aimbotFOVRadius = Value end
     })
 
-    CombatGroup:AddToggle("AimbotWallCheck", {
+    CombatLeftGroup:AddToggle("AimbotWallCheck", {
         Text = "Wall Check (Decoration)",
         Default = Config.aimbotWallCheckEnabled,
         Callback = function(Value) Config.aimbotWallCheckEnabled = Value end
     })
 
-    CombatGroup:AddSlider("AimbotSmoothness", {
+    CombatLeftGroup:AddSlider("AimbotSmoothness", {
         Text = "Smoothness",
         Tooltip = "0 = Instant Lock | Higher = Smoother/Slower",
         Default = Config.aimbotSmoothness,
@@ -126,17 +126,20 @@ function UI.createCombatTab()
         Callback = function(Value) Config.aimbotSmoothness = Value end
     })
 
-    CombatGroup:AddSlider("AimbotPrediction", {
+    CombatLeftGroup:AddSlider("AimbotPrediction", {
         Text = "Prediction",
         Default = Config.aimbotPrediction,
         Min = 0, Max = 0.2, Rounding = 3,
         Callback = function(Value) Config.aimbotPrediction = Value end
     })
 
-    CombatGroup:AddDivider()
-    CombatGroup:AddLabel("Hitbox Settings")
+    -- Right Groupbox
+    local CombatRightGroup = CombatTab:AddRightGroupbox("Combat Settings")
 
-    CombatGroup:AddToggle("Hitbox", {
+    CombatRightGroup:AddDivider()
+    CombatRightGroup:AddLabel("Hitbox Settings")
+
+    CombatRightGroup:AddToggle("Hitbox", {
         Text = "Hitbox Expander",
         Default = Config.hitboxEnabled,
         Callback = function(Value)
@@ -145,7 +148,7 @@ function UI.createCombatTab()
         end
     })
 
-    CombatGroup:AddSlider("HitboxSize", {
+    CombatRightGroup:AddSlider("HitboxSize", {
         Text = "Hitbox Size",
         Default = 4, Min = 1, Max = 20, Rounding = 1,
         Callback = function(Value)
@@ -153,26 +156,26 @@ function UI.createCombatTab()
         end
     })
 
-    CombatGroup:AddDivider()
-    CombatGroup:AddLabel("TrigerSkill Dupe")
+    CombatRightGroup:AddDivider()
+    CombatRightGroup:AddLabel("TrigerSkill Dupe")
 
-    CombatGroup:AddToggle("TrigerSkillDupeEnabled", {
+    CombatRightGroup:AddToggle("TrigerSkillDupeEnabled", {
         Text = "Enable TrigerSkill Dupe",
         Default = Config.trigerSkillDupeEnabled,
         Callback = function(Value) Config.trigerSkillDupeEnabled = Value end
     })
 
-    CombatGroup:AddSlider("TrigerSkillDupeCount", {
+    CombatRightGroup:AddSlider("TrigerSkillDupeCount", {
         Text = "Dupe Count",
         Default = Config.trigerSkillDupeCount,
         Min = 1, Max = 20, Rounding = 0,
         Callback = function(Value) Config.trigerSkillDupeCount = Value end
     })
 
-    CombatGroup:AddDivider()
-    CombatGroup:AddLabel("Auto Camera Rotation 360°")
+    CombatRightGroup:AddDivider()
+    CombatRightGroup:AddLabel("Auto Camera Rotation 360°")
 
-    CombatGroup:AddToggle("AutoRotate", {
+    CombatRightGroup:AddToggle("AutoRotate", {
         Text = "Auto Rotate to Zombies 360°",
         Tooltip = "Camera automatically rotates to the nearest zombie (press R to toggle)",
         Default = Config.autoRotateEnabled,
@@ -182,7 +185,7 @@ function UI.createCombatTab()
         end
     })
 
-    CombatGroup:AddSlider("AutoRotateSmoothness", {
+    CombatRightGroup:AddSlider("AutoRotateSmoothness", {
         Text = "Rotation Smoothness",
         Tooltip = "0 = Instant Lock | Higher = Smoother/Slower",
         Default = Config.autoRotateSmoothness,
@@ -201,12 +204,12 @@ end
 -- 🔹 ESP Tab
 function UI.createESPTab()
     local ESPTab = UI.Window:AddTab("ESP", "eye")
-    local ESPGroup = ESPTab:AddLeftGroupbox("ESP")
+    local ESPLeftGroup = ESPTab:AddLeftGroupbox("ESP")
 
-    ESPGroup:AddDivider()
-    ESPGroup:AddLabel("Zombie ESP")
+    ESPLeftGroup:AddDivider()
+    ESPLeftGroup:AddLabel("Zombie ESP")
 
-    ESPGroup:AddToggle("ESPZombie", {
+    ESPLeftGroup:AddToggle("ESPZombie", {
         Text = "ESP Zombie",
         Default = Config.espZombieEnabled,
         Callback = function(Value)
@@ -220,37 +223,37 @@ function UI.createESPTab()
         end
     })
 
-    ESPGroup:AddLabel("Zombie ESP Color"):AddColorPicker("ESPZombieColor", {
+    ESPLeftGroup:AddLabel("Zombie ESP Color"):AddColorPicker("ESPZombieColor", {
         Default = Config.espColorZombie,
         Title = "Zombie ESP Color",
         Callback = function(Value) Config.espColorZombie = Value end
     })
 
-    ESPGroup:AddToggle("ESPZombieBoxes", {
+    ESPLeftGroup:AddToggle("ESPZombieBoxes", {
         Text = "Zombie Boxes",
         Default = Config.espZombieBoxes,
         Callback = function(Value) Config.espZombieBoxes = Value end
     })
 
-    ESPGroup:AddToggle("ESPZombieTracers", {
+    ESPLeftGroup:AddToggle("ESPZombieTracers", {
         Text = "Zombie Tracers",
         Default = Config.espZombieTracers,
         Callback = function(Value) Config.espZombieTracers = Value end
     })
 
-    ESPGroup:AddToggle("ESPZombieNames", {
+    ESPLeftGroup:AddToggle("ESPZombieNames", {
         Text = "Zombie Names",
         Default = Config.espZombieNames,
         Callback = function(Value) Config.espZombieNames = Value end
     })
 
-    ESPGroup:AddToggle("ESPZombieHealth", {
+    ESPLeftGroup:AddToggle("ESPZombieHealth", {
         Text = "Zombie Health Bars",
         Default = Config.espZombieHealth,
         Callback = function(Value) Config.espZombieHealth = Value end
     })
 
-    ESPGroup:AddToggle("ESPZombieHighlight", {
+    ESPLeftGroup:AddToggle("ESPZombieHighlight", {
         Text = "Zombie Highlight",
         Default = Config.espZombieHighlight,
         Callback = function(Value)
@@ -263,10 +266,10 @@ function UI.createESPTab()
         end
     })
 
-    ESPGroup:AddDivider()
-    ESPGroup:AddLabel("Chest ESP")
+    ESPLeftGroup:AddDivider()
+    ESPLeftGroup:AddLabel("Chest ESP")
 
-    ESPGroup:AddToggle("ESPChest", {
+    ESPLeftGroup:AddToggle("ESPChest", {
         Text = "ESP Chest",
         Default = Config.espChestEnabled,
         Callback = function(Value)
@@ -275,7 +278,7 @@ function UI.createESPTab()
         end
     })
 
-    ESPGroup:AddLabel("Chest ESP Color"):AddColorPicker("ESPChestColor", {
+    ESPLeftGroup:AddLabel("Chest ESP Color"):AddColorPicker("ESPChestColor", {
         Default = Config.espColorChest,
         Title = "Chest ESP Color",
         Callback = function(Value)
@@ -284,10 +287,13 @@ function UI.createESPTab()
         end
     })
 
-    ESPGroup:AddDivider()
-    ESPGroup:AddLabel("Player ESP")
+    -- Right Groupbox
+    local ESPRightGroup = ESPTab:AddRightGroupbox("Player ESP")
 
-    ESPGroup:AddToggle("ESPPlayer", {
+    ESPRightGroup:AddDivider()
+    ESPRightGroup:AddLabel("Player ESP")
+
+    ESPRightGroup:AddToggle("ESPPlayer", {
         Text = "ESP Player",
         Default = Config.espPlayerEnabled,
         Callback = function(Value)
@@ -300,49 +306,49 @@ function UI.createESPTab()
         end
     })
 
-    ESPGroup:AddLabel("Player ESP Color"):AddColorPicker("ESPPlayerColor", {
+    ESPRightGroup:AddLabel("Player ESP Color"):AddColorPicker("ESPPlayerColor", {
         Default = Config.espColorPlayer,
         Title = "Player ESP Color",
         Callback = function(Value) Config.espColorPlayer = Value end
     })
 
-    ESPGroup:AddLabel("Enemy ESP Color"):AddColorPicker("ESPEnemyColor", {
+    ESPRightGroup:AddLabel("Enemy ESP Color"):AddColorPicker("ESPEnemyColor", {
         Default = Config.espColorEnemy,
         Title = "Enemy ESP Color",
         Callback = function(Value) Config.espColorEnemy = Value end
     })
 
-    ESPGroup:AddToggle("ESPPlayerBoxes", {
+    ESPRightGroup:AddToggle("ESPPlayerBoxes", {
         Text = "Player Boxes",
         Default = Config.espPlayerBoxes,
         Callback = function(Value) Config.espPlayerBoxes = Value end
     })
 
-    ESPGroup:AddToggle("ESPPlayerTracers", {
+    ESPRightGroup:AddToggle("ESPPlayerTracers", {
         Text = "Player Tracers",
         Default = Config.espPlayerTracers,
         Callback = function(Value) Config.espPlayerTracers = Value end
     })
 
-    ESPGroup:AddToggle("ESPPlayerNames", {
+    ESPRightGroup:AddToggle("ESPPlayerNames", {
         Text = "Player Names",
         Default = Config.espPlayerNames,
         Callback = function(Value) Config.espPlayerNames = Value end
     })
 
-    ESPGroup:AddToggle("ESPPlayerHealth", {
+    ESPRightGroup:AddToggle("ESPPlayerHealth", {
         Text = "Player Health Bars",
         Default = Config.espPlayerHealth,
         Callback = function(Value) Config.espPlayerHealth = Value end
     })
 
-    ESPGroup:AddToggle("ESPPlayerTeamCheck", {
+    ESPRightGroup:AddToggle("ESPPlayerTeamCheck", {
         Text = "Team Check",
         Default = Config.espPlayerTeamCheck,
         Callback = function(Value) Config.espPlayerTeamCheck = Value end
     })
 
-    ESPGroup:AddToggle("ESPPlayerHighlight", {
+    ESPRightGroup:AddToggle("ESPPlayerHighlight", {
         Text = "Player Highlight",
         Default = Config.espPlayerHighlight,
         Callback = function(Value)
@@ -363,9 +369,9 @@ end
 -- 🔹 Movement Tab
 function UI.createMovementTab()
     local MovementTab = UI.Window:AddTab("Movement", "move")
-    local MovementGroup = MovementTab:AddLeftGroupbox("Movement")
+    local MovementLeftGroup = MovementTab:AddLeftGroupbox("Movement")
 
-    MovementGroup:AddToggle("Speed", {
+    MovementLeftGroup:AddToggle("Speed", {
         Text = "Speed Boost",
         Default = Config.speedEnabled,
         Callback = function(Value)
@@ -374,7 +380,7 @@ function UI.createMovementTab()
         end
     })
 
-    MovementGroup:AddSlider("SpeedValue", {
+    MovementLeftGroup:AddSlider("SpeedValue", {
         Text = "Speed Bonus",
         Default = Config.speedValue,
         Min = 1, Max = 100, Rounding = 1,
@@ -384,7 +390,7 @@ function UI.createMovementTab()
         end
     })
 
-    MovementGroup:AddToggle("NoClip", {
+    MovementLeftGroup:AddToggle("NoClip", {
         Text = "NoClip",
         Default = Config.noClipEnabled,
         Callback = function(Value)
@@ -393,7 +399,7 @@ function UI.createMovementTab()
         end
     })
 
-    MovementGroup:AddToggle("AntiZombie", {
+    MovementLeftGroup:AddToggle("AntiZombie", {
         Text = "Anti-Zombie",
         Default = Config.antiZombieEnabled,
         Callback = function(Value)
@@ -402,7 +408,7 @@ function UI.createMovementTab()
         end
     })
 
-    MovementGroup:AddSlider("HipHeight", {
+    MovementLeftGroup:AddSlider("HipHeight", {
         Text = "HipHeight",
         Default = Config.hipHeightValue,
         Min = 0, Max = 200, Rounding = 1,
@@ -412,7 +418,7 @@ function UI.createMovementTab()
         end
     })
 
-    MovementGroup:AddToggle("NoclipCam", {
+    MovementLeftGroup:AddToggle("NoclipCam", {
         Text = "Noclip Cam",
         Default = Config.noclipCamEnabled,
         Callback = function(Value)
@@ -421,53 +427,66 @@ function UI.createMovementTab()
         end
     })
 
-    MovementGroup:AddDivider()
-    MovementGroup:AddLabel("Camera Teleport")
+    MovementLeftGroup:AddToggle("AntiAFK", {
+        Text = "Anti AFK",
+        Tooltip = "Prevents being kicked for inactivity",
+        Default = Config.antiAFKEnabled,
+        Callback = function(Value)
+            Config.antiAFKEnabled = Value
+            Movement.applyAntiAFK()
+        end
+    })
 
-    MovementGroup:AddToggle("CameraTeleport", {
+    -- Right Groupbox
+    local MovementRightGroup = MovementTab:AddRightGroupbox("Camera Teleport")
+
+    MovementRightGroup:AddDivider()
+    MovementRightGroup:AddLabel("Camera Teleport")
+
+    MovementRightGroup:AddToggle("CameraTeleport", {
         Text = "Camera Teleport (X)",
         Default = Config.cameraTeleportEnabled,
         Callback = function(Value) Config.cameraTeleportEnabled = Value end
     })
 
-    MovementGroup:AddDropdown("CameraTargetMode", {
+    MovementRightGroup:AddDropdown("CameraTargetMode", {
         Text = "Target Mode",
         Values = {"LowestHealth", "Nearest"},
         Default = Config.cameraTargetMode,
         Callback = function(Value) Config.cameraTargetMode = Value end
     })
 
-    MovementGroup:AddSlider("CameraTeleportWaveDelay", {
+    MovementRightGroup:AddSlider("CameraTeleportWaveDelay", {
         Text = "Wave Wait Time (s)",
         Default = Config.cameraTeleportWaveDelay,
         Min = 0, Max = 15, Rounding = 0,
         Callback = function(Value) Config.cameraTeleportWaveDelay = Value end
     })
 
-    MovementGroup:AddToggle("TeleportToLastZombie", {
+    MovementRightGroup:AddToggle("TeleportToLastZombie", {
         Text = "Teleport to Last Zombie",
         Default = Config.teleportToLastZombie,
         Callback = function(Value) Config.teleportToLastZombie = Value end
     })
 
-    MovementGroup:AddDivider()
-    MovementGroup:AddLabel("Camera Offset")
+    MovementRightGroup:AddDivider()
+    MovementRightGroup:AddLabel("Camera Offset")
 
-    MovementGroup:AddSlider("CameraOffsetX", {
+    MovementRightGroup:AddSlider("CameraOffsetX", {
         Text = "Camera Offset X",
         Default = Config.cameraOffsetX,
         Min = -360, Max = 360, Rounding = 1,
         Callback = function(Value) Config.cameraOffsetX = Value end
     })
 
-    MovementGroup:AddSlider("CameraOffsetY", {
+    MovementRightGroup:AddSlider("CameraOffsetY", {
         Text = "Camera Offset Y",
         Default = Config.cameraOffsetY,
         Min = -360, Max = 360, Rounding = 1,
         Callback = function(Value) Config.cameraOffsetY = Value end
     })
 
-    MovementGroup:AddSlider("CameraOffsetZ", {
+    MovementRightGroup:AddSlider("CameraOffsetZ", {
         Text = "Camera Offset Z",
         Default = Config.cameraOffsetZ,
         Min = -360, Max = 360, Rounding = 1,
@@ -937,12 +956,48 @@ end
 -- 🔹 Settings Tab
 function UI.createSettingsTab(cleanupCallback)
     local SettingsTab = UI.Window:AddTab("Settings", "settings")
-    local SettingsGroup = SettingsTab:AddLeftGroupbox("Settings")
+    local MenuGroup = SettingsTab:AddLeftGroupbox("Menu", "wrench")
 
-    SettingsGroup:AddDivider()
-    SettingsGroup:AddLabel("Reset Script")
+    MenuGroup:AddToggle("KeybindMenuOpen", {
+        Default = UI.Library.KeybindFrame.Visible,
+        Text = "Open Keybind Menu",
+        Callback = function(value)
+            UI.Library.KeybindFrame.Visible = value
+        end,
+    })
 
-    SettingsGroup:AddButton({
+    MenuGroup:AddToggle("ShowCustomCursor", {
+        Text = "Custom Cursor",
+        Default = true,
+        Callback = function(Value)
+            UI.Library.ShowCustomCursor = Value
+        end,
+    })
+
+    MenuGroup:AddDropdown("NotificationSide", {
+        Values = { "Left", "Right" },
+        Default = "Right",
+        Text = "Notification Side",
+        Callback = function(Value)
+            UI.Library:SetNotifySide(Value)
+        end,
+    })
+
+    MenuGroup:AddDropdown("DPIDropdown", {
+        Values = { "50%", "75%", "100%", "125%", "150%", "175%", "200%" },
+        Default = "100%",
+        Text = "DPI Scale",
+        Callback = function(Value)
+            Value = Value:gsub("%%", "")
+            local DPI = tonumber(Value)
+            UI.Library:SetDPIScale(DPI)
+        end,
+    })
+
+    MenuGroup:AddDivider()
+    MenuGroup:AddLabel("Reset Script")
+
+    MenuGroup:AddButton({
         Text = "Unload Script",
         Tooltip = "Unload all scripts and delete GUI",
         Func = function()
@@ -950,11 +1005,18 @@ function UI.createSettingsTab(cleanupCallback)
         end
     })
 
+    MenuGroup:AddDivider()
+    MenuGroup:AddLabel("Menu bind")
+        :AddKeyPicker("MenuKeybind", { Default = "RightControl", NoUI = true, Text = "Menu keybind" })
+
+    -- Set menu keybind
+    UI.Library.ToggleKeybind = UI.Library.Options.MenuKeybind
+
     -- Config Save / Load
     UI.SaveManager:SetLibrary(UI.Library)
     UI.ThemeManager:SetLibrary(UI.Library)
     UI.SaveManager:IgnoreThemeSettings()
-    UI.SaveManager:SetIgnoreIndexes({})
+    UI.SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
     UI.SaveManager:SetFolder("ZombieHyperloot/Configs")
     UI.SaveManager:BuildConfigSection(SettingsTab)
     UI.ThemeManager:ApplyToTab(SettingsTab)
@@ -1298,12 +1360,12 @@ end
 -- 🔹 Visuals Tab
 function UI.createVisualsTab()
     local VisualsTab = UI.Window:AddTab("Visuals", "eye")
-    local VisualsGroup = VisualsTab:AddLeftGroupbox("Visuals")
+    local VisualsLeftGroup = VisualsTab:AddLeftGroupbox("Visuals")
 
-    VisualsGroup:AddDivider()
-    VisualsGroup:AddLabel("Fog")
+    VisualsLeftGroup:AddDivider()
+    VisualsLeftGroup:AddLabel("Fog")
 
-    VisualsGroup:AddToggle("RemoveFog", {
+    VisualsLeftGroup:AddToggle("RemoveFog", {
         Text = "Remove Fog",
         Tooltip = "Remove fog to see further",
         Default = Config.removeFogEnabled,
@@ -1313,10 +1375,10 @@ function UI.createVisualsTab()
         end
     })
 
-    VisualsGroup:AddDivider()
-    VisualsGroup:AddLabel("Lighting")
+    VisualsLeftGroup:AddDivider()
+    VisualsLeftGroup:AddLabel("Lighting")
 
-    VisualsGroup:AddToggle("Fullbright", {
+    VisualsLeftGroup:AddToggle("Fullbright", {
         Text = "Fullbright",
         Tooltip = "Make the entire map brighter",
         Default = Config.fullbrightEnabled,
@@ -1326,10 +1388,10 @@ function UI.createVisualsTab()
         end
     })
 
-    VisualsGroup:AddDivider()
-    VisualsGroup:AddLabel("Time Control")
+    VisualsLeftGroup:AddDivider()
+    VisualsLeftGroup:AddLabel("Time Control")
 
-    VisualsGroup:AddToggle("CustomTime", {
+    VisualsLeftGroup:AddToggle("CustomTime", {
         Text = "Custom Time",
         Tooltip = "Customize time in game",
         Default = Config.customTimeEnabled,
@@ -1339,7 +1401,7 @@ function UI.createVisualsTab()
         end
     })
 
-    VisualsGroup:AddSlider("TimeValue", {
+    VisualsLeftGroup:AddSlider("TimeValue", {
         Text = "Time (Hour)",
         Tooltip = "0 = Midnight, 12 = Noon, 14 = Afternoon",
         Default = Config.customTimeValue,
@@ -1352,10 +1414,10 @@ function UI.createVisualsTab()
         end
     })
 
-    VisualsGroup:AddDivider()
-    VisualsGroup:AddLabel("Effects")
+    VisualsLeftGroup:AddDivider()
+    VisualsLeftGroup:AddLabel("Effects")
 
-    VisualsGroup:AddToggle("RemoveEffects", {
+    VisualsLeftGroup:AddToggle("RemoveEffects", {
         Text = "Auto Remove Effects",
         Tooltip = "Automatically remove effects when duping for the first time",
         Default = Config.removeEffectsEnabled,

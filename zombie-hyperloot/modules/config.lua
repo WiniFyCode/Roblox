@@ -98,6 +98,11 @@ Config.originalHipHeight = nil
 Config.noClipEnabled = false
 
 ----------------------------------------------------------
+-- 🔹 Anti AFK
+Config.antiAFKEnabled = true
+Config.antiAFKConnection = nil
+
+----------------------------------------------------------
 -- 🔹 Speed
 Config.speedEnabled = false
 Config.speedValue = 16

@@ -340,6 +340,36 @@ function Movement.selectNextTarget(currentZombie)
 end
 
 ----------------------------------------------------------
+-- 🔹 Anti AFK
+function Movement.startAntiAFK()
+    if Config.antiAFKConnection then return end
+    
+    local VirtualUser = Config.VirtualUser
+    if not VirtualUser then return end
+    
+    -- Prevent AFK kick by simulating user activity
+    Config.antiAFKConnection = Config.localPlayer.Idled:Connect(function()
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
+    end)
+end
+
+function Movement.stopAntiAFK()
+    if Config.antiAFKConnection then
+        Config.antiAFKConnection:Disconnect()
+        Config.antiAFKConnection = nil
+    end
+end
+
+function Movement.applyAntiAFK()
+    if Config.antiAFKEnabled then
+        Movement.startAntiAFK()
+    else
+        Movement.stopAntiAFK()
+    end
+end
+
+----------------------------------------------------------
 -- 🔹 Character Respawn Handler
 function Movement.onCharacterAdded(character)
     Movement.disableAntiZombie()
@@ -354,6 +384,10 @@ function Movement.onCharacterAdded(character)
         end
         Movement.startSpeedBoost()
     end
+    -- Restart anti AFK after respawn
+    if Config.antiAFKEnabled then
+        Movement.startAntiAFK()
+    end
 end
 
 ----------------------------------------------------------
@@ -362,6 +396,7 @@ function Movement.cleanup()
     Movement.disableAntiZombie()
     Movement.disableNoClip()
     Movement.stopSpeedBoost()
+    Movement.stopAntiAFK()
 
     if Config.noclipCamEnabled then
         Config.noclipCamEnabled = false
