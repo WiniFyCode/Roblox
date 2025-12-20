@@ -418,15 +418,6 @@ function UI.createMovementTab()
         end
     })
 
-    MovementLeftGroup:AddToggle("NoclipCam", {
-        Text = "Noclip Cam",
-        Default = Config.noclipCamEnabled,
-        Callback = function(Value)
-            Config.noclipCamEnabled = Value
-            Movement.applyNoclipCam()
-        end
-    })
-
     MovementLeftGroup:AddToggle("AntiAFK", {
         Text = "Anti AFK",
         Tooltip = "Prevents being kicked for inactivity",
@@ -510,6 +501,7 @@ function UI.createMapTab()
         "Exclusion [1001]",
         "Virus Laboratory [1002]",
         "Biology Laboratory [1003]",
+        "Backrooms [1004]",
         "Wave Mode [102]",
         "Raid Mode [201]",
     }
@@ -518,6 +510,7 @@ function UI.createMapTab()
         ["Exclusion [1001]"] = 1001,
         ["Virus Laboratory [1002]"] = 1002,
         ["Biology Laboratory [1003]"] = 1003,
+        ["Backrooms [1004]"] = 1004,
         ["Wave Mode [102]"] = 102,
         ["Raid Mode [201]"] = 201,
     }
@@ -923,7 +916,7 @@ function UI.createCharacterTab()
         CharacterGroup:AddSlider("WraithUltimateInterval", {
             Text = "Wraith Ultimate Interval (s)",
             Default = Config.wraithUltimateInterval,
-            Min = 0.3, Max = 60, Rounding = 1,
+            Min = 0.3, Max = 20, Rounding = 1,
             Callback = function(Value) Config.wraithUltimateInterval = Value end
         })
     end
@@ -933,7 +926,7 @@ function UI.createCharacterTab()
         CharacterGroup:AddSlider("AssaultUltimateInterval", {
             Text = "Assault Ultimate Interval (s)",
             Default = Config.assaultUltimateInterval,
-            Min = 0.3, Max = 60, Rounding = 1,
+            Min = 0.3, Max = 20, Rounding = 1,
             Callback = function(Value) Config.assaultUltimateInterval = Value end
         })
     end
@@ -1014,6 +1007,120 @@ function UI.createSettingsTab(cleanupCallback)
 
     -- Set menu keybind
     UI.Library.ToggleKeybind = UI.Library.Options.MenuKeybind
+
+    -- Keybinds Section
+    local KeybindsGroup = SettingsTab:AddRightGroupbox("Keybinds")
+
+    KeybindsGroup:AddDivider()
+    KeybindsGroup:AddLabel("Feature Keybinds")
+
+    KeybindsGroup:AddLabel("Auto Rotate (Toggle)"):AddKeyPicker("AutoRotateKey", {
+        Default = "R",
+        Mode = "Toggle",
+        Text = "Auto Rotate 360°",
+        NoUI = false,
+        Callback = function(Value)
+            if Value then
+                Config.autoRotateEnabled = not Config.autoRotateEnabled
+                if Combat and Combat.toggleAutoRotate then
+                    Combat.toggleAutoRotate(Config.autoRotateEnabled)
+                end
+            end
+        end
+    })
+
+    KeybindsGroup:AddLabel("Camera Teleport (Toggle)"):AddKeyPicker("CameraTeleportKey", {
+        Default = "X",
+        Mode = "Toggle",
+        Text = "Camera Teleport to Zombies",
+        NoUI = false,
+        Callback = function(Value)
+            -- Camera teleport logic is handled in main.lua InputBegan handler
+        end
+    })
+
+    KeybindsGroup:AddLabel("Anti-Zombie (Toggle)"):AddKeyPicker("AntiZombieKey", {
+        Default = "M",
+        Mode = "Toggle",
+        Text = "Toggle Anti-Zombie",
+        NoUI = false,
+        Callback = function(Value)
+            if Value then
+                Config.antiZombieEnabled = not Config.antiZombieEnabled
+                if Movement and Movement.applyAntiZombie then
+                    Movement.applyAntiZombie()
+                end
+            end
+        end
+    })
+
+    KeybindsGroup:AddLabel("Auto Chest (Press)"):AddKeyPicker("ChestTeleportKey", {
+        Default = "T",
+        Mode = "Press",
+        Text = "Teleport to All Chests",
+        NoUI = false,
+        Callback = function()
+            if Farm and Farm.teleportToAllChests then
+                Farm.teleportToAllChests()
+            end
+        end
+    })
+
+    KeybindsGroup:AddDivider()
+    KeybindsGroup:AddLabel("Utility Keybinds")
+
+    KeybindsGroup:AddLabel("Unload Script"):AddKeyPicker("UnloadKey", {
+        Default = "End",
+        Mode = "Press",
+        Text = "Unload Script",
+        NoUI = false,
+        Callback = function()
+            if cleanupCallback then cleanupCallback() end
+            task.wait(0.1)
+            if UI.Library then
+                UI.Library:Unload()
+            end
+        end
+    })
+
+    -- Connect keybinds to actual keys in config
+    task.spawn(function()
+        task.wait(0.5) -- Wait for UI to fully load
+        if UI.Library and UI.Library.Options then
+            local Options = UI.Library.Options
+            
+            -- Update config keys when keybinds change
+            if Options.AutoRotateKey then
+                Options.AutoRotateKey:OnChanged(function()
+                    Config.autoRotateToggleKey = Options.AutoRotateKey.Value
+                end)
+            end
+            
+            if Options.CameraTeleportKey then
+                Options.CameraTeleportKey:OnChanged(function()
+                    Config.cameraTeleportKey = Options.CameraTeleportKey.Value
+                end)
+            end
+            
+            if Options.AntiZombieKey then
+                Options.AntiZombieKey:OnChanged(function()
+                    Config.hipHeightToggleKey = Options.AntiZombieKey.Value
+                end)
+            end
+            
+            if Options.ChestTeleportKey then
+                Options.ChestTeleportKey:OnChanged(function()
+                    Config.teleportKey = Options.ChestTeleportKey.Value
+                end)
+            end
+            
+            if Options.UnloadKey then
+                Options.UnloadKey:OnChanged(function()
+                    Config.unloadKey = Options.UnloadKey.Value
+                end)
+            end
+        end
+    end)
 
     -- Config Save / Load
     UI.SaveManager:SetLibrary(UI.Library)
