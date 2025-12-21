@@ -55,17 +55,11 @@ local wsCharAddedConnection
 local jpLoopConnection
 local jpCharAddedConnection
 
--- HipHeight Variables
-local hipHeightConnection = nil
-local hipHeightCharConnection = nil
-local originalHipHeight = nil
-local targetYPosition = nil
-
 -- ESP Variables
 local espObjects = {}
 local espHighlights = {}
 local hasDrawingAPI = false
-
+local highlightUpdateTick = 0
 
 
 -- Get Character
@@ -121,20 +115,6 @@ MovementGroup:AddToggle("Noclip", {
 	Text = "Noclip",
 	Default = false,
 	Tooltip = "Walk through walls",
-})
-
-MovementGroup:AddToggle("HipHeight", {
-	Text = "Hip Height (Fly)",
-	Default = false,
-	Tooltip = "Float at a fixed height above ground",
-})
-
-MovementGroup:AddSlider("HipHeightValue", {
-	Text = "Height Value",
-	Default = 20,
-	Min = 1,
-	Max = 200,
-	Rounding = 0,
 })
 
 MovementGroup:AddToggle("InfiniteJump", {
@@ -306,132 +286,6 @@ Toggles.Noclip:OnChanged(function()
 				end
 			end
 		end
-	end
-end)
-
--- HipHeight (Float at fixed height)
-local function getGroundY()
-	if not rootPart then return 0 end
-	
-	local rayParams = RaycastParams.new()
-	rayParams.FilterType = Enum.RaycastFilterType.Exclude
-	rayParams.FilterDescendantsInstances = {character}
-	
-	-- Raycast xuống để tìm mặt đất
-	local rayOrigin = rootPart.Position
-	local rayDirection = Vector3.new(0, -500, 0)
-	local result = Workspace:Raycast(rayOrigin, rayDirection, rayParams)
-	
-	if result then
-		return result.Position.Y
-	end
-	return 0
-end
-
-local function applyHipHeight()
-	if not humanoid or not rootPart then return end
-	
-	if Toggles.HipHeight.Value then
-		local heightValue = Options.HipHeightValue and Options.HipHeightValue.Value or 20
-		
-		-- Lưu original hip height
-		if originalHipHeight == nil then
-			originalHipHeight = humanoid.HipHeight
-		end
-		
-		-- Set hip height
-		humanoid.HipHeight = heightValue
-		
-		-- Tính toán vị trí Y mục tiêu (mặt đất + height + offset cho character)
-		local groundY = getGroundY()
-		local characterHeight = 3 -- Chiều cao cơ bản của character
-		targetYPosition = groundY + heightValue + characterHeight
-	end
-end
-
-local function setupHipHeightLoop()
-	if hipHeightConnection then
-		hipHeightConnection:Disconnect()
-		hipHeightConnection = nil
-	end
-	
-	hipHeightConnection = RunService.Heartbeat:Connect(function()
-		if not Toggles.HipHeight.Value then return end
-		if not rootPart or not humanoid then return end
-		
-		local heightValue = Options.HipHeightValue and Options.HipHeightValue.Value or 20
-		
-		-- Enforce hip height liên tục
-		if humanoid.HipHeight ~= heightValue then
-			humanoid.HipHeight = heightValue
-		end
-		
-		-- Giữ vị trí Y cố định (không rơi)
-		local groundY = getGroundY()
-		local characterHeight = 3
-		local targetY = groundY + heightValue + characterHeight
-		
-		local currentPos = rootPart.Position
-		local currentVel = rootPart.AssemblyLinearVelocity or rootPart.Velocity
-		
-		-- Nếu đang rơi hoặc vị trí Y khác target, điều chỉnh
-		if math.abs(currentPos.Y - targetY) > 0.5 then
-			rootPart.CFrame = CFrame.new(currentPos.X, targetY, currentPos.Z) * (rootPart.CFrame - rootPart.CFrame.Position)
-		end
-		
-		-- Tắt gravity effect bằng cách set velocity Y = 0
-		if currentVel.Y < -1 then
-			rootPart.AssemblyLinearVelocity = Vector3.new(currentVel.X, 0, currentVel.Z)
-		end
-	end)
-	
-	-- Character respawn handler
-	if hipHeightCharConnection then
-		hipHeightCharConnection:Disconnect()
-		hipHeightCharConnection = nil
-	end
-	
-	hipHeightCharConnection = LocalPlayer.CharacterAdded:Connect(function()
-		getCharacter()
-		originalHipHeight = nil
-		task.wait(0.5)
-		if Toggles.HipHeight.Value then
-			applyHipHeight()
-		end
-	end)
-end
-
-local function disableHipHeight()
-	if hipHeightConnection then
-		hipHeightConnection:Disconnect()
-		hipHeightConnection = nil
-	end
-	
-	if hipHeightCharConnection then
-		hipHeightCharConnection:Disconnect()
-		hipHeightCharConnection = nil
-	end
-	
-	-- Restore original hip height
-	if humanoid and originalHipHeight ~= nil then
-		humanoid.HipHeight = originalHipHeight
-	end
-	originalHipHeight = nil
-	targetYPosition = nil
-end
-
-Toggles.HipHeight:OnChanged(function()
-	if Toggles.HipHeight.Value then
-		applyHipHeight()
-		setupHipHeightLoop()
-	else
-		disableHipHeight()
-	end
-end)
-
-Options.HipHeightValue:OnChanged(function()
-	if Toggles.HipHeight.Value then
-		applyHipHeight()
 	end
 end)
 
@@ -774,7 +628,9 @@ local function applyHitbox()
 end
 
 RunService.Heartbeat:Connect(function()
-	applyHitbox()
+	if Toggles.Hitbox.Value then
+		applyHitbox()
+	end
 end)
 
 
@@ -896,17 +752,22 @@ local function createESPElements()
 		Tracer = newDrawing("Line", {Visible = false, Thickness = 1, Color = Color3.fromRGB(0, 255, 0)}),
 		HealthBar = newDrawing("Line", {Visible = false, Thickness = 3, Color = Color3.new(0, 1, 0)}),
 		Skeleton = {},
-		Box3D = {}
+		Box3D = nil -- Lazy load - chỉ tạo khi cần
 	}
 	-- Pre-create skeleton lines (max 14 for R15)
 	for i = 1, 14 do
 		elements.Skeleton[i] = newDrawing("Line", {Visible = false, Thickness = 1.5, Color = Color3.fromRGB(0, 255, 0)})
 	end
-	-- Pre-create 3D box lines (15 body parts * 12 edges = 180 lines max for R15)
-	for i = 1, 180 do
-		elements.Box3D[i] = newDrawing("Line", {Visible = false, Thickness = 1, Color = Color3.fromRGB(0, 255, 0)})
-	end
 	return elements
+end
+
+-- Lazy create 3D box lines khi cần
+local function ensure3DBoxLines(data)
+	if data.Box3D then return end
+	data.Box3D = {}
+	for i = 1, 72 do
+		data.Box3D[i] = newDrawing("Line", {Visible = false, Thickness = 1, Color = Color3.fromRGB(0, 255, 0)})
+	end
 end
 
 local function hideESP(data)
@@ -1027,51 +888,33 @@ local box3DEdges = {
 	{1, 5}, {2, 6}, {3, 7}, {4, 8},
 }
 
--- Body parts for 3D box ESP (R15)
-local bodyPartsR15 = {
-	"Head", "UpperTorso", "LowerTorso",
-	"LeftUpperArm", "LeftLowerArm", "LeftHand",
-	"RightUpperArm", "RightLowerArm", "RightHand",
-	"LeftUpperLeg", "LeftLowerLeg", "LeftFoot",
-	"RightUpperLeg", "RightLowerLeg", "RightFoot"
-}
+-- 6 body parts chính cho 3D box (giảm từ 15 xuống 6)
+local bodyParts3D_R15 = {"Head", "UpperTorso", "LowerTorso", "LeftUpperArm", "RightUpperArm", "LeftUpperLeg"}
+local bodyParts3D_R6 = {"Head", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg"}
 
--- Body parts for 3D box ESP (R6)
-local bodyPartsR6 = {
-	"Head", "Torso",
-	"Left Arm", "Right Arm",
-	"Left Leg", "Right Leg"
-}
-
-local function getBodyParts(char)
+local function getBodyParts3D(char)
 	if char:FindFirstChild("UpperTorso") then
-		return bodyPartsR15
+		return bodyParts3D_R15
 	else
-		return bodyPartsR6
+		return bodyParts3D_R6
 	end
 end
 
 -- Draw 3D box for a single part
 local function drawPart3DBox(part, lines, startIndex, color)
 	if not part or not part:IsA("BasePart") then
-		-- Hide lines if part doesn't exist
 		for i = startIndex, startIndex + 11 do
 			if lines[i] then lines[i].Visible = false end
 		end
 		return startIndex + 12
 	end
 	
-	-- Vẫn vẽ dù part bị invisible (Transparency = 1)
-	local cf = part.CFrame
-	local size = part.Size
-	local corners, allVisible = get3DBoxCorners(cf, size)
+	local corners = get3DBoxCorners(part.CFrame, part.Size)
 	
 	for i, edge in ipairs(box3DEdges) do
-		local lineIndex = startIndex + i - 1
-		local line = lines[lineIndex]
+		local line = lines[startIndex + i - 1]
 		if line then
-			local c1 = corners[edge[1]]
-			local c2 = corners[edge[2]]
+			local c1, c2 = corners[edge[1]], corners[edge[2]]
 			if c1.visible and c2.visible then
 				line.Visible = true
 				line.From = c1.screen
@@ -1084,6 +927,31 @@ local function drawPart3DBox(part, lines, startIndex, color)
 	end
 	
 	return startIndex + 12
+end
+
+-- Draw 3D boxes for character body parts
+local function draw3DBoxes(data, char, color)
+	if not data.Box3D or not char then return end
+	
+	local bodyParts = getBodyParts3D(char)
+	local lineIndex = 1
+	
+	for _, partName in ipairs(bodyParts) do
+		local part = char:FindFirstChild(partName)
+		lineIndex = drawPart3DBox(part, data.Box3D, lineIndex, color)
+	end
+	
+	-- Hide unused lines
+	for i = lineIndex, #data.Box3D do
+		if data.Box3D[i] then data.Box3D[i].Visible = false end
+	end
+end
+
+local function hide3DBox(data)
+	if not data.Box3D then return end
+	for _, line in ipairs(data.Box3D) do
+		line.Visible = false
+	end
 end
 
 local function addHighlight(player)
@@ -1151,6 +1019,11 @@ local function drawPlayerESP(player, cf, size, hum)
 		return
 	end
 
+	-- Tạo ESP elements nếu chưa có (on-demand như Ryzex)
+	if not espObjects[player] then
+		espObjects[player] = createESPElements()
+	end
+
 	local points, visible = getBoxScreenPoints(cf, size)
 	if not visible or #points == 0 then
 		hideESP(espObjects[player])
@@ -1194,33 +1067,12 @@ local function drawPlayerESP(player, cf, size, hum)
 		data.Box.Visible = false
 	end
 
-	-- 3D Box (per body part)
-	if data.Box3D then
-		if Toggles.ESP3DBox and Toggles.ESP3DBox.Value then
-			local char = player.Character
-			if char then
-				local bodyParts = getBodyParts(char)
-				local lineIndex = 1
-				for _, partName in ipairs(bodyParts) do
-					local part = char:FindFirstChild(partName)
-					lineIndex = drawPart3DBox(part, data.Box3D, lineIndex, baseColor)
-				end
-				-- Hide remaining unused lines
-				for i = lineIndex, #data.Box3D do
-					if data.Box3D[i] then
-						data.Box3D[i].Visible = false
-					end
-				end
-			else
-				for _, line in ipairs(data.Box3D) do
-					line.Visible = false
-				end
-			end
-		else
-			for _, line in ipairs(data.Box3D) do
-				line.Visible = false
-			end
-		end
+	-- 3D Box (6 body parts - balanced detail vs performance)
+	if Toggles.ESP3DBox and Toggles.ESP3DBox.Value then
+		ensure3DBoxLines(data) -- Lazy load - chỉ tạo khi bật
+		draw3DBoxes(data, player.Character, baseColor)
+	elseif data.Box3D then
+		hide3DBox(data)
 	end
 
 	-- Name
@@ -1301,31 +1153,6 @@ local function initializeESP()
 	if ok and obj then
 		hasDrawingAPI = true
 		obj:Remove()
-
-		-- Tạo ESP cho players hiện tại
-		for _, player in ipairs(Players:GetPlayers()) do
-			if player ~= LocalPlayer then
-				espObjects[player] = createESPElements()
-				-- Lắng nghe khi respawn
-				player.CharacterAdded:Connect(function()
-					if not espObjects[player] then
-						espObjects[player] = createESPElements()
-					end
-				end)
-			end
-		end
-
-		-- Player mới join
-		Players.PlayerAdded:Connect(function(player)
-			if player ~= LocalPlayer then
-				espObjects[player] = createESPElements()
-				player.CharacterAdded:Connect(function()
-					if not espObjects[player] then
-						espObjects[player] = createESPElements()
-					end
-				end)
-			end
-		end)
 
 		Players.PlayerRemoving:Connect(function(player)
 			if espObjects[player] then
@@ -1421,7 +1248,15 @@ initializeESP()
 -- ESP Update Loop
 RunService.RenderStepped:Connect(function()
 	updateESP()
-	updateHighlights()
+	
+	-- Highlight update mỗi 10 frames (giảm tải)
+	highlightUpdateTick = highlightUpdateTick + 1
+	if highlightUpdateTick >= 10 then
+		highlightUpdateTick = 0
+		if Toggles.PlayerESP.Value and Toggles.ESPHighlight.Value then
+			updateHighlights()
+		end
+	end
 	
 	-- Aimbot Update
 	local mousePos = UserInputService:GetMouseLocation()
@@ -1836,20 +1671,6 @@ Library:OnUnload(function()
 			end
 		end
 	end
-
-	-- Cleanup HipHeight
-	if hipHeightConnection then
-		hipHeightConnection:Disconnect()
-		hipHeightConnection = nil
-	end
-	if hipHeightCharConnection then
-		hipHeightCharConnection:Disconnect()
-		hipHeightCharConnection = nil
-	end
-	if humanoid and originalHipHeight ~= nil then
-		humanoid.HipHeight = originalHipHeight
-	end
-	originalHipHeight = nil
 
 	-- Cleanup Anti AFK
 	if antiAFKConnection then
