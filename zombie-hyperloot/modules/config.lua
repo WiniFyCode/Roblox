@@ -125,6 +125,7 @@ Config.autoBulletBoxEnabled = true
 ----------------------------------------------------------
 -- 🔹 Auto Skill
 Config.autoSkillEnabled = true
+Config.healingSkillEnabled = false -- Toggle riêng cho Skill F (Healing)
 Config.armsmasterUltimateInterval = 15 -- Armsmaster Ultimate (1010)
 Config.wraithUltimateInterval = 0.3 -- Wraith Ultimate (1006)
 Config.assaultUltimateInterval = 0.3 -- Assault Ultimate (1001)

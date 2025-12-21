@@ -363,14 +363,22 @@ function Character.startAllSkillLoops()
             Character.activateAssaultUltimate,
             function() return getClosestZombiePart() ~= nil end
         )
-        Character.startSkillLoop(function() return Config.healingSkillInterval end, Character.activateHealingSkill)
+        Character.startSkillLoop(
+            function() return Config.healingSkillInterval end, 
+            Character.activateHealingSkill,
+            function() return Config.healingSkillEnabled end -- Check toggle
+        )
         Character.startSkillLoop(function() return Config.flagBearerUltimateInterval or 15 end, Character.activateFlagBearerUltimate)
         return
     end
 
     -- Chỉ chạy skill tương ứng với character hiện tại
-    -- Healing skill (1002) có thể dùng cho tất cả characters
-    Character.startSkillLoop(function() return Config.healingSkillInterval end, Character.activateHealingSkill)
+    -- Healing skill (1002) có thể dùng cho tất cả characters - có toggle riêng
+    Character.startSkillLoop(
+        function() return Config.healingSkillInterval end, 
+        Character.activateHealingSkill,
+        function() return Config.healingSkillEnabled end -- Check toggle
+    )
 
     -- Character-specific skills
     if characterId == 1006 then

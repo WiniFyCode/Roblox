@@ -1279,7 +1279,24 @@ function UI.createCharacterTab()
         end
     })
 
-    -- Healing Skill (luôn hiển thị - character nào cũng có)
+    -- Healing Skill Toggle (bật/tắt Skill F)
+    CharacterGroup:AddToggle("HealingSkillEnabled", {
+        Text = "Enable F Skill (Healing)",
+        Tooltip = "Toggle Skill F - All characters have this healing skill",
+        Default = Config.healingSkillEnabled,
+        Callback = function(Value)
+            Config.healingSkillEnabled = Value
+            if UI.Library then
+                UI.Library:Notify({
+                    Title = "Character",
+                    Description = Value and "F Skill (Healing) enabled" or "F Skill (Healing) disabled",
+                    Time = 2
+                })
+            end
+        end
+    })
+
+    -- Healing Skill Interval (luôn hiển thị - character nào cũng có)
     CharacterGroup:AddSlider("HealingSkillInterval", {
         Text = "F Skill (Healing) Interval (s)",
         Tooltip = "Skill F - All characters have",
