@@ -1246,7 +1246,8 @@ end
 initializeESP()
 
 -- ESP Update Loop
-RunService.RenderStepped:Connect(function()
+local mainRenderConnection
+mainRenderConnection = RunService.RenderStepped:Connect(function()
 	updateESP()
 	
 	-- Highlight update mỗi 10 frames (giảm tải)
@@ -1593,6 +1594,12 @@ SaveManager:LoadAutoloadConfig()
 
 -- Cleanup
 Library:OnUnload(function()
+	-- Disconnect main render loop FIRST
+	if mainRenderConnection then
+		mainRenderConnection:Disconnect()
+		mainRenderConnection = nil
+	end
+	
 	-- Cleanup Aimbot FOV Circle
 	if aimbotFOVCircle then
 		aimbotFOVCircle.Visible = false
