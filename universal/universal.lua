@@ -55,6 +55,17 @@ local wsCharAddedConnection
 local jpLoopConnection
 local jpCharAddedConnection
 
+local flyBV
+local flyGyro
+local flyConnection
+
+local hipHeightOriginal
+local hipHeightConnection
+local airWalkPart
+local airWalkConnection
+local airBaseY
+local airGroundY
+
 local checkpoints = {}
 local checkpointNames = {}
 
@@ -126,6 +137,34 @@ MovementGroup:AddToggle("InfiniteJump", {
 	Tooltip = "Infinite jumps",
 })
 
+MovementGroup:AddToggle("FlyEnabled", {
+	Text = "Fly",
+	Default = false,
+	Tooltip = "Fly freely in air",
+})
+
+MovementGroup:AddSlider("FlySpeed", {
+	Text = "Fly Speed",
+	Default = 80,
+	Min = 10,
+	Max = 300,
+	Rounding = 0,
+})
+
+MovementGroup:AddToggle("HipHeightEnabled", {
+	Text = "Hip Height (Walk In Air)",
+	Default = false,
+	Tooltip = "Raise hip height to walk above ground",
+})
+
+MovementGroup:AddSlider("HipHeightValue", {
+	Text = "Hip Height",
+	Default = 5,
+	Min = 0,
+	Max = 50,
+	Rounding = 1,
+})
+
 -- Speed Hack (loopspeed style)
 local function applyWalkSpeed()
 	if humanoid and Toggles.SpeedHack.Value then
@@ -144,8 +183,8 @@ local function setupWalkSpeedLoop()
 	wsLoopConnection = humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
 		if Toggles.SpeedHack.Value then
 			applyWalkSpeed()
-		end
-	end)
+            end
+            end)
 
 	if wsCharAddedConnection then
 		wsCharAddedConnection:Disconnect()
@@ -165,8 +204,8 @@ local function setupWalkSpeedLoop()
 					applyWalkSpeed()
 				end
 			end)
-		end
-	end)
+            end
+            end)
 end
 
 Toggles.SpeedHack:OnChanged(function()
@@ -184,9 +223,9 @@ Toggles.SpeedHack:OnChanged(function()
 		end
 		if humanoid then
 			humanoid.WalkSpeed = 16
-		end
-	end
-end)
+            end
+        end
+        end)
 
 Options.SpeedValue:OnChanged(function()
 	if Toggles.SpeedHack.Value then
@@ -298,6 +337,188 @@ UserInputService.JumpRequest:Connect(function()
 		humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
 	end
 end)
+
+-- Fly
+local function stopFly()
+	if flyConnection then
+		flyConnection:Disconnect()
+		flyConnection = nil
+	end
+	if flyBV then
+		pcall(function()
+			flyBV:Destroy()
+		end)
+		flyBV = nil
+	end
+	if flyGyro then
+		pcall(function()
+			flyGyro:Destroy()
+		end)
+		flyGyro = nil
+    end
+if humanoid then
+		humanoid.PlatformStand = false
+	end
+	if rootPart then
+		-- Reset lại hướng đứng cho thẳng, giữ nguyên góc quay theo trục Y
+		local cf = rootPart.CFrame
+		local pos = cf.Position
+		local _, y, _ = cf:ToEulerAnglesYXZ()
+		rootPart.CFrame = CFrame.new(pos) * CFrame.Angles(0, y, 0)
+		-- Xoá vận tốc còn sót để không bị drift
+		pcall(function()
+			rootPart.AssemblyLinearVelocity = Vector3.new()
+			rootPart.AssemblyAngularVelocity = Vector3.new()
+		end)
+	end
+end
+
+local function startFly()
+	getCharacter()
+	if not rootPart or not humanoid then
+		Library:Notify({
+			Title = "Fly",
+			Description = "Could not find your character",
+			Time = 3,
+		})
+		if Toggles.FlyEnabled then
+			Toggles.FlyEnabled:SetValue(false)
+		end
+		return
+	end
+
+	stopFly()
+
+	flyBV = Instance.new("BodyVelocity")
+	flyBV.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+	flyBV.P = 9e4
+	flyBV.Velocity = Vector3.new()
+	flyBV.Parent = rootPart
+
+	flyGyro = Instance.new("BodyGyro")
+	flyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+	flyGyro.P = 9e4
+	flyGyro.CFrame = rootPart.CFrame
+	flyGyro.Parent = rootPart
+
+	flyConnection = RunService.RenderStepped:Connect(function()
+		if not rootPart or not humanoid then
+			stopFly()
+			return
+		end
+
+		humanoid.PlatformStand = true
+
+		-- Giữ hướng ổn định bằng BodyGyro
+		if flyGyro then
+			flyGyro.CFrame = CFrame.new(rootPart.Position, rootPart.Position + Camera.CFrame.LookVector)
+		end
+
+		local moveDir = Vector3.new(0, 0, 0)
+		local camCF = Camera.CFrame
+
+		if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+			moveDir = moveDir + camCF.LookVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+			moveDir = moveDir - camCF.LookVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+			moveDir = moveDir - camCF.RightVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+			moveDir = moveDir + camCF.RightVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+			moveDir = moveDir + Vector3.new(0, 1, 0)
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+			moveDir = moveDir + Vector3.new(0, -1, 0)
+		end
+
+		if moveDir.Magnitude > 0 then
+			moveDir = moveDir.Unit
+		end
+
+		local speed = (Options.FlySpeed and Options.FlySpeed.Value) or 80
+		flyBV.Velocity = moveDir * speed
+	end)
+end
+
+if Toggles.FlyEnabled then
+	Toggles.FlyEnabled:OnChanged(function()
+		if Toggles.FlyEnabled.Value then
+			startFly()
+		else
+			stopFly()
+		end
+	end)
+end
+
+if Options.FlySpeed then
+	Options.FlySpeed:OnChanged(function()
+		if flyBV and Toggles.FlyEnabled and Toggles.FlyEnabled.Value then
+			local speed = (Options.FlySpeed and Options.FlySpeed.Value) or 80
+			local currentDir = flyBV.Velocity.Magnitude > 0 and flyBV.Velocity.Unit or Vector3.new()
+			flyBV.Velocity = currentDir * speed
+		end
+	end)
+end
+
+-- Hip Height (walk in air)
+local function applyHipHeight()
+	if humanoid and Toggles.HipHeightEnabled and Toggles.HipHeightEnabled.Value then
+		local value = (Options.HipHeightValue and Options.HipHeightValue.Value) or humanoid.HipHeight
+		humanoid.HipHeight = value
+	end
+end
+
+if Toggles.HipHeightEnabled then
+	Toggles.HipHeightEnabled:OnChanged(function()
+		if Toggles.HipHeightEnabled.Value then
+			if humanoid then
+				hipHeightOriginal = humanoid.HipHeight
+			end
+
+			if hipHeightConnection then
+				hipHeightConnection:Disconnect()
+				hipHeightConnection = nil
+			end
+
+			applyHipHeight()
+
+			-- Giữ HipHeight ổn định khi game cố đổi
+			if humanoid then
+				if hipHeightConnection then
+					hipHeightConnection:Disconnect()
+					hipHeightConnection = nil
+				end
+				hipHeightConnection = humanoid:GetPropertyChangedSignal("HipHeight"):Connect(function()
+					if Toggles.HipHeightEnabled and Toggles.HipHeightEnabled.Value then
+						applyHipHeight()
+					end
+				end)
+			end
+		else
+			if hipHeightConnection then
+				hipHeightConnection:Disconnect()
+				hipHeightConnection = nil
+			end
+
+			if humanoid and hipHeightOriginal ~= nil then
+				humanoid.HipHeight = hipHeightOriginal
+			end
+		end
+	end)
+end
+
+if Options.HipHeightValue then
+	Options.HipHeightValue:OnChanged(function()
+		if Toggles.HipHeightEnabled and Toggles.HipHeightEnabled.Value then
+			applyHipHeight()
+		end
+	end)
+end
 
 -- ============================================
 -- COMBAT TAB
@@ -1531,11 +1752,11 @@ local function refreshCheckpointDropdown()
 end
 
 -- Save/Load Checkpoints
-local checkpointFileName = "WiniFy_Checkpoints.json"
+local checkpointFileName = "WiniFy_Checkpoints_" .. tostring(game.PlaceId) .. ".json"
 
 local function saveCheckpointsToFile(showNotification)
-	local success, result = pcall(function()
-		local dataToSave = {}
+        local success, result = pcall(function()
+            local dataToSave = {}
 		for _, cp in ipairs(checkpoints) do
 			-- Convert CFrame to serializable format
 			local cf = cp.cf
@@ -1555,8 +1776,8 @@ local function saveCheckpointsToFile(showNotification)
 		return true
 	end)
 	
-	if success then
-		if showNotification ~= false then
+        if success then
+            if showNotification ~= false then
 			Library:Notify({
 				Title = "Checkpoint",
 				Description = "Saved " .. tostring(#checkpoints) .. " checkpoint(s)",
@@ -1577,8 +1798,8 @@ local function saveCheckpointsToFile(showNotification)
 end
 
 local function loadCheckpointsFromFile(showNotification)
-	local success, result = pcall(function()
-		if not isfile(checkpointFileName) then
+        local success, result = pcall(function()
+            if not isfile(checkpointFileName) then
 			return false
 		end
 		
@@ -1950,8 +2171,8 @@ local serverDropdown = ServerListGroup:AddDropdown("ServerList", {
 ServerListGroup:AddButton({
 	Text = "Refresh server list",
 	Func = function()
-		local success, result = pcall(function()
-			return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" ..
+    local success, result = pcall(function()
+        return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" ..
 			game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
 		end)
 
@@ -2018,11 +2239,11 @@ ServerListGroup:AddButton({
 		for i, display in ipairs(serverListDisplay) do
 			if display == selected then
 				selectedIndex = i
-				break
-			end
-		end
-
-		if not selectedIndex then
+                break
+            end
+        end
+        
+        if not selectedIndex then
 			Library:Notify({
 				Title = "Server",
 				Description = "Selected server not found",
@@ -2260,6 +2481,24 @@ Library:OnUnload(function()
 	if humanoid then
 		humanoid.WalkSpeed = 16
 		humanoid.JumpPower = 50
+	end
+
+	-- Cleanup Fly
+	stopFly()
+
+	-- Cleanup HipHeight / AirWalk
+	if airWalkConnection then
+		airWalkConnection:Disconnect()
+		airWalkConnection = nil
+	end
+	if airWalkPart then
+		pcall(function()
+			airWalkPart:Destroy()
+		end)
+		airWalkPart = nil
+	end
+	if humanoid and hipHeightOriginal ~= nil then
+		humanoid.HipHeight = hipHeightOriginal
 	end
 
 	if wsLoopConnection then
