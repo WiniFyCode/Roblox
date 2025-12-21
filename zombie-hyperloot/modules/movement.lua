@@ -181,43 +181,61 @@ function Movement.applySpeed()
 end
 
 ----------------------------------------------------------
--- 🔹 Noclip Cam
+-- 🔹 Noclip Cam (Camera không bị chặn bởi tường)
+local noclipCamConnection = nil
+
 function Movement.setNoclipCam(enabled)
-    local sc = (debug and debug.setconstant) or setconstant
-    local gc = (debug and debug.getconstants) or getconstants
-    if not sc or not getgc or not gc then
-        warn("Exploit không hỗ trợ Noclip Cam (thiếu setconstant hoặc getconstants)")
-        return false
+    -- Disconnect connection cũ nếu có
+    if noclipCamConnection then
+        noclipCamConnection:Disconnect()
+        noclipCamConnection = nil
     end
     
-    local success = false
-    local pop = Config.localPlayer:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule"):WaitForChild("CameraModule"):WaitForChild("ZoomController"):WaitForChild("Popper")
-    
-    -- enabled = true → set 0 (noclip cam bật)
-    -- enabled = false → set 0.25 (noclip cam tắt, camera bình thường)
-    local targetValue = enabled and 0 or 0.25
-    
-    for _, v in pairs(getgc()) do
-        if type(v) == 'function' and getfenv(v).script == pop then
-            for i, v1 in pairs(gc(v)) do
-                local numVal = tonumber(v1)
-                if numVal == 0 or numVal == 0.25 then
-                    sc(v, i, targetValue)
-                    success = true
+    if enabled then
+        -- Tìm Popper module và disable nó
+        local ok, result = pcall(function()
+            local PlayerModule = Config.localPlayer:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule")
+            local CameraModule = require(PlayerModule):GetCameras()
+            if CameraModule and CameraModule.activeCameraController then
+                -- Disable camera occlusion
+                local poppercam = CameraModule.activeCameraController
+                if poppercam.SetOcclusionMode then
+                    poppercam:SetOcclusionMode(Enum.DevCameraOcclusionMode.Invisicam)
                 end
             end
-        end
+        end)
+        
+        -- Fallback: Loop để giữ camera không bị đẩy
+        noclipCamConnection = Config.RunService.RenderStepped:Connect(function()
+            if not Config.noclipCamEnabled then return end
+            
+            local camera = Config.Workspace.CurrentCamera
+            local char = Config.localPlayer.Character
+            if not camera or not char then return end
+            
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                -- Giữ camera ở vị trí mong muốn bằng cách set lại CFrame nếu bị đẩy quá xa
+                local camPos = camera.CFrame.Position
+                local charPos = hrp.Position
+                local distance = (camPos - charPos).Magnitude
+                
+                -- Nếu camera bị đẩy quá gần (do collision), đẩy ra lại
+                if distance < 2 then
+                    local lookVector = camera.CFrame.LookVector
+                    camera.CFrame = CFrame.new(charPos - lookVector * 10, charPos)
+                end
+            end
+        end)
+        
+        return true
     end
     
-    return success
+    return true
 end
 
 function Movement.applyNoclipCam()
-    local success = Movement.setNoclipCam(Config.noclipCamEnabled)
-    if not success and Config.noclipCamEnabled then
-        warn("Noclip Cam: FAILED - Exploit không tương thích")
-        Config.noclipCamEnabled = false
-    end
+    Movement.setNoclipCam(Config.noclipCamEnabled)
 end
 
 ----------------------------------------------------------
@@ -398,10 +416,12 @@ function Movement.cleanup()
     Movement.stopSpeedBoost()
     Movement.stopAntiAFK()
 
-    if Config.noclipCamEnabled then
-        Config.noclipCamEnabled = false
-        Movement.setNoclipCam(false) -- Tắt noclip cam khi cleanup
+    -- Tắt noclip cam
+    if noclipCamConnection then
+        noclipCamConnection:Disconnect()
+        noclipCamConnection = nil
     end
+    Config.noclipCamEnabled = false
 end
 
 return Movement
