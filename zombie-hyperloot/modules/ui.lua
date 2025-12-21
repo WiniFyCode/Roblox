@@ -819,16 +819,15 @@ function UI.createMapTab()
         end
     })
 
-    MapGroup:AddToggle("AutoReplay", {
-        Text = "Auto Replay Match",
-        Tooltip = "Automatically replay when the match ends",
-        Default = Config.autoReplayEnabled,
-        Callback = function(Value)
-            Config.autoReplayEnabled = Value
+    MapGroup:AddButton({
+        Text = "Replay Match",
+        Tooltip = "Replay the current match",
+        Func = function()
+            Map.replayCurrentMatch()
             if UI.Library then
                 UI.Library:Notify({
-                    Title = "Auto Replay",
-                    Description = Value and "Auto Replay enabled" or "Auto Replay disabled",
+                    Title = "Replay",
+                    Description = "Replay request sent!",
                     Time = 2
                 })
             end

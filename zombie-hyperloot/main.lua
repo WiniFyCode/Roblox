@@ -173,8 +173,7 @@ Farm.startAutoBulletBoxLoop()
 Farm.setupChestTeleportInput()
 
 ----------------------------------------------------------
--- 🔹 Setup Map Auto Replay, Supply ESP & Auto Door
-Map.startAutoReplayLoop()
+-- 🔹 Setup Map Supply ESP & Auto Door
 Map.startSupplyESP()
 
 -- Start Auto Door nếu được bật
