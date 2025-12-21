@@ -103,12 +103,7 @@ function Farm.teleportToAllChests()
         task.wait(0.2)
     end
     
-    -- Teleport về vị trí cũ
-    char = Config.localPlayer.Character
-    hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if hrp then
-        hrp.CFrame = CFrame.new(oldPos)
-    end
+    hrp.CFrame = CFrame.new(oldPos)
 end
 
 ----------------------------------------------------------
