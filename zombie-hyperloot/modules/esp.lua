@@ -15,6 +15,7 @@ ESP.bobESPConnection = nil
 ESP.bobESPObjects = {} -- Lưu các Bob đã tạo ESP
 ESP.bobESPRunning = false -- Flag để dừng loop
 ESP.bobHighlights = {} -- Lưu highlights cho Bob
+ESP.knownBobs = {} -- Lưu các Bob đã biết để track Bob mới
 
 
 
@@ -594,16 +595,40 @@ function ESP.updateBobHighlights()
     
     local bobs = ESP.findAllBobs()
     local foundModels = {}
+    local newBobsFound = 0
     
     for _, bobData in ipairs(bobs) do
         foundModels[bobData.model] = true
         ESP.addBobHighlight(bobData.model)
+        
+        -- Check nếu là Bob mới
+        if not ESP.knownBobs[bobData.model] then
+            ESP.knownBobs[bobData.model] = true
+            newBobsFound = newBobsFound + 1
+        end
     end
     
-    -- Xóa highlight cho Bobs không còn tồn tại
+    -- Notify nếu tìm thấy Bob mới
+    if newBobsFound > 0 and Config.UI and Config.UI.Library then
+        Config.UI.Library:Notify({
+            Title = "🎯 BOB Found!",
+            Description = string.format("Found %d Bob(s)! Total: %d", newBobsFound, #bobs),
+            Time = 5
+        })
+    end
+    
+    -- Xóa highlight và tracking cho Bobs không còn tồn tại
     for model, highlight in pairs(ESP.bobHighlights) do
         if not foundModels[model] then
             ESP.removeBobHighlight(model)
+            ESP.knownBobs[model] = nil
+        end
+    end
+    
+    -- Cleanup knownBobs cho models không còn tồn tại
+    for model, _ in pairs(ESP.knownBobs) do
+        if not foundModels[model] then
+            ESP.knownBobs[model] = nil
         end
     end
 end
@@ -673,6 +698,9 @@ function ESP.clearBobESP()
     for model, highlight in pairs(ESP.bobHighlights) do
         ESP.removeBobHighlight(model)
     end
+    
+    -- Clear known bobs tracking
+    ESP.knownBobs = {}
 end
 
 function ESP.startBobESP()
