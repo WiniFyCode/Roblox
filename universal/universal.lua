@@ -55,6 +55,12 @@ local wsCharAddedConnection
 local jpLoopConnection
 local jpCharAddedConnection
 
+-- HipHeight Variables
+local hipHeightConnection = nil
+local hipHeightCharConnection = nil
+local originalHipHeight = nil
+local targetYPosition = nil
+
 -- ESP Variables
 local espObjects = {}
 local espHighlights = {}
@@ -117,7 +123,19 @@ MovementGroup:AddToggle("Noclip", {
 	Tooltip = "Walk through walls",
 })
 
+MovementGroup:AddToggle("HipHeight", {
+	Text = "Hip Height (Fly)",
+	Default = false,
+	Tooltip = "Float at a fixed height above ground",
+})
 
+MovementGroup:AddSlider("HipHeightValue", {
+	Text = "Height Value",
+	Default = 20,
+	Min = 1,
+	Max = 200,
+	Rounding = 0,
+})
 
 MovementGroup:AddToggle("InfiniteJump", {
 	Text = "Infinite Jump",
@@ -291,7 +309,131 @@ Toggles.Noclip:OnChanged(function()
 	end
 end)
 
+-- HipHeight (Float at fixed height)
+local function getGroundY()
+	if not rootPart then return 0 end
+	
+	local rayParams = RaycastParams.new()
+	rayParams.FilterType = Enum.RaycastFilterType.Exclude
+	rayParams.FilterDescendantsInstances = {character}
+	
+	-- Raycast xuống để tìm mặt đất
+	local rayOrigin = rootPart.Position
+	local rayDirection = Vector3.new(0, -500, 0)
+	local result = Workspace:Raycast(rayOrigin, rayDirection, rayParams)
+	
+	if result then
+		return result.Position.Y
+	end
+	return 0
+end
 
+local function applyHipHeight()
+	if not humanoid or not rootPart then return end
+	
+	if Toggles.HipHeight.Value then
+		local heightValue = Options.HipHeightValue and Options.HipHeightValue.Value or 20
+		
+		-- Lưu original hip height
+		if originalHipHeight == nil then
+			originalHipHeight = humanoid.HipHeight
+		end
+		
+		-- Set hip height
+		humanoid.HipHeight = heightValue
+		
+		-- Tính toán vị trí Y mục tiêu (mặt đất + height + offset cho character)
+		local groundY = getGroundY()
+		local characterHeight = 3 -- Chiều cao cơ bản của character
+		targetYPosition = groundY + heightValue + characterHeight
+	end
+end
+
+local function setupHipHeightLoop()
+	if hipHeightConnection then
+		hipHeightConnection:Disconnect()
+		hipHeightConnection = nil
+	end
+	
+	hipHeightConnection = RunService.Heartbeat:Connect(function()
+		if not Toggles.HipHeight.Value then return end
+		if not rootPart or not humanoid then return end
+		
+		local heightValue = Options.HipHeightValue and Options.HipHeightValue.Value or 20
+		
+		-- Enforce hip height liên tục
+		if humanoid.HipHeight ~= heightValue then
+			humanoid.HipHeight = heightValue
+		end
+		
+		-- Giữ vị trí Y cố định (không rơi)
+		local groundY = getGroundY()
+		local characterHeight = 3
+		local targetY = groundY + heightValue + characterHeight
+		
+		local currentPos = rootPart.Position
+		local currentVel = rootPart.AssemblyLinearVelocity or rootPart.Velocity
+		
+		-- Nếu đang rơi hoặc vị trí Y khác target, điều chỉnh
+		if math.abs(currentPos.Y - targetY) > 0.5 then
+			rootPart.CFrame = CFrame.new(currentPos.X, targetY, currentPos.Z) * (rootPart.CFrame - rootPart.CFrame.Position)
+		end
+		
+		-- Tắt gravity effect bằng cách set velocity Y = 0
+		if currentVel.Y < -1 then
+			rootPart.AssemblyLinearVelocity = Vector3.new(currentVel.X, 0, currentVel.Z)
+		end
+	end)
+	
+	-- Character respawn handler
+	if hipHeightCharConnection then
+		hipHeightCharConnection:Disconnect()
+		hipHeightCharConnection = nil
+	end
+	
+	hipHeightCharConnection = LocalPlayer.CharacterAdded:Connect(function()
+		getCharacter()
+		originalHipHeight = nil
+		task.wait(0.5)
+		if Toggles.HipHeight.Value then
+			applyHipHeight()
+		end
+	end)
+end
+
+local function disableHipHeight()
+	if hipHeightConnection then
+		hipHeightConnection:Disconnect()
+		hipHeightConnection = nil
+	end
+	
+	if hipHeightCharConnection then
+		hipHeightCharConnection:Disconnect()
+		hipHeightCharConnection = nil
+	end
+	
+	-- Restore original hip height
+	if humanoid and originalHipHeight ~= nil then
+		humanoid.HipHeight = originalHipHeight
+	end
+	originalHipHeight = nil
+	targetYPosition = nil
+end
+
+Toggles.HipHeight:OnChanged(function()
+	if Toggles.HipHeight.Value then
+		applyHipHeight()
+		setupHipHeightLoop()
+	else
+		disableHipHeight()
+	end
+end)
+
+Options.HipHeightValue:OnChanged(function()
+	if Toggles.HipHeight.Value then
+		applyHipHeight()
+	end
+end)
 
 -- Infinite Jump
 UserInputService.JumpRequest:Connect(function()
@@ -1694,6 +1836,20 @@ Library:OnUnload(function()
 			end
 		end
 	end
+
+	-- Cleanup HipHeight
+	if hipHeightConnection then
+		hipHeightConnection:Disconnect()
+		hipHeightConnection = nil
+	end
+	if hipHeightCharConnection then
+		hipHeightCharConnection:Disconnect()
+		hipHeightCharConnection = nil
+	end
+	if humanoid and originalHipHeight ~= nil then
+		humanoid.HipHeight = originalHipHeight
+	end
+	originalHipHeight = nil
 
 	-- Cleanup Anti AFK
 	if antiAFKConnection then
