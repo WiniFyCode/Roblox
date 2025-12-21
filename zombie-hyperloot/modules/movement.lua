@@ -10,10 +10,8 @@ local Config = nil
 Movement.noClipConnection = nil
 Movement.speedConnection = nil
 Movement.humanoidHipHeightConnection = nil
-Movement.antiZombieConnection = nil -- Connection để giữ độ cao
 Movement.originalCollidableParts = {}
 Movement.originalWalkSpeed = nil
-Movement.targetYPosition = nil -- Vị trí Y mục tiêu
 
 function Movement.init(config)
     Config = config
@@ -26,14 +24,6 @@ local function disconnectHipHeightListener()
         Movement.humanoidHipHeightConnection:Disconnect()
         Movement.humanoidHipHeightConnection = nil
     end
-end
-
-local function disconnectAntiZombieLoop()
-    if Movement.antiZombieConnection then
-        Movement.antiZombieConnection:Disconnect()
-        Movement.antiZombieConnection = nil
-    end
-    Movement.targetYPosition = nil
 end
 
 local function restoreOriginalCollisions()
@@ -65,46 +55,9 @@ function Movement.enableAntiZombieNoClip()
     end)
 end
 
--- Giữ character ở độ cao cố định
-function Movement.startAntiZombieLoop()
-    disconnectAntiZombieLoop()
-    
-    local char = Config.localPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    
-    -- Tính vị trí Y mục tiêu = vị trí hiện tại + hipHeight
-    local currentY = hrp.Position.Y
-    local hipHeight = tonumber(Config.hipHeightValue) or 20
-    Movement.targetYPosition = currentY + hipHeight
-    
-    Movement.antiZombieConnection = Config.RunService.Heartbeat:Connect(function()
-        if not Config.antiZombieEnabled then return end
-        
-        local char = Config.localPlayer.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        local humanoid = char and char:FindFirstChild("Humanoid")
-        if not hrp or not humanoid then return end
-        
-        -- Giữ vị trí Y cố định
-        if Movement.targetYPosition then
-            local currentPos = hrp.Position
-            local diff = math.abs(currentPos.Y - Movement.targetYPosition)
-            
-            -- Nếu lệch quá 1 stud thì điều chỉnh
-            if diff > 1 then
-                hrp.Velocity = Vector3.new(hrp.Velocity.X, 0, hrp.Velocity.Z) -- Xóa velocity Y
-                hrp.CFrame = CFrame.new(currentPos.X, Movement.targetYPosition, currentPos.Z) * CFrame.Angles(hrp.CFrame:ToEulerAnglesXYZ())
-            end
-        end
-    end)
-end
-
 function Movement.disableAntiZombie()
     disconnectHipHeightListener()
-    disconnectAntiZombieLoop()
     Movement.disableNoClip()
-    
     local char = Config.localPlayer.Character
     local humanoid = char and char:FindFirstChild("Humanoid")
     if humanoid and Config.originalHipHeight ~= nil then
@@ -127,8 +80,6 @@ function Movement.applyAntiZombie()
         end
         enforceHipHeight(humanoid)
         Movement.enableAntiZombieNoClip()
-        Movement.startAntiZombieLoop() -- Bắt đầu giữ độ cao
-        
         disconnectHipHeightListener()
         Movement.humanoidHipHeightConnection = humanoid:GetPropertyChangedSignal("HipHeight"):Connect(function()
             if Config.antiZombieEnabled then
@@ -138,24 +89,6 @@ function Movement.applyAntiZombie()
     else
         Movement.disableAntiZombie()
     end
-end
-
--- Cập nhật vị trí Y khi thay đổi slider HipHeight
-function Movement.updateAntiZombieHeight()
-    if not Config.antiZombieEnabled then return end
-    
-    local char = Config.localPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    local humanoid = char and char:FindFirstChild("Humanoid")
-    if not hrp or not humanoid then return end
-    
-    -- Cập nhật HipHeight
-    enforceHipHeight(humanoid)
-    
-    -- Cập nhật vị trí Y mục tiêu
-    local groundY = hrp.Position.Y - (Movement.targetYPosition and (Movement.targetYPosition - hrp.Position.Y) or 0)
-    local hipHeight = tonumber(Config.hipHeightValue) or 20
-    Movement.targetYPosition = groundY + hipHeight
 end
 
 ----------------------------------------------------------
@@ -464,13 +397,6 @@ function Movement.cleanup()
     Movement.disableNoClip()
     Movement.stopSpeedBoost()
     Movement.stopAntiAFK()
-    
-    -- Đảm bảo disconnect anti zombie loop
-    if Movement.antiZombieConnection then
-        Movement.antiZombieConnection:Disconnect()
-        Movement.antiZombieConnection = nil
-    end
-    Movement.targetYPosition = nil
 
     if Config.noclipCamEnabled then
         Config.noclipCamEnabled = false

@@ -631,9 +631,7 @@ function UI.createMovementTab()
         Min = 0, Max = 200, Rounding = 1,
         Callback = function(Value)
             Config.hipHeightValue = Value
-            if Config.antiZombieEnabled then 
-                Movement.updateAntiZombieHeight() -- Cập nhật độ cao mà không reset vị trí
-            end
+            if Config.antiZombieEnabled then Movement.applyAntiZombie() end
         end
     })
 
