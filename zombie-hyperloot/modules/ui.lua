@@ -1443,7 +1443,12 @@ function UI.createSettingsTab(cleanupCallback)
 
     MenuGroup:AddDivider()
     MenuGroup:AddLabel("Menu bind")
-        :AddKeyPicker("MenuKeybind", { Default = "RightControl", NoUI = true, Text = "Menu keybind" })
+        :AddKeyPicker("MenuKeybind", { 
+            Default = "RightShift", 
+            NoUI = true, 
+            Text = "Menu keybind",
+            Mode = "Toggle"
+        })
 
     -- Set menu keybind
     UI.Library.ToggleKeybind = UI.Library.Options.MenuKeybind
