@@ -834,6 +834,7 @@ local function removeESP(player)
 end
 
 local function createHighlight(player)
+	if player == LocalPlayer then return end
 	if not player.Character then return end
 
 	local character = player.Character
@@ -1367,7 +1368,157 @@ MiscGroup:AddToggle("AntiAFK", {
 	Tooltip = "Prevent AFK kick",
 })
 
+MiscGroup:AddToggle("Freecam", {
+	Text = "Freecam",
+	Default = false,
+	Tooltip = "Free camera movement (WASD + Q/E + Shift)",
+})
 
+MiscGroup:AddSlider("FreecamSpeed", {
+	Text = "Freecam Speed",
+	Default = 1,
+	Min = 0.1,
+	Max = 5,
+	Rounding = 1,
+})
+
+-- Freecam variables
+local freecamActive = false
+local freecamConnection = nil
+local freecamPos = nil
+local freecamCF = nil
+local originalCameraType = nil
+local originalCameraSubject = nil
+
+-- Freecam
+local function startFreecam()
+	if freecamActive then return end
+	freecamActive = true
+	
+	-- Lưu trạng thái camera gốc
+	originalCameraType = Camera.CameraType
+	originalCameraSubject = Camera.CameraSubject
+	freecamCF = Camera.CFrame
+	
+	-- Đặt camera thành Scriptable
+	Camera.CameraType = Enum.CameraType.Scriptable
+	
+	-- Highlight bản thân khi freecam
+	if character then
+		local selfHighlight = character:FindFirstChildOfClass("Highlight")
+		if not selfHighlight then
+			selfHighlight = Instance.new("Highlight")
+			selfHighlight.Name = "FreecamHighlight"
+			selfHighlight.FillColor = (Options.HighlightColor and Options.HighlightColor.Value) or Color3.fromRGB(0, 255, 0)
+			selfHighlight.OutlineColor = selfHighlight.FillColor
+			selfHighlight.FillTransparency = 0.5
+			selfHighlight.OutlineTransparency = 0
+			selfHighlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+			selfHighlight.Parent = character
+		end
+	end
+	
+	freecamConnection = RunService.RenderStepped:Connect(function(dt)
+		if not freecamActive then return end
+		
+		local speed = (Options.FreecamSpeed and Options.FreecamSpeed.Value or 1) * 50 * dt
+		local moveDir = Vector3.new()
+		
+		-- Tăng tốc khi giữ Shift
+		if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+			speed = speed * 3
+		end
+		
+		-- Di chuyển WASD
+		if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+			moveDir = moveDir + freecamCF.LookVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+			moveDir = moveDir - freecamCF.LookVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+			moveDir = moveDir - freecamCF.RightVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+			moveDir = moveDir + freecamCF.RightVector
+		end
+		
+		-- Lên xuống Q/E
+		if UserInputService:IsKeyDown(Enum.KeyCode.E) then
+			moveDir = moveDir + Vector3.new(0, 1, 0)
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.Q) then
+			moveDir = moveDir - Vector3.new(0, 1, 0)
+		end
+		
+		-- Cập nhật vị trí
+		if moveDir.Magnitude > 0 then
+			moveDir = moveDir.Unit * speed
+			freecamCF = freecamCF + moveDir
+		end
+		
+		-- Xoay camera theo chuột
+		local mouseDelta = UserInputService:GetMouseDelta()
+		local sensitivity = 0.3
+		
+		if mouseDelta.Magnitude > 0 then
+			local rotX = CFrame.Angles(0, -mouseDelta.X * sensitivity * dt * 10, 0)
+			local rotY = CFrame.Angles(-mouseDelta.Y * sensitivity * dt * 10, 0, 0)
+			
+			-- Giới hạn góc nhìn lên/xuống
+			local _, currentY, _ = freecamCF:ToEulerAnglesYXZ()
+			local newY = currentY - mouseDelta.Y * sensitivity * dt * 10
+			newY = math.clamp(newY, -math.rad(80), math.rad(80))
+			
+			freecamCF = CFrame.new(freecamCF.Position) * rotX * freecamCF.Rotation
+			freecamCF = CFrame.new(freecamCF.Position) * CFrame.Angles(0, select(2, freecamCF:ToEulerAnglesYXZ()), 0) * CFrame.Angles(newY, 0, 0)
+		end
+		
+		Camera.CFrame = freecamCF
+	end)
+	
+	-- Lock mouse
+	UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+end
+
+local function stopFreecam()
+	if not freecamActive then return end
+	freecamActive = false
+	
+	if freecamConnection then
+		freecamConnection:Disconnect()
+		freecamConnection = nil
+	end
+	
+	-- Khôi phục camera
+	if originalCameraType then
+		Camera.CameraType = originalCameraType
+	end
+	if originalCameraSubject then
+		Camera.CameraSubject = originalCameraSubject
+	elseif humanoid then
+		Camera.CameraSubject = humanoid
+	end
+	
+	-- Xóa highlight bản thân
+	if character then
+		local selfHighlight = character:FindFirstChild("FreecamHighlight")
+		if selfHighlight then
+			selfHighlight:Destroy()
+		end
+	end
+	
+	-- Unlock mouse
+	UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+end
+
+Toggles.Freecam:OnChanged(function()
+	if Toggles.Freecam.Value then
+		startFreecam()
+	else
+		stopFreecam()
+	end
+end)
 
 -- Anti AFK
 local antiAFKConnection
@@ -1471,6 +1622,9 @@ Library:OnUnload(function()
 		antiAFKConnection:Disconnect()
 		antiAFKConnection = nil
 	end
+
+	-- Cleanup Freecam
+	stopFreecam()
 
 	-- Reset Hitbox
 	for part, original in pairs(hitboxOriginals) do
