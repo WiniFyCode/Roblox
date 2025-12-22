@@ -75,6 +75,12 @@ local espHighlights = {}
 local hasDrawingAPI = false
 local highlightUpdateTick = 0
 
+-- Aimbot/Tâm Ảo Variables
+local autoShootConnection
+local lastAutoShootTime = 0
+local crosshairLines = {}
+local crosshairDot = nil
+
 
 -- Get Character
 local function getCharacter()
@@ -84,6 +90,27 @@ local function getCharacter()
 		rootPart = character:FindFirstChild("HumanoidRootPart")
 	end
 	return character, humanoid, rootPart
+end
+
+-- Helper function để simulate mouse click
+local function mouse1click()
+	-- Simulate mouse click bằng cách fire các connections
+	local mouse = LocalPlayer:GetMouse()
+	if mouse then
+		-- Fire Button1Down event
+		for _, connection in pairs(getconnections(mouse.Button1Down)) do
+			pcall(function()
+				connection:Fire()
+			end)
+		end
+		-- Fire Button1Up event
+		task.wait(0.01)
+		for _, connection in pairs(getconnections(mouse.Button1Up)) do
+			pcall(function()
+				connection:Fire()
+			end)
+		end
+	end
 end
 
 -- Character Added
@@ -601,6 +628,78 @@ AimbotGroup:AddToggle("AimbotVisibleCheck", {
 AimbotGroup:AddLabel("FOV Color"):AddColorPicker("AimbotFOVColor", {
 	Default = Color3.fromRGB(0, 255, 0),
 	Title = "FOV Circle Color",
+})
+
+AimbotGroup:AddDivider()
+
+-- Crosshair (Tâm Ảo - Điểm tâm ở giữa màn hình)
+AimbotGroup:AddToggle("CrosshairEnabled", {
+	Text = "Crosshair (Tâm Ảo)",
+	Default = false,
+	Tooltip = "Hiển thị crosshair/điểm tâm ở giữa màn hình",
+})
+
+AimbotGroup:AddSlider("CrosshairSize", {
+	Text = "Crosshair Size",
+	Default = 10,
+	Min = 5,
+	Max = 50,
+	Rounding = 0,
+	Tooltip = "Kích thước crosshair",
+})
+
+AimbotGroup:AddSlider("CrosshairThickness", {
+	Text = "Crosshair Thickness",
+	Default = 1,
+	Min = 1,
+	Max = 5,
+	Rounding = 0,
+	Tooltip = "Độ dày đường kẻ",
+})
+
+AimbotGroup:AddToggle("CrosshairDot", {
+	Text = "Show Center Dot",
+	Default = true,
+	Tooltip = "Hiển thị điểm ở giữa",
+})
+
+AimbotGroup:AddLabel("Crosshair Color"):AddColorPicker("CrosshairColor", {
+	Default = Color3.fromRGB(255, 255, 255),
+	Title = "Crosshair Color",
+})
+
+-- Auto Shoot
+AimbotGroup:AddToggle("AutoShootEnabled", {
+	Text = "Auto Shoot",
+	Default = false,
+	Tooltip = "Tự động bắn khi có target trong FOV",
+	Risky = true,
+})
+
+AimbotGroup:AddSlider("AutoShootDelay", {
+	Text = "Auto Shoot Delay (ms)",
+	Default = 100,
+	Min = 0,
+	Max = 1000,
+	Rounding = 0,
+	Tooltip = "Độ trễ giữa các lần bắn",
+})
+
+-- Trigger Bot
+AimbotGroup:AddToggle("TriggerBotEnabled", {
+	Text = "Trigger Bot",
+	Default = false,
+	Tooltip = "Tự động bắn khi crosshair trên target",
+	Risky = true,
+})
+
+AimbotGroup:AddSlider("TriggerBotDelay", {
+	Text = "Trigger Bot Delay (ms)",
+	Default = 50,
+	Min = 0,
+	Max = 500,
+	Rounding = 0,
+	Tooltip = "Độ trễ trước khi bắn",
 })
 
 -- Aimbot Functions
@@ -1469,6 +1568,101 @@ end
 -- Initialize ESP
 initializeESP()
 
+-- Crosshair (Tâm Ảo) - Vẽ crosshair ở giữa màn hình
+local function createCrosshair()
+	if not hasDrawingAPI then return end
+	
+	-- Tạo 4 đường kẻ (trên, dưới, trái, phải)
+	for i = 1, 4 do
+		if not crosshairLines[i] then
+			crosshairLines[i] = Drawing.new("Line")
+			crosshairLines[i].Visible = false
+			crosshairLines[i].Thickness = 1
+			crosshairLines[i].Color = Color3.fromRGB(255, 255, 255)
+		end
+	end
+	
+	-- Tạo điểm ở giữa
+	if not crosshairDot then
+		crosshairDot = Drawing.new("Circle")
+		crosshairDot.Visible = false
+		crosshairDot.Thickness = 1
+		crosshairDot.Filled = true
+		crosshairDot.Radius = 2
+		crosshairDot.Color = Color3.fromRGB(255, 255, 255)
+	end
+end
+
+local function updateCrosshair()
+	if not Toggles.CrosshairEnabled or not Toggles.CrosshairEnabled.Value then
+		for _, line in ipairs(crosshairLines) do
+			if line then line.Visible = false end
+		end
+		if crosshairDot then crosshairDot.Visible = false end
+		return
+	end
+	
+	if not hasDrawingAPI then
+		createCrosshair()
+		return
+	end
+	
+	local screenSize = Camera.ViewportSize
+	local centerX = screenSize.X / 2
+	local centerY = screenSize.Y / 2
+	
+	local size = Options.CrosshairSize and Options.CrosshairSize.Value or 10
+	local thickness = Options.CrosshairThickness and Options.CrosshairThickness.Value or 1
+	local color = Options.CrosshairColor and Options.CrosshairColor.Value or Color3.fromRGB(255, 255, 255)
+	
+	-- Vẽ 4 đường kẻ
+	-- Trên
+	if crosshairLines[1] then
+		crosshairLines[1].Visible = true
+		crosshairLines[1].From = Vector2.new(centerX, centerY - size - 2)
+		crosshairLines[1].To = Vector2.new(centerX, centerY - 2)
+		crosshairLines[1].Thickness = thickness
+		crosshairLines[1].Color = color
+	end
+	
+	-- Dưới
+	if crosshairLines[2] then
+		crosshairLines[2].Visible = true
+		crosshairLines[2].From = Vector2.new(centerX, centerY + 2)
+		crosshairLines[2].To = Vector2.new(centerX, centerY + size + 2)
+		crosshairLines[2].Thickness = thickness
+		crosshairLines[2].Color = color
+	end
+	
+	-- Trái
+	if crosshairLines[3] then
+		crosshairLines[3].Visible = true
+		crosshairLines[3].From = Vector2.new(centerX - size - 2, centerY)
+		crosshairLines[3].To = Vector2.new(centerX - 2, centerY)
+		crosshairLines[3].Thickness = thickness
+		crosshairLines[3].Color = color
+	end
+	
+	-- Phải
+	if crosshairLines[4] then
+		crosshairLines[4].Visible = true
+		crosshairLines[4].From = Vector2.new(centerX + 2, centerY)
+		crosshairLines[4].To = Vector2.new(centerX + size + 2, centerY)
+		crosshairLines[4].Thickness = thickness
+		crosshairLines[4].Color = color
+	end
+	
+	-- Điểm ở giữa
+	if crosshairDot then
+		crosshairDot.Visible = Toggles.CrosshairDot and Toggles.CrosshairDot.Value or false
+		crosshairDot.Position = Vector2.new(centerX, centerY)
+		crosshairDot.Color = color
+	end
+end
+
+-- Initialize crosshair
+createCrosshair()
+
 -- ESP Update Loop
 local mainRenderConnection
 mainRenderConnection = RunService.RenderStepped:Connect(function()
@@ -1538,7 +1732,69 @@ mainRenderConnection = RunService.RenderStepped:Connect(function()
 			end
 		end
 	end
+	
+	-- Trigger Bot Logic
+	if Toggles.TriggerBotEnabled and Toggles.TriggerBotEnabled.Value then
+		local mousePos = UserInputService:GetMouseLocation()
+		local targetChar, targetPart = getClosestAimbotTarget()
+		
+		if targetChar and targetPart then
+			local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+			if onScreen and screenPos.Z > 0 then
+				local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+				-- Nếu crosshair gần target (trong vòng 20 pixels)
+				if dist < 20 then
+					local delay = Options.TriggerBotDelay and Options.TriggerBotDelay.Value or 50
+					task.spawn(function()
+						task.wait(delay / 1000)
+						pcall(mouse1click)
+					end)
+				end
+			end
+		end
+	end
+	
+	-- Update Crosshair (Tâm Ảo)
+	updateCrosshair()
 end)
+
+-- Auto Shoot Logic
+if Toggles.AutoShootEnabled then
+	Toggles.AutoShootEnabled:OnChanged(function()
+		if Toggles.AutoShootEnabled.Value then
+			autoShootConnection = RunService.Heartbeat:Connect(function()
+				local currentTime = tick()
+				local delay = Options.AutoShootDelay and Options.AutoShootDelay.Value or 100
+				
+				if currentTime - lastAutoShootTime >= (delay / 1000) then
+					local targetChar, targetPart = getClosestAimbotTarget()
+					
+					if targetChar and targetPart then
+						-- Kiểm tra FOV
+						local fov = Options.AimbotFOV and Options.AimbotFOV.Value or 150
+						local mousePos = UserInputService:GetMouseLocation()
+						local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+						
+						if onScreen and screenPos.Z > 0 then
+							local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+							if dist <= fov then
+								-- Auto shoot
+								pcall(mouse1click)
+								lastAutoShootTime = currentTime
+							end
+						end
+					end
+				end
+			end)
+		else
+			if autoShootConnection then
+				autoShootConnection:Disconnect()
+				autoShootConnection = nil
+			end
+			lastAutoShootTime = 0
+		end
+	end)
+end
 
 -- ESP Toggle handlers
 Toggles.PlayerESP:OnChanged(function()
@@ -2368,7 +2624,7 @@ ThemeManager:ApplyToTab(Tabs["UI Settings"])
 SaveManager:LoadAutoloadConfig()
 
 -- Auto load checkpoints on startup
-wait(1) -- Wait a bit for character to load
+task.wait(1) -- Wait a bit for character to load
 loadCheckpointsFromFile(false) -- Silent load
 
 -- Cleanup
@@ -2384,6 +2640,26 @@ Library:OnUnload(function()
 		aimbotFOVCircle.Visible = false
 		pcall(function() aimbotFOVCircle:Remove() end)
 		aimbotFOVCircle = nil
+	end
+	
+	-- Cleanup Crosshair (Tâm Ảo)
+	for _, line in ipairs(crosshairLines) do
+		if line then
+			line.Visible = false
+			pcall(function() line:Remove() end)
+		end
+	end
+	crosshairLines = {}
+	if crosshairDot then
+		crosshairDot.Visible = false
+		pcall(function() crosshairDot:Remove() end)
+		crosshairDot = nil
+	end
+	
+	-- Cleanup Auto Shoot
+	if autoShootConnection then
+		autoShootConnection:Disconnect()
+		autoShootConnection = nil
 	end
 	
 	-- Cleanup ESP Drawing objects - ẩn trước rồi mới remove
