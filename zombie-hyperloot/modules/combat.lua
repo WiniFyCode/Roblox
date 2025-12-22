@@ -28,6 +28,29 @@ function Combat.setupTrigerSkillDupe()
             local callMethod = getnamecallmethod()
             local remoteArguments = {...}
 
+            -- Check remove effects cho mọi lần bắn (không cần đợi dupe)
+            if callMethod == "FireServer"
+                and not checkcaller()
+                and typeof(remoteInstance) == "Instance"
+                and remoteInstance.Name == "TrigerSkill" then
+
+                local firstArgument = remoteArguments[1]
+                local secondArgument = remoteArguments[2]
+
+                if firstArgument == "GunFire" and secondArgument == "Atk" then
+                    -- Kích hoạt remove effects ngay khi bắn (không cần đợi dupe)
+                    if not Combat.firstDupeTriggered and Config.removeEffectsEnabled then
+                        Combat.firstDupeTriggered = true
+                        if Visuals and Visuals.removeAllEffects then
+                            task.spawn(function()
+                                Visuals.removeAllEffects()
+                            end)
+                        end
+                    end
+                end
+            end
+
+            -- Logic dupe riêng biệt
             if Config.trigerSkillDupeEnabled
                 and callMethod == "FireServer"
                 and not checkcaller()
@@ -38,16 +61,6 @@ function Combat.setupTrigerSkillDupe()
                 local secondArgument = remoteArguments[2]
 
                 if firstArgument == "GunFire" and secondArgument == "Atk" then
-                    -- Kích hoạt remove effects lần đầu tiên
-                    if not Combat.firstDupeTriggered and Config.removeEffectsEnabled then
-                        Combat.firstDupeTriggered = true
-                        if Visuals and Visuals.removeAllEffects then
-                            task.spawn(function()
-                                Visuals.removeAllEffects()
-                            end)
-                        end
-                    end
-                    
                     for i = 1, Config.trigerSkillDupeCount do
                         oldTrigerSkillNamecall(remoteInstance, table.unpack(remoteArguments))
                     end
