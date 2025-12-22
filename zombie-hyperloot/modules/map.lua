@@ -443,7 +443,13 @@ function Map.startAutoDoor()
             if char and hrp then
                 local opened = Map.openDoorOnce()
                 if opened > 0 then
-                    print("[AutoDoor] Đã mở cửa")
+                    if Config.UI and Config.UI.Library then
+                        Config.UI.Library:Notify({
+                            Title = "Map",
+                            Description = "Door opened",
+                            Time = 2
+                        })
+                    end
                 end
             end
         end
