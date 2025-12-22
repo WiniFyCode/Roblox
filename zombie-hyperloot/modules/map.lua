@@ -256,18 +256,24 @@ function Map.updateSupplyDisplay()
         buttonStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
         buttonStroke.Parent = button
         
-        -- Accent Bar (Thanh chỉ thị phía bên trái)
+        -- Accent Bar (Thanh chỉ thị phía bên dưới - Progress style)
         local accentBar = Instance.new("Frame")
         accentBar.Name = "Accent"
-        accentBar.Size = UDim2.new(0, 2, 1, -8)
-        accentBar.Position = UDim2.new(0, 0, 0, 4)
-        accentBar.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Mặc định là đỏ theo script
+        accentBar.Size = UDim2.new(1, 0, 0, 2)
+        accentBar.Position = UDim2.new(0, 0, 1, -2)
+        accentBar.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
         accentBar.BorderSizePixel = 0
         accentBar.Parent = button
         
+        -- Bo góc cho thanh accent để khớp với nút
+        local accentCorner = Instance.new("UICorner")
+        accentCorner.CornerRadius = UDim.new(0, 4)
+        accentCorner.Parent = accentBar
+
         local padding = Instance.new("UIPadding")
-        padding.PaddingLeft = UDim.new(0, 8)
-        padding.PaddingRight = UDim.new(0, 8)
+        padding.PaddingLeft = UDim.new(0, 10)
+        padding.PaddingRight = UDim.new(0, 10)
+        padding.PaddingBottom = UDim.new(0, 2)
         padding.Parent = button
         
         -- Click event
