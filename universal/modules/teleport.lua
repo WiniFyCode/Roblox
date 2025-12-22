@@ -369,14 +369,7 @@ function Teleport.createTab()
 	TeleportGroup:AddToggle("ClickTPEnabled", {
 		Text = "Click TP",
 		Default = false,
-		Tooltip = "Click vào vị trí trên màn hình để teleport",
-	})
-	
-	TeleportGroup:AddLabel("Click TP Key"):AddKeyPicker("ClickTPKey", {
-		Default = "RightMouseButton",
-		NoUI = false,
-		Text = "Click TP Key",
-		Tooltip = "Key để click teleport",
+		Tooltip = "Click chuột phải vào vị trí trên màn hình để teleport",
 	})
 	
 	UI.Toggles.ClickTPEnabled:OnChanged(function()
@@ -388,19 +381,8 @@ function Teleport.createTab()
 			clickTPConnection = Config.UserInputService.InputBegan:Connect(function(input, gameProcessed)
 				if gameProcessed then return end
 				
-				local key = UI.Options.ClickTPKey and UI.Options.ClickTPKey.Value or Enum.KeyCode.RightMouseButton
-				local shouldTP = false
-				
-				-- Check if it's the selected key
-				if input.UserInputType == Enum.UserInputType.MouseButton1 and key == Enum.KeyCode.LeftMouseButton then
-					shouldTP = true
-				elseif input.UserInputType == Enum.UserInputType.MouseButton2 and key == Enum.KeyCode.RightMouseButton then
-					shouldTP = true
-				elseif input.KeyCode == key then
-					shouldTP = true
-				end
-				
-				if shouldTP then
+				-- Chỉ cần click chuột phải
+				if input.UserInputType == Enum.UserInputType.MouseButton2 then
 					Config.getCharacter()
 					if not Config.rootPart then return end
 					
