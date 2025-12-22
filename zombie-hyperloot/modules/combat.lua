@@ -38,15 +38,7 @@ function Combat.setupTrigerSkillDupe()
                 local secondArgument = remoteArguments[2]
 
                 if firstArgument == "GunFire" and secondArgument == "Atk" then
-                    -- Kích hoạt remove effects ngay khi bắn (không cần đợi dupe)
-                    if not Combat.firstDupeTriggered and Config.removeEffectsEnabled then
-                        Combat.firstDupeTriggered = true
-                        if Visuals and Visuals.removeAllEffects then
-                            task.spawn(function()
-                                Visuals.removeAllEffects()
-                            end)
-                        end
-                    end
+                    -- Logic Remove Effects đã được chuyển sang Visuals module để tự động quét
                 end
             end
 

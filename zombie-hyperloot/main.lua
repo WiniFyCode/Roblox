@@ -161,6 +161,11 @@ Movement.applyAntiAFK()
 -- Setup Auto Rotate
 Combat.setRotationSmoothness(Config.autoRotateSmoothness)
 
+-- Setup Remove Effects (Auto scan on start)
+if Config.removeEffectsEnabled then
+    Visuals.startEffectCleaner()
+end
+
 -- Character respawn handler
 characterAddedConnection = Config.localPlayer.CharacterAdded:Connect(function(character)
     Movement.onCharacterAdded(character)

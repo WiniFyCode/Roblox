@@ -2029,6 +2029,10 @@ function UI.createVisualsTab()
         Default = Config.removeEffectsEnabled,
         Callback = function(Value)
             Config.removeEffectsEnabled = Value
+            if Visuals and Visuals.toggleRemoveEffects then
+                Visuals.toggleRemoveEffects(Value)
+            end
+            
             if UI.Library then
                 UI.Library:Notify({
                     Title = "Visuals",
