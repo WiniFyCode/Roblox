@@ -14,8 +14,8 @@ local holdingMouse2 = false
 local hitboxOriginals = {}
 local autoShootConnection
 local lastAutoShootTime = 0
-local crosshairLines = {}
-local crosshairDot = nil
+local crosshairLine1 = nil -- Đường thẳng dọc
+local crosshairLine2 = nil -- Đường thẳng ngang
 local hasDrawingAPI = false
 local mainRenderConnection = nil
 
@@ -234,33 +234,26 @@ end
 local function createCrosshair()
 	if not checkDrawingAPI() then return end
 	
-	-- Tạo 4 đường kẻ (trên, dưới, trái, phải)
-	for i = 1, 4 do
-		if not crosshairLines[i] then
-			crosshairLines[i] = Drawing.new("Line")
-			crosshairLines[i].Visible = false
-			crosshairLines[i].Thickness = 1
-			crosshairLines[i].Color = Color3.fromRGB(255, 255, 255)
-		end
+	-- Tạo 2 đường thẳng (dọc và ngang)
+	if not crosshairLine1 then
+		crosshairLine1 = Drawing.new("Line")
+		crosshairLine1.Visible = false
+		crosshairLine1.Thickness = 1
+		crosshairLine1.Color = Color3.fromRGB(255, 255, 255)
 	end
 	
-	-- Tạo điểm ở giữa
-	if not crosshairDot then
-		crosshairDot = Drawing.new("Circle")
-		crosshairDot.Visible = false
-		crosshairDot.Thickness = 1
-		crosshairDot.Filled = true
-		crosshairDot.Radius = 2
-		crosshairDot.Color = Color3.fromRGB(255, 255, 255)
+	if not crosshairLine2 then
+		crosshairLine2 = Drawing.new("Line")
+		crosshairLine2.Visible = false
+		crosshairLine2.Thickness = 1
+		crosshairLine2.Color = Color3.fromRGB(255, 255, 255)
 	end
 end
 
 local function updateCrosshair()
 	if not UI.Toggles.CrosshairEnabled or not UI.Toggles.CrosshairEnabled.Value then
-		for _, line in ipairs(crosshairLines) do
-			if line then line.Visible = false end
-		end
-		if crosshairDot then crosshairDot.Visible = false end
+		if crosshairLine1 then crosshairLine1.Visible = false end
+		if crosshairLine2 then crosshairLine2.Visible = false end
 		return
 	end
 	
@@ -277,48 +270,22 @@ local function updateCrosshair()
 	local thickness = UI.Options.CrosshairThickness and UI.Options.CrosshairThickness.Value or 1
 	local color = UI.Options.CrosshairColor and UI.Options.CrosshairColor.Value or Color3.fromRGB(255, 255, 255)
 	
-	-- Vẽ 4 đường kẻ
-	-- Trên
-	if crosshairLines[1] then
-		crosshairLines[1].Visible = true
-		crosshairLines[1].From = Vector2.new(centerX, centerY - size - 2)
-		crosshairLines[1].To = Vector2.new(centerX, centerY - 2)
-		crosshairLines[1].Thickness = thickness
-		crosshairLines[1].Color = color
+	-- Đường thẳng dọc
+	if crosshairLine1 then
+		crosshairLine1.Visible = true
+		crosshairLine1.From = Vector2.new(centerX, centerY - size)
+		crosshairLine1.To = Vector2.new(centerX, centerY + size)
+		crosshairLine1.Thickness = thickness
+		crosshairLine1.Color = color
 	end
 	
-	-- Dưới
-	if crosshairLines[2] then
-		crosshairLines[2].Visible = true
-		crosshairLines[2].From = Vector2.new(centerX, centerY + 2)
-		crosshairLines[2].To = Vector2.new(centerX, centerY + size + 2)
-		crosshairLines[2].Thickness = thickness
-		crosshairLines[2].Color = color
-	end
-	
-	-- Trái
-	if crosshairLines[3] then
-		crosshairLines[3].Visible = true
-		crosshairLines[3].From = Vector2.new(centerX - size - 2, centerY)
-		crosshairLines[3].To = Vector2.new(centerX - 2, centerY)
-		crosshairLines[3].Thickness = thickness
-		crosshairLines[3].Color = color
-	end
-	
-	-- Phải
-	if crosshairLines[4] then
-		crosshairLines[4].Visible = true
-		crosshairLines[4].From = Vector2.new(centerX + 2, centerY)
-		crosshairLines[4].To = Vector2.new(centerX + size + 2, centerY)
-		crosshairLines[4].Thickness = thickness
-		crosshairLines[4].Color = color
-	end
-	
-	-- Điểm ở giữa
-	if crosshairDot then
-		crosshairDot.Visible = UI.Toggles.CrosshairDot and UI.Toggles.CrosshairDot.Value or false
-		crosshairDot.Position = Vector2.new(centerX, centerY)
-		crosshairDot.Color = color
+	-- Đường thẳng ngang
+	if crosshairLine2 then
+		crosshairLine2.Visible = true
+		crosshairLine2.From = Vector2.new(centerX - size, centerY)
+		crosshairLine2.To = Vector2.new(centerX + size, centerY)
+		crosshairLine2.Thickness = thickness
+		crosshairLine2.Color = color
 	end
 end
 
@@ -424,12 +391,6 @@ function Combat.createTab()
 		Max = 5,
 		Rounding = 0,
 		Tooltip = "Độ dày đường kẻ",
-	})
-	
-	AimbotGroup:AddToggle("CrosshairDot", {
-		Text = "Show Center Dot",
-		Default = true,
-		Tooltip = "Hiển thị điểm ở giữa",
 	})
 	
 	AimbotGroup:AddLabel("Crosshair Color"):AddColorPicker("CrosshairColor", {
@@ -670,17 +631,15 @@ function Combat.cleanup()
 	end
 	
 	-- Cleanup Crosshair (Tâm Ảo)
-	for _, line in ipairs(crosshairLines) do
-		if line then
-			line.Visible = false
-			pcall(function() line:Remove() end)
-		end
+	if crosshairLine1 then
+		crosshairLine1.Visible = false
+		pcall(function() crosshairLine1:Remove() end)
+		crosshairLine1 = nil
 	end
-	crosshairLines = {}
-	if crosshairDot then
-		crosshairDot.Visible = false
-		pcall(function() crosshairDot:Remove() end)
-		crosshairDot = nil
+	if crosshairLine2 then
+		crosshairLine2.Visible = false
+		pcall(function() crosshairLine2:Remove() end)
+		crosshairLine2 = nil
 	end
 	
 	-- Cleanup Auto Shoot
