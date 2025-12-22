@@ -198,7 +198,7 @@ function Map.updateSupplyPosition()
     
     if Config.supplyESPPosition == "Right" then
         -- Bên phải màn hình
-        Map.supplyFrame.Position = UDim2.new(1, -100, 0.5, -totalHeight / 2)
+        Map.supplyFrame.Position = UDim2.new(1, -160, 0.5, -totalHeight / 2)
     else
         -- Bên trái màn hình (mặc định)
         Map.supplyFrame.Position = UDim2.new(0, 10, 0.5, -totalHeight / 2)
@@ -211,9 +211,9 @@ function Map.updateSupplyDisplay()
     end
     
     -- Xóa buttons cũ
-    for _, button in ipairs(Map.supplyButtons) do
-        if button and button.Parent then
-            button:Destroy()
+    for _, data in ipairs(Map.supplyButtons) do
+        if data.button and data.button.Parent then
+            data.button:Destroy()
         end
     end
     Map.supplyButtons = {}
@@ -233,24 +233,41 @@ function Map.updateSupplyDisplay()
     for i, supply in ipairs(Map.supplyItems) do
         local button = Instance.new("TextButton")
         button.Name = "Supply_" .. i
-        button.Size = UDim2.new(0, 140, 0, 35)
-        button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-        button.BackgroundTransparency = 0.2
-        button.BorderSizePixel = 1
-        button.BorderColor3 = Color3.fromRGB(100, 100, 100)
-        button.Font = Enum.Font.SourceSans
-        button.TextSize = 14
-        button.TextColor3 = Color3.fromRGB(255, 255, 255)
+        button.Size = UDim2.new(0, 150, 0, 32)
+        button.BackgroundColor3 = Color3.fromRGB(15, 15, 15) -- Obsidian Main BG
+        button.BackgroundTransparency = 0.05
+        button.BorderSizePixel = 0
+        button.Font = Enum.Font.GothamSemibold
+        button.TextSize = 13
+        button.TextColor3 = Color3.fromRGB(200, 200, 200)
         button.TextXAlignment = Enum.TextXAlignment.Left
+        button.AutoButtonColor = false
         button.Parent = Map.supplyFrame
         
+        -- Bo góc đúng chuẩn Obsidian
         local buttonCorner = Instance.new("UICorner")
-        buttonCorner.CornerRadius = UDim.new(0, 6)
+        buttonCorner.CornerRadius = UDim.new(0, 4)
         buttonCorner.Parent = button
         
+        -- Viền tinh tế (UIStroke)
+        local buttonStroke = Instance.new("UIStroke")
+        buttonStroke.Color = Color3.fromRGB(40, 40, 40) -- Obsidian Border Color
+        buttonStroke.Thickness = 1
+        buttonStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+        buttonStroke.Parent = button
+        
+        -- Accent Bar (Thanh chỉ thị phía bên trái)
+        local accentBar = Instance.new("Frame")
+        accentBar.Name = "Accent"
+        accentBar.Size = UDim2.new(0, 2, 1, -8)
+        accentBar.Position = UDim2.new(0, 0, 0, 4)
+        accentBar.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Mặc định là đỏ theo script
+        accentBar.BorderSizePixel = 0
+        accentBar.Parent = button
+        
         local padding = Instance.new("UIPadding")
-        padding.PaddingLeft = UDim.new(0, 4)
-        padding.PaddingRight = UDim.new(0, 4)
+        padding.PaddingLeft = UDim.new(0, 8)
+        padding.PaddingRight = UDim.new(0, 8)
         padding.Parent = button
         
         -- Click event
@@ -260,14 +277,20 @@ function Map.updateSupplyDisplay()
         
         -- Hover effect
         button.MouseEnter:Connect(function()
-            button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            button.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+            buttonStroke.Color = Color3.fromRGB(60, 60, 60)
         end)
         
         button.MouseLeave:Connect(function()
-            button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            button.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+            buttonStroke.Color = Color3.fromRGB(40, 40, 40)
         end)
         
-        table.insert(Map.supplyButtons, button)
+        table.insert(Map.supplyButtons, {
+            button = button,
+            accent = accentBar,
+            stroke = buttonStroke
+        })
     end
     
     -- Tự động resize frame theo số lượng buttons
@@ -285,22 +308,22 @@ function Map.updateSupplyDistances()
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
     
-    for i, button in ipairs(Map.supplyButtons) do
+    for i, data in ipairs(Map.supplyButtons) do
         local supply = Map.supplyItems[i]
+        local button = data.button
+        local accent = data.accent
+        
         if button and supply then
             local distance = (hrp.Position - supply.position).Magnitude
             button.Text = string.format("Supply %d: %.0fm", i, distance)
             
-            -- Đổi màu theo khoảng cách
+            -- Đổi màu Accent Bar theo khoảng cách
             if distance < 50 then
-                button.BorderColor3 = Color3.fromRGB(0, 255, 0) -- Xanh lá - gần
-                button.TextColor3 = Color3.fromRGB(0, 255, 0)
+                accent.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Xanh lá - gần
             elseif distance < 150 then
-                button.BorderColor3 = Color3.fromRGB(255, 255, 0) -- Vàng - trung bình
-                button.TextColor3 = Color3.fromRGB(255, 255, 0)
+                accent.BackgroundColor3 = Color3.fromRGB(255, 255, 0) -- Vàng - trung bình
             else
-                button.BorderColor3 = Color3.fromRGB(255, 100, 100) -- Đỏ - xa
-                button.TextColor3 = Color3.fromRGB(255, 100, 100)
+                accent.BackgroundColor3 = Color3.fromRGB(255, 100, 100) -- Đỏ - xa
             end
         end
     end

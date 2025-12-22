@@ -163,70 +163,39 @@ Visuals.removedEffects = {}
 Visuals.effectsRemoved = false
 
 function Visuals.removeAllEffects()
-    local replicatedFirst = game:GetService("ReplicatedFirst")
-    local scripts = replicatedFirst:FindFirstChild("Scripts")
-    if not scripts then return false end
-    
-    local object = scripts:FindFirstChild("Object")
-    if not object then return false end
-    
-    local data = object:FindFirstChild("Data")
-    if not data then return false end
-    
-    local baseEffectPath = data:FindFirstChild("BaseEffect")
-    if not baseEffectPath then return false end
-    
-    -- Danh sách các effect cần xóa
-    local effectNames = {
-        "ShotEntityEffect",
-        "ShotHitEffect",
-        "HitEffect"
-    }
-    
-    local foundAny = false
-    -- Xóa từng effect
-    for _, effectName in ipairs(effectNames) do
-        local effect = baseEffectPath:FindFirstChild(effectName)
-        if effect then
-            -- Backup effect trước khi xóa
-            table.insert(Visuals.removedEffects, {
-                name = effectName,
-                parent = effect.Parent,
-                clone = effect:Clone()
-            })
-            
-            -- Xóa effect
-            effect:Destroy()
-            foundAny = true
-        end
-    end
-    
-    if foundAny then
-        Visuals.effectsRemoved = true
-        return true
-    end
-    
-    return false
-end
-
-Visuals.cleaningTask = nil
-
-function Visuals.startEffectCleaner()
-    if Visuals.effectsRemoved then return end
-    if Visuals.cleaningTask then return end
-    
-    Visuals.cleaningTask = task.spawn(function()
-        print("[Visuals] Đang quét tìm effects để xóa...")
-        while not Visuals.effectsRemoved and Config.removeEffectsEnabled do
-            local success = Visuals.removeAllEffects()
-            if success then
-                print("[Visuals] Đã tìm thấy và xóa effects thành công (Dừng quét).")
-                break
+    local success, err = pcall(function()
+        local replicatedFirst = game:GetService("ReplicatedFirst")
+        local baseEffectPath = replicatedFirst:WaitForChild("Scripts"):WaitForChild("Object"):WaitForChild("Data"):WaitForChild("BaseEffect")
+        
+        -- Danh sách các effect cần xóa
+        local effectNames = {
+            "ShotEntityEffect",
+            "ShotHitEffect",
+            "HitEffect"
+        }
+        
+        -- Xóa từng effect
+        for _, effectName in ipairs(effectNames) do
+            local effect = baseEffectPath:FindFirstChild(effectName)
+            if effect then
+                -- Backup effect trước khi xóa
+                table.insert(Visuals.removedEffects, {
+                    name = effectName,
+                    parent = effect.Parent,
+                    clone = effect:Clone()
+                })
+                
+                -- Xóa effect
+                effect:Destroy()
             end
-            task.wait(2) -- Quét mỗi 2 giây cho đến khi thấy
         end
-        Visuals.cleaningTask = nil
+        
+        Visuals.effectsRemoved = true
     end)
+    
+    if not success then
+        warn("[Visuals] Lỗi khi xóa effects: " .. tostring(err))
+    end
 end
 
 function Visuals.restoreAllEffects()
@@ -251,9 +220,8 @@ function Visuals.restoreAllEffects()
 end
 
 function Visuals.toggleRemoveEffects(enabled)
-    Config.removeEffectsEnabled = enabled
     if enabled then
-        Visuals.startEffectCleaner()
+        Visuals.removeAllEffects()
     else
         Visuals.restoreAllEffects()
     end
