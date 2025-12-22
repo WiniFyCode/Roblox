@@ -198,7 +198,7 @@ function Map.updateSupplyPosition()
     
     if Config.supplyESPPosition == "Right" then
         -- Bên phải màn hình
-        Map.supplyFrame.Position = UDim2.new(1, -160, 0.5, -totalHeight / 2)
+        Map.supplyFrame.Position = UDim2.new(1, -120, 0.5, -totalHeight / 2)
     else
         -- Bên trái màn hình (mặc định)
         Map.supplyFrame.Position = UDim2.new(0, 10, 0.5, -totalHeight / 2)
@@ -233,7 +233,7 @@ function Map.updateSupplyDisplay()
     for i, supply in ipairs(Map.supplyItems) do
         local button = Instance.new("TextButton")
         button.Name = "Supply_" .. i
-        button.Size = UDim2.new(0, 150, 0, 32)
+        button.Size = UDim2.new(0, 110, 0, 30)
         button.BackgroundColor3 = Color3.fromRGB(15, 15, 15) -- Obsidian Main BG
         button.BackgroundTransparency = 0.05
         button.BorderSizePixel = 0
