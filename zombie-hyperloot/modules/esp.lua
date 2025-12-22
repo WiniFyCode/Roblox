@@ -613,7 +613,7 @@ function ESP.updateBobHighlights()
         Config.UI.Library:Notify({
             Title = "🎯 BOB Found!",
             Description = string.format("Found %d Bob(s)! Total: %d", newBobsFound, #bobs),
-            Time = 5
+            Time = 50
         })
     end
     

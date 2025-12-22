@@ -925,7 +925,7 @@ function UI.createEventTab()
 
     EventGroup:AddToggle("ESPBob", {
         Text = "ESP Bob",
-        Tooltip = "Display ESP for Bob (refresh every 5s)",
+        Tooltip = "Display ESP for Bob",
         Default = Config.espBobEnabled,
         Callback = function(Value)
             Config.espBobEnabled = Value
