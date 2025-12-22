@@ -14,6 +14,7 @@ local checkpointFolder = nil
 local checkpointDropdown = nil
 local checkpointCountLabel = nil
 local checkpointFileName = nil
+local clickTPConnection = nil
 
 ----------------------------------------------------------
 -- 🔹 Initialize
@@ -362,6 +363,74 @@ function Teleport.createTab()
 		end,
 	})
 	
+	TeleportGroup:AddDivider()
+	
+	-- Click TP
+	TeleportGroup:AddToggle("ClickTPEnabled", {
+		Text = "Click TP",
+		Default = false,
+		Tooltip = "Click vào vị trí trên màn hình để teleport",
+	})
+	
+	TeleportGroup:AddLabel("Click TP Key"):AddKeyPicker("ClickTPKey", {
+		Default = "RightMouseButton",
+		NoUI = false,
+		Text = "Click TP Key",
+		Tooltip = "Key để click teleport",
+	})
+	
+	UI.Toggles.ClickTPEnabled:OnChanged(function()
+		if UI.Toggles.ClickTPEnabled.Value then
+			if clickTPConnection then
+				clickTPConnection:Disconnect()
+			end
+			
+			clickTPConnection = Config.UserInputService.InputBegan:Connect(function(input, gameProcessed)
+				if gameProcessed then return end
+				
+				local key = UI.Options.ClickTPKey and UI.Options.ClickTPKey.Value or Enum.KeyCode.RightMouseButton
+				local shouldTP = false
+				
+				-- Check if it's the selected key
+				if input.UserInputType == Enum.UserInputType.MouseButton1 and key == Enum.KeyCode.LeftMouseButton then
+					shouldTP = true
+				elseif input.UserInputType == Enum.UserInputType.MouseButton2 and key == Enum.KeyCode.RightMouseButton then
+					shouldTP = true
+				elseif input.KeyCode == key then
+					shouldTP = true
+				end
+				
+				if shouldTP then
+					Config.getCharacter()
+					if not Config.rootPart then return end
+					
+					local mouse = Config.LocalPlayer:GetMouse()
+					local ray = Config.Camera:ScreenPointToRay(mouse.X, mouse.Y)
+					
+					local rayParams = RaycastParams.new()
+					rayParams.FilterType = Enum.RaycastFilterType.Exclude
+					rayParams.FilterDescendantsInstances = {Config.character}
+					
+					local result = Config.Workspace:Raycast(ray.Origin, ray.Direction * 10000, rayParams)
+					if result then
+						local newCFrame = CFrame.new(result.Position)
+						Config.rootPart.CFrame = newCFrame
+						UI.Library:Notify({
+							Title = "Click TP",
+							Description = "Teleported!",
+							Time = 2,
+						})
+					end
+				end
+			end)
+		else
+			if clickTPConnection then
+				clickTPConnection:Disconnect()
+				clickTPConnection = nil
+			end
+		end
+	end)
+	
 	-- Checkpoint Group (Right)
 	local CheckpointGroup = UI.Tabs.Teleport:AddRightGroupbox("Checkpoint", "bookmark")
 	
@@ -614,6 +683,12 @@ end
 ----------------------------------------------------------
 -- 🔹 Cleanup
 function Teleport.cleanup()
+	-- Cleanup Click TP
+	if clickTPConnection then
+		clickTPConnection:Disconnect()
+		clickTPConnection = nil
+	end
+	
 	-- Cleanup checkpoints & visuals
 	if checkpoints then
 		for _, cp in ipairs(checkpoints) do

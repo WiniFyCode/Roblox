@@ -18,6 +18,7 @@ local flyGyro
 local flyConnection
 local hipHeightOriginal
 local hipHeightConnection
+local hipHeightCharAddedConnection
 
 ----------------------------------------------------------
 -- 🔹 Initialize
@@ -397,43 +398,66 @@ function Movement.createTab()
 	
 	-- Hip Height (walk in air)
 	local function applyHipHeight()
+		Config.getCharacter() -- Update character trước
 		if Config.humanoid and UI.Toggles.HipHeightEnabled and UI.Toggles.HipHeightEnabled.Value then
 			local value = (UI.Options.HipHeightValue and UI.Options.HipHeightValue.Value) or Config.humanoid.HipHeight
 			Config.humanoid.HipHeight = value
 		end
 	end
 	
+	local function setupHipHeightLoop()
+		Config.getCharacter() -- Update character trước
+		if not Config.humanoid then return end
+		
+		if hipHeightConnection then
+			hipHeightConnection:Disconnect()
+			hipHeightConnection = nil
+		end
+		
+		applyHipHeight()
+		
+		-- Giữ HipHeight ổn định khi game cố đổi
+		hipHeightConnection = Config.humanoid:GetPropertyChangedSignal("HipHeight"):Connect(function()
+			if UI.Toggles.HipHeightEnabled and UI.Toggles.HipHeightEnabled.Value then
+				applyHipHeight()
+			end
+		end)
+	end
+	
+	local hipHeightCharAddedConnection
 	UI.Toggles.HipHeightEnabled:OnChanged(function()
 		if UI.Toggles.HipHeightEnabled.Value then
+			Config.getCharacter() -- Update character trước
 			if Config.humanoid then
 				hipHeightOriginal = Config.humanoid.HipHeight
 			end
 			
-			if hipHeightConnection then
-				hipHeightConnection:Disconnect()
-				hipHeightConnection = nil
+			setupHipHeightLoop()
+			
+			-- Setup connection khi character thay đổi
+			if hipHeightCharAddedConnection then
+				hipHeightCharAddedConnection:Disconnect()
+				hipHeightCharAddedConnection = nil
 			end
 			
-			applyHipHeight()
-			
-			-- Giữ HipHeight ổn định khi game cố đổi
-			if Config.humanoid then
-				if hipHeightConnection then
-					hipHeightConnection:Disconnect()
-					hipHeightConnection = nil
+			hipHeightCharAddedConnection = Config.LocalPlayer.CharacterAdded:Connect(function()
+				Config.getCharacter()
+				if Config.humanoid then
+					hipHeightOriginal = Config.humanoid.HipHeight
 				end
-				hipHeightConnection = Config.humanoid:GetPropertyChangedSignal("HipHeight"):Connect(function()
-					if UI.Toggles.HipHeightEnabled and UI.Toggles.HipHeightEnabled.Value then
-						applyHipHeight()
-					end
-				end)
-			end
+				setupHipHeightLoop()
+			end)
 		else
 			if hipHeightConnection then
 				hipHeightConnection:Disconnect()
 				hipHeightConnection = nil
 			end
+			if hipHeightCharAddedConnection then
+				hipHeightCharAddedConnection:Disconnect()
+				hipHeightCharAddedConnection = nil
+			end
 			
+			Config.getCharacter() -- Update character trước
 			if Config.humanoid and hipHeightOriginal ~= nil then
 				Config.humanoid.HipHeight = hipHeightOriginal
 			end
@@ -515,6 +539,11 @@ function Movement.cleanup()
 		hipHeightConnection:Disconnect()
 		hipHeightConnection = nil
 	end
+	if hipHeightCharAddedConnection then
+		hipHeightCharAddedConnection:Disconnect()
+		hipHeightCharAddedConnection = nil
+	end
+	Config.getCharacter() -- Update character trước
 	if Config.humanoid and hipHeightOriginal ~= nil then
 		Config.humanoid.HipHeight = hipHeightOriginal
 	end
