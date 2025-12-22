@@ -274,6 +274,9 @@ local function loadCheckpointsFromFile(showNotification)
 end
 
 local function addCheckpoint(name)
+	-- Update character trước khi kiểm tra
+	Config.getCharacter()
+	
 	if not Config.rootPart then
 		UI.Library:Notify({
 			Title = "Checkpoint",
@@ -330,6 +333,9 @@ function Teleport.createTab()
 	TeleportGroup:AddButton({
 		Text = "Teleport To Player",
 		Func = function()
+			-- Update character trước khi kiểm tra
+			Config.getCharacter()
+			
 			local targetPlayer = UI.Options.TeleportPlayer.Value
 			if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
 				if Config.rootPart then
@@ -337,6 +343,12 @@ function Teleport.createTab()
 					UI.Library:Notify({
 						Title = "Teleported",
 						Description = "Teleported to " .. targetPlayer.Name,
+						Time = 3,
+					})
+				else
+					UI.Library:Notify({
+						Title = "Teleport",
+						Description = "Could not find your character (rootPart = nil)",
 						Time = 3,
 					})
 				end
@@ -400,6 +412,9 @@ function Teleport.createTab()
 	CheckpointGroup:AddButton({
 		Text = "Teleport To Checkpoint",
 		Func = function()
+			-- Update character trước khi kiểm tra
+			Config.getCharacter()
+			
 			if not Config.rootPart then
 				UI.Library:Notify({
 					Title = "Checkpoint",
