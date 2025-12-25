@@ -4,14 +4,14 @@
 ]]
 
 local UI = {}
-local Config, Combat, ESP, Movement, Map, Farm, HUD, Visuals, Character = nil, nil, nil, nil, nil, nil, nil, nil, nil
+local Config, Combat, ESP, Movement, Map, Farm, HUD, Visuals, Character, Grabber = nil, nil, nil, nil, nil, nil, nil, nil, nil, nil
 
 UI.Window = nil
 UI.Library = nil
 UI.SaveManager = nil
 UI.ThemeManager = nil
 
-function UI.init(config, combat, esp, movement, map, farm, hud, visuals, character)
+function UI.init(config, combat, esp, movement, map, farm, hud, visuals, character, grabber)
     Config = config
     Combat = combat
     ESP = esp
@@ -21,6 +21,7 @@ function UI.init(config, combat, esp, movement, map, farm, hud, visuals, charact
     HUD = hud
     Visuals = visuals
     Character = character
+    Grabber = grabber
 end
 
 function UI.loadLibraries()
@@ -733,6 +734,101 @@ function UI.createMovementTab()
         Default = Config.cameraOffsetZ,
         Min = -360, Max = 360, Rounding = 1,
         Callback = function(Value) Config.cameraOffsetZ = Value end
+    })
+
+    -- Zombie Grabber Section
+    MovementRightGroup:AddDivider()
+    MovementRightGroup:AddLabel("🧲 Zombie Grabber")
+
+    MovementRightGroup:AddToggle("GrabberEnabled", {
+        Text = "Auto Grabber (Continuous)",
+        Tooltip = "Continuously pull zombies to your position",
+        Default = Config.grabberEnabled,
+        Callback = function(Value)
+            Config.grabberEnabled = Value
+            if Grabber then
+                Grabber.toggle(Value)
+            end
+            if UI.Library then
+                UI.Library:Notify({
+                    Title = "Zombie Grabber",
+                    Description = Value and "Auto Grabber enabled" or "Auto Grabber disabled",
+                    Time = 2
+                })
+            end
+        end
+    })
+
+    MovementRightGroup:AddButton({
+        Text = "Grab All Zombies (G)",
+        Tooltip = "Teleport all zombies to your position instantly",
+        Func = function()
+            if Grabber then
+                local count = Grabber.grabAllZombiesOnce()
+                if UI.Library then
+                    UI.Library:Notify({
+                        Title = "Zombie Grabber",
+                        Description = "Grabbed " .. count .. " zombies!",
+                        Time = 2
+                    })
+                end
+            end
+        end
+    })
+
+    MovementRightGroup:AddToggle("GrabberFreeze", {
+        Text = "Freeze Zombies",
+        Tooltip = "Keep zombies frozen after grabbing",
+        Default = Config.grabberFreezeZombies,
+        Callback = function(Value)
+            Config.grabberFreezeZombies = Value
+            if Grabber then
+                Grabber.freezeZombies = Value
+            end
+        end
+    })
+
+    MovementRightGroup:AddSlider("GrabberHeight", {
+        Text = "Grab Height",
+        Tooltip = "Height offset from player position",
+        Default = Config.grabberHeight,
+        Min = 0, Max = 50, Rounding = 1,
+        Callback = function(Value)
+            Config.grabberHeight = Value
+            if Grabber then
+                Grabber.grabHeight = Value
+            end
+        end
+    })
+
+    MovementRightGroup:AddSlider("GrabberSpeed", {
+        Text = "Grab Speed",
+        Tooltip = "Speed of pulling zombies (for continuous mode)",
+        Default = Config.grabberSpeed,
+        Min = 10, Max = 200, Rounding = 0,
+        Callback = function(Value)
+            Config.grabberSpeed = Value
+            if Grabber then
+                Grabber.grabSpeed = Value
+            end
+        end
+    })
+
+    MovementRightGroup:AddButton({
+        Text = "Unfreeze All Zombies",
+        Tooltip = "Release all frozen zombies",
+        Func = function()
+            if Grabber then
+                Grabber.unfreezeAllZombies()
+                if UI.Library then
+                    UI.Library:Notify({
+                        Title = "Zombie Grabber",
+                        Description = "All zombies unfrozen!",
+                        Time = 2
+                    })
+                end
+            end
+        end
     })
 
     return MovementTab
