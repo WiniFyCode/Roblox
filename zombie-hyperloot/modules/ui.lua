@@ -741,8 +741,8 @@ function UI.createMovementTab()
     MovementRightGroup:AddLabel("🧲 Zombie Grabber")
 
     MovementRightGroup:AddToggle("GrabberEnabled", {
-        Text = "Auto Grabber (Continuous)",
-        Tooltip = "Continuously pull zombies to your position",
+        Text = "Auto Grabber",
+        Tooltip = "Continuously pull nearby zombies to your position",
         Default = Config.grabberEnabled,
         Callback = function(Value)
             Config.grabberEnabled = Value
@@ -760,15 +760,15 @@ function UI.createMovementTab()
     })
 
     MovementRightGroup:AddButton({
-        Text = "Grab All Zombies (G)",
-        Tooltip = "Teleport all zombies to your position instantly",
+        Text = "Grab Nearby Zombies (G)",
+        Tooltip = "Pull all zombies in range to your position",
         Func = function()
             if Grabber then
                 local count = Grabber.grabAllZombiesOnce()
                 if UI.Library then
                     UI.Library:Notify({
                         Title = "Zombie Grabber",
-                        Description = "Grabbed " .. count .. " zombies!",
+                        Description = count > 0 and ("Grabbed " .. count .. " zombies!") or "No zombies in range",
                         Time = 2
                     })
                 end
@@ -776,14 +776,15 @@ function UI.createMovementTab()
         end
     })
 
-    MovementRightGroup:AddToggle("GrabberFreeze", {
-        Text = "Freeze Zombies",
-        Tooltip = "Keep zombies frozen after grabbing",
-        Default = Config.grabberFreezeZombies,
+    MovementRightGroup:AddSlider("GrabberRadius", {
+        Text = "Grab Radius",
+        Tooltip = "Only grab zombies within this range (studs)",
+        Default = Config.grabberRadius,
+        Min = 10, Max = 100, Rounding = 0,
         Callback = function(Value)
-            Config.grabberFreezeZombies = Value
+            Config.grabberRadius = Value
             if Grabber then
-                Grabber.freezeZombies = Value
+                Grabber.grabRadius = Value
             end
         end
     })
@@ -792,7 +793,7 @@ function UI.createMovementTab()
         Text = "Grab Height",
         Tooltip = "Height offset from player position",
         Default = Config.grabberHeight,
-        Min = 0, Max = 50, Rounding = 1,
+        Min = 0, Max = 20, Rounding = 1,
         Callback = function(Value)
             Config.grabberHeight = Value
             if Grabber then
@@ -801,32 +802,15 @@ function UI.createMovementTab()
         end
     })
 
-    MovementRightGroup:AddSlider("GrabberSpeed", {
-        Text = "Grab Speed",
-        Tooltip = "Speed of pulling zombies (for continuous mode)",
-        Default = Config.grabberSpeed,
-        Min = 10, Max = 200, Rounding = 0,
+    MovementRightGroup:AddSlider("GrabberInterval", {
+        Text = "Update Speed",
+        Tooltip = "How fast to update zombie positions (lower = faster)",
+        Default = Config.grabberInterval,
+        Min = 0.05, Max = 0.5, Rounding = 2,
         Callback = function(Value)
-            Config.grabberSpeed = Value
+            Config.grabberInterval = Value
             if Grabber then
-                Grabber.grabSpeed = Value
-            end
-        end
-    })
-
-    MovementRightGroup:AddButton({
-        Text = "Unfreeze All Zombies",
-        Tooltip = "Release all frozen zombies",
-        Func = function()
-            if Grabber then
-                Grabber.unfreezeAllZombies()
-                if UI.Library then
-                    UI.Library:Notify({
-                        Title = "Zombie Grabber",
-                        Description = "All zombies unfrozen!",
-                        Time = 2
-                    })
-                end
+                Grabber.grabInterval = Value
             end
         end
     })
