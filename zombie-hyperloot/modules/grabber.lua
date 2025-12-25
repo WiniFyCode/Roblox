@@ -71,13 +71,15 @@ end
 
 ----------------------------------------------------------
 -- 🔹 Teleport Zombie to Position (Instant)
+-- Lưu BodyPosition đã tạo
+Grabber.bodyPositions = {}
+
 function Grabber.teleportZombie(zombieData, targetPos)
     local rootPart = zombieData.rootPart
     if not rootPart or not rootPart.Parent then return end
     
     pcall(function()
-        -- Tắt physics
-        rootPart.Anchored = true
+        -- KHÔNG dùng Anchored vì sẽ không nhận damage
         rootPart.CanCollide = false
         
         -- Teleport
@@ -85,9 +87,21 @@ function Grabber.teleportZombie(zombieData, targetPos)
         rootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
         rootPart.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
         
-        -- Freeze nếu enabled
-        if not Grabber.freezeZombies then
-            rootPart.Anchored = false
+        -- Dùng BodyPosition để giữ zombie tại chỗ (vẫn nhận damage)
+        if Grabber.freezeZombies then
+            -- Xóa BodyPosition cũ nếu có
+            local oldBP = rootPart:FindFirstChild("GrabberBodyPosition")
+            if oldBP then oldBP:Destroy() end
+            
+            local bp = Instance.new("BodyPosition")
+            bp.Name = "GrabberBodyPosition"
+            bp.Position = targetPos
+            bp.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+            bp.P = 100000
+            bp.D = 1000
+            bp.Parent = rootPart
+            
+            Grabber.bodyPositions[rootPart] = bp
         end
     end)
 end
@@ -101,11 +115,23 @@ function Grabber.pullZombie(zombieData, targetPos)
     local currentPos = rootPart.Position
     local distance = (targetPos - currentPos).Magnitude
     
-    -- Nếu đã gần target, anchor lại
+    -- Nếu đã gần target, dùng BodyPosition để giữ
     if distance < 5 then
         pcall(function()
             if Grabber.freezeZombies then
-                rootPart.Anchored = true
+                -- Xóa BodyPosition cũ nếu có
+                local oldBP = rootPart:FindFirstChild("GrabberBodyPosition")
+                if oldBP then oldBP:Destroy() end
+                
+                local bp = Instance.new("BodyPosition")
+                bp.Name = "GrabberBodyPosition"
+                bp.Position = targetPos
+                bp.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                bp.P = 100000
+                bp.D = 1000
+                bp.Parent = rootPart
+                
+                Grabber.bodyPositions[rootPart] = bp
             end
             rootPart.CFrame = CFrame.new(targetPos)
         end)
@@ -117,7 +143,6 @@ function Grabber.pullZombie(zombieData, targetPos)
     local velocity = direction * Grabber.grabSpeed
     
     pcall(function()
-        rootPart.Anchored = false
         rootPart.CanCollide = false
         rootPart.AssemblyLinearVelocity = velocity
     end)
@@ -186,14 +211,25 @@ end
 ----------------------------------------------------------
 -- 🔹 Unfreeze All Zombies
 function Grabber.unfreezeAllZombies()
+    -- Xóa tất cả BodyPosition
+    for rootPart, bp in pairs(Grabber.bodyPositions) do
+        pcall(function()
+            if bp and bp.Parent then
+                bp:Destroy()
+            end
+        end)
+    end
+    Grabber.bodyPositions = {}
+    
+    -- Xóa BodyPosition còn sót trong entity folder
     for _, zombie in ipairs(Config.entityFolder:GetChildren()) do
         if zombie:IsA("Model") then
             local hrp = zombie:FindFirstChild("HumanoidRootPart")
-            if hrp and hrp:IsA("BasePart") then
-                pcall(function()
-                    hrp.Anchored = false
-                    hrp.CanCollide = true
-                end)
+            if hrp then
+                local bp = hrp:FindFirstChild("GrabberBodyPosition")
+                if bp then
+                    pcall(function() bp:Destroy() end)
+                end
             end
         end
     end
@@ -230,6 +266,7 @@ end
 function Grabber.cleanup()
     Grabber.stopGrabbing()
     Grabber.unfreezeAllZombies()
+    Grabber.bodyPositions = {}
 end
 
 return Grabber
