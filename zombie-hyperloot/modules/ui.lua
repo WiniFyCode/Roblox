@@ -760,15 +760,15 @@ function UI.createMovementTab()
     })
 
     MovementRightGroup:AddButton({
-        Text = "Grab Nearby Zombies (G)",
-        Tooltip = "Pull all zombies in range to your position",
+        Text = "Grab All Zombies (G)",
+        Tooltip = "Pull all zombies on map to front of you",
         Func = function()
             if Grabber then
                 local count = Grabber.grabAllZombiesOnce()
                 if UI.Library then
                     UI.Library:Notify({
                         Title = "Zombie Grabber",
-                        Description = count > 0 and ("Grabbed " .. count .. " zombies!") or "No zombies in range",
+                        Description = count > 0 and ("Grabbed " .. count .. " zombies!") or "No zombies found",
                         Time = 2
                     })
                 end
@@ -776,28 +776,15 @@ function UI.createMovementTab()
         end
     })
 
-    MovementRightGroup:AddSlider("GrabberRadius", {
-        Text = "Grab Radius",
-        Tooltip = "Only grab zombies within this range (studs)",
-        Default = Config.grabberRadius,
-        Min = 10, Max = 100, Rounding = 0,
+    MovementRightGroup:AddSlider("GrabberDistance", {
+        Text = "Front Distance",
+        Tooltip = "Distance in front of your body to place zombies",
+        Default = Config.grabberDistance,
+        Min = 2, Max = 20, Rounding = 1,
         Callback = function(Value)
-            Config.grabberRadius = Value
+            Config.grabberDistance = Value
             if Grabber then
-                Grabber.grabRadius = Value
-            end
-        end
-    })
-
-    MovementRightGroup:AddSlider("GrabberHeight", {
-        Text = "Grab Height",
-        Tooltip = "Height offset from player position",
-        Default = Config.grabberHeight,
-        Min = 0, Max = 20, Rounding = 1,
-        Callback = function(Value)
-            Config.grabberHeight = Value
-            if Grabber then
-                Grabber.grabHeight = Value
+                Grabber.grabDistance = Value
             end
         end
     })

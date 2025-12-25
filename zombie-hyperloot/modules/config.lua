@@ -180,8 +180,7 @@ Config.bobESPEnabled = true
 ----------------------------------------------------------
 -- 🔹 Zombie Grabber
 Config.grabberEnabled = false
-Config.grabberRadius = 50 -- Bán kính kéo zombie (studs) - phạm vi nhỏ
-Config.grabberHeight = 3 -- Độ cao so với player
+Config.grabberDistance = 5 -- Khoảng cách phía trước body player
 Config.grabberInterval = 0.1 -- Tốc độ update (giây)
 Config.grabberKey = Enum.KeyCode.G -- Phím G để grab 1 lần
 

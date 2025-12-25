@@ -12,8 +12,8 @@ Grabber.grabberLoop = nil
 Grabber.isGrabbing = false
 
 -- Settings
-Grabber.grabRadius = 50 -- Bán kính kéo zombie (studs) - giảm xuống
-Grabber.grabHeight = 3 -- Độ cao so với player
+Grabber.grabRadius = 9999 -- Phạm vi toàn map
+Grabber.grabDistance = 5 -- Khoảng cách phía trước body player
 Grabber.grabMode = "Player" -- "Player" hoặc "Custom"
 Grabber.customPosition = nil -- Vector3 cho custom mode
 Grabber.grabInterval = 0.1 -- Interval giữa mỗi lần update (giây)
@@ -23,31 +23,38 @@ function Grabber.init(config)
 end
 
 ----------------------------------------------------------
--- 🔹 Get Target Position
+-- 🔹 Get Target Position (phía trước body player - không theo hướng nhìn)
 function Grabber.getTargetPosition()
     if Grabber.grabMode == "Custom" and Grabber.customPosition then
         return Grabber.customPosition
     end
     
-    -- Default: Player position
+    -- Default: Phía trước body player (dùng camera direction thay vì character)
     local char = Config.localPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if hrp then
-        return hrp.Position + Vector3.new(0, Grabber.grabHeight, 0)
+        -- Lấy hướng từ camera (hướng player đang nhìn)
+        local camera = Config.Workspace.CurrentCamera
+        if camera then
+            local camLook = camera.CFrame.LookVector
+            -- Chỉ lấy hướng ngang (bỏ Y để không bay lên/xuống)
+            local flatLook = Vector3.new(camLook.X, 0, camLook.Z).Unit
+            -- Vị trí = player position + (hướng camera * khoảng cách)
+            return hrp.Position + (flatLook * Grabber.grabDistance)
+        else
+            -- Fallback: dùng hướng body
+            local bodyLook = hrp.CFrame.LookVector
+            return hrp.Position + (Vector3.new(bodyLook.X, 0, bodyLook.Z).Unit * Grabber.grabDistance)
+        end
     end
     
     return nil
 end
 
 ----------------------------------------------------------
--- 🔹 Get Zombies In Range
+-- 🔹 Get All Alive Zombies (toàn map)
 function Grabber.getZombiesInRange()
     local zombies = {}
-    local char = Config.localPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return zombies end
-    
-    local playerPos = hrp.Position
     
     for _, zombie in ipairs(Config.entityFolder:GetChildren()) do
         if zombie:IsA("Model") then
@@ -59,16 +66,11 @@ function Grabber.getZombiesInRange()
                 local targetPart = zombieHRP or torso or head
                 
                 if targetPart and targetPart:IsA("BasePart") then
-                    local distance = (playerPos - targetPart.Position).Magnitude
-                    -- Chỉ lấy zombie trong phạm vi
-                    if distance <= Grabber.grabRadius then
-                        table.insert(zombies, {
-                            model = zombie,
-                            humanoid = humanoid,
-                            rootPart = targetPart,
-                            distance = distance
-                        })
-                    end
+                    table.insert(zombies, {
+                        model = zombie,
+                        humanoid = humanoid,
+                        rootPart = targetPart
+                    })
                 end
             end
         end
