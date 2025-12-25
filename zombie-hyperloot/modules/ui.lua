@@ -4,14 +4,14 @@
 ]]
 
 local UI = {}
-local Config, Combat, ESP, Movement, Map, Farm, HUD, Visuals, Character, Grabber = nil, nil, nil, nil, nil, nil, nil, nil, nil, nil
+local Config, Combat, ESP, Movement, Map, Farm, HUD, Visuals, Character = nil, nil, nil, nil, nil, nil, nil, nil, nil
 
 UI.Window = nil
 UI.Library = nil
 UI.SaveManager = nil
 UI.ThemeManager = nil
 
-function UI.init(config, combat, esp, movement, map, farm, hud, visuals, character, grabber)
+function UI.init(config, combat, esp, movement, map, farm, hud, visuals, character)
     Config = config
     Combat = combat
     ESP = esp
@@ -21,7 +21,6 @@ function UI.init(config, combat, esp, movement, map, farm, hud, visuals, charact
     HUD = hud
     Visuals = visuals
     Character = character
-    Grabber = grabber
 end
 
 function UI.loadLibraries()
@@ -734,72 +733,6 @@ function UI.createMovementTab()
         Default = Config.cameraOffsetZ,
         Min = -360, Max = 360, Rounding = 1,
         Callback = function(Value) Config.cameraOffsetZ = Value end
-    })
-
-    -- Zombie Grabber Section
-    MovementRightGroup:AddDivider()
-    MovementRightGroup:AddLabel("🧲 Zombie Grabber")
-
-    MovementRightGroup:AddToggle("GrabberEnabled", {
-        Text = "Auto Grabber",
-        Tooltip = "Continuously pull nearby zombies to your position",
-        Default = Config.grabberEnabled,
-        Callback = function(Value)
-            Config.grabberEnabled = Value
-            if Grabber then
-                Grabber.toggle(Value)
-            end
-            if UI.Library then
-                UI.Library:Notify({
-                    Title = "Zombie Grabber",
-                    Description = Value and "Auto Grabber enabled" or "Auto Grabber disabled",
-                    Time = 2
-                })
-            end
-        end
-    })
-
-    MovementRightGroup:AddButton({
-        Text = "Grab All Zombies (G)",
-        Tooltip = "Pull all zombies on map to front of you",
-        Func = function()
-            if Grabber then
-                local count = Grabber.grabAllZombiesOnce()
-                if UI.Library then
-                    UI.Library:Notify({
-                        Title = "Zombie Grabber",
-                        Description = count > 0 and ("Grabbed " .. count .. " zombies!") or "No zombies found",
-                        Time = 2
-                    })
-                end
-            end
-        end
-    })
-
-    MovementRightGroup:AddSlider("GrabberDistance", {
-        Text = "Front Distance",
-        Tooltip = "Distance in front of your body to place zombies",
-        Default = Config.grabberDistance,
-        Min = 2, Max = 20, Rounding = 1,
-        Callback = function(Value)
-            Config.grabberDistance = Value
-            if Grabber then
-                Grabber.grabDistance = Value
-            end
-        end
-    })
-
-    MovementRightGroup:AddSlider("GrabberInterval", {
-        Text = "Update Speed",
-        Tooltip = "How fast to update zombie positions (lower = faster)",
-        Default = Config.grabberInterval,
-        Min = 0.05, Max = 0.5, Rounding = 2,
-        Callback = function(Value)
-            Config.grabberInterval = Value
-            if Grabber then
-                Grabber.grabInterval = Value
-            end
-        end
     })
 
     return MovementTab
