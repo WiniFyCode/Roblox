@@ -130,8 +130,7 @@ Config.armsmasterUltimateInterval = 15 -- Armsmaster Ultimate (1010)
 Config.wraithUltimateInterval = 0.3 -- Wraith Ultimate (1006)
 Config.assaultUltimateEnabled = true -- Toggle riêng cho Assault Ultimate (G)
 Config.assaultUltimateInterval = 0.3 -- Assault Ultimate (1001)
-Config.assaultGrenadeEnabled = false -- Toggle riêng cho Assault Grenade (Q) - mặc định tắt
-Config.assaultGrenadeInterval = 1 -- Assault Q Skill - Grenade (1003)
+
 Config.healingSkillInterval = 20 -- F Skill (Healing, 1002)
 Config.flagBearerUltimateInterval = 15 -- Flag Bearer Ultimate (1004)
 

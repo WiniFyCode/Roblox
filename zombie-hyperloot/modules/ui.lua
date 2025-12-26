@@ -1350,29 +1350,7 @@ function UI.createCharacterTab()
             Callback = function(Value) Config.assaultUltimateInterval = Value end
         })
 
-        CharacterGroup:AddToggle("AssaultGrenadeEnabled", {
-            Text = "Enable Grenade (Q)",
-            Tooltip = "Toggle Assault Grenade skill - throw to nearest zombie",
-            Default = Config.assaultGrenadeEnabled,
-            Callback = function(Value)
-                Config.assaultGrenadeEnabled = Value
-                if UI.Library then
-                    UI.Library:Notify({
-                        Title = "Character",
-                        Description = Value and "Assault Grenade enabled" or "Assault Grenade disabled",
-                        Time = 2
-                    })
-                end
-            end
-        })
 
-        CharacterGroup:AddSlider("AssaultGrenadeInterval", {
-            Text = "Grenade (Q) Interval (s)",
-            Tooltip = "Skill E - Throw grenade to nearest zombie",
-            Default = Config.assaultGrenadeInterval,
-            Min = 1, Max = 10, Rounding = 1,
-            Callback = function(Value) Config.assaultGrenadeInterval = Value end
-        })
     end
 
     -- Flag Bearer Ultimate (chỉ hiển thị khi character = 1004)

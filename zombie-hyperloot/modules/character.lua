@@ -313,42 +313,7 @@ function Character.activateAssaultUltimate()
     return true
 end
 
--- Assault Q Skill (1003) - Ném grenade tới vị trí zombie gần nhất
-function Character.activateAssaultGrenade()
-    local targetPart = getClosestZombiePart()
-    
-    -- Nếu không có zombie thì dừng
-    if not targetPart or not targetPart:IsA("BasePart") then
-        return false
-    end
 
-    local char = Config.localPlayer and Config.localPlayer.Character
-    if not char then return false end
-
-    local netMessage = char:FindFirstChild("NetMessage")
-    if not netMessage then return false end
-
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return false end
-
-    -- Tạo CFrame hướng từ player tới zombie
-    local targetPos = targetPart.Position
-    local playerPos = hrp.Position
-    local direction = (targetPos - playerPos).Unit
-    local targetCFrame = CFrame.new(targetPos, targetPos + direction)
-
-    local args = {
-        1003,
-        "Enter",
-        targetCFrame
-    }
-
-    pcall(function()
-        netMessage:WaitForChild("TrigerSkill"):FireServer(unpack(args))
-    end)
-
-    return true
-end
 
 -- Flag Bearer Ultimate (1004) - cần CFrame vị trí người chơi
 function Character.activateFlagBearerUltimate()
@@ -435,12 +400,7 @@ function Character.startAllSkillLoops()
             Character.activateAssaultUltimate,
             function() return Config.assaultUltimateEnabled and getClosestZombiePart() ~= nil end
         )
-        -- Assault Grenade (Q) - chỉ activate khi có zombie và toggle bật
-        Character.startSkillLoop(
-            function() return Config.assaultGrenadeInterval or 1 end, 
-            Character.activateAssaultGrenade,
-            function() return Config.assaultGrenadeEnabled and getClosestZombiePart() ~= nil end
-        )
+
     elseif characterId == 1004 then
         -- Flag Bearer
         Character.startSkillLoop(function() return Config.flagBearerUltimateInterval or 15 end, Character.activateFlagBearerUltimate)
