@@ -1327,15 +1327,47 @@ function UI.createCharacterTab()
 
     -- Assault Ultimate (chỉ hiển thị khi character = 1001)
     if currentCharacterId == 1001 then
+        CharacterGroup:AddToggle("AssaultUltimateEnabled", {
+            Text = "Enable Ultimate (G)",
+            Tooltip = "Toggle Assault Ultimate skill",
+            Default = Config.assaultUltimateEnabled,
+            Callback = function(Value)
+                Config.assaultUltimateEnabled = Value
+                if UI.Library then
+                    UI.Library:Notify({
+                        Title = "Character",
+                        Description = Value and "Assault Ultimate enabled" or "Assault Ultimate disabled",
+                        Time = 2
+                    })
+                end
+            end
+        })
+
         CharacterGroup:AddSlider("AssaultUltimateInterval", {
-            Text = "Assault Ultimate Interval (s)",
+            Text = "Ultimate (G) Interval (s)",
             Default = Config.assaultUltimateInterval,
             Min = 0.3, Max = 20, Rounding = 1,
             Callback = function(Value) Config.assaultUltimateInterval = Value end
         })
 
+        CharacterGroup:AddToggle("AssaultGrenadeEnabled", {
+            Text = "Enable Grenade (Q)",
+            Tooltip = "Toggle Assault Grenade skill - throw to nearest zombie",
+            Default = Config.assaultGrenadeEnabled,
+            Callback = function(Value)
+                Config.assaultGrenadeEnabled = Value
+                if UI.Library then
+                    UI.Library:Notify({
+                        Title = "Character",
+                        Description = Value and "Assault Grenade enabled" or "Assault Grenade disabled",
+                        Time = 2
+                    })
+                end
+            end
+        })
+
         CharacterGroup:AddSlider("AssaultGrenadeInterval", {
-            Text = "Assault Grenade (E) Interval (s)",
+            Text = "Grenade (Q) Interval (s)",
             Tooltip = "Skill E - Throw grenade to nearest zombie",
             Default = Config.assaultGrenadeInterval,
             Min = 0.3, Max = 10, Rounding = 1,

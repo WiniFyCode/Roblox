@@ -429,17 +429,17 @@ function Character.startAllSkillLoops()
             function() return getClosestZombiePart() ~= nil end -- Check condition: có zombie mới chạy
         )
     elseif characterId == 1001 then
-        -- Assault Ultimate - chỉ activate khi có zombie
+        -- Assault Ultimate (G) - chỉ activate khi có zombie và toggle bật
         Character.startSkillLoop(
             function() return Config.assaultUltimateInterval or 0.3 end, 
             Character.activateAssaultUltimate,
-            function() return getClosestZombiePart() ~= nil end -- Check condition: có zombie mới chạy
+            function() return Config.assaultUltimateEnabled and getClosestZombiePart() ~= nil end
         )
-        -- Assault Q Skill (Grenade) - chỉ activate khi có zombie
+        -- Assault Grenade (Q) - chỉ activate khi có zombie và toggle bật
         Character.startSkillLoop(
             function() return Config.assaultGrenadeInterval or 0.3 end, 
             Character.activateAssaultGrenade,
-            function() return getClosestZombiePart() ~= nil end -- Check condition: có zombie mới chạy
+            function() return Config.assaultGrenadeEnabled and getClosestZombiePart() ~= nil end
         )
     elseif characterId == 1004 then
         -- Flag Bearer
