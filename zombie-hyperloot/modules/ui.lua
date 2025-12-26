@@ -1370,7 +1370,7 @@ function UI.createCharacterTab()
             Text = "Grenade (Q) Interval (s)",
             Tooltip = "Skill E - Throw grenade to nearest zombie",
             Default = Config.assaultGrenadeInterval,
-            Min = 0.3, Max = 10, Rounding = 1,
+            Min = 3, Max = 10, Rounding = 1,
             Callback = function(Value) Config.assaultGrenadeInterval = Value end
         })
     end

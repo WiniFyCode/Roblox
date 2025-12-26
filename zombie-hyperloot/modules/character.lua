@@ -437,7 +437,7 @@ function Character.startAllSkillLoops()
         )
         -- Assault Grenade (Q) - chỉ activate khi có zombie và toggle bật
         Character.startSkillLoop(
-            function() return Config.assaultGrenadeInterval or 0.3 end, 
+            function() return Config.assaultGrenadeInterval or 3 end, 
             Character.activateAssaultGrenade,
             function() return Config.assaultGrenadeEnabled and getClosestZombiePart() ~= nil end
         )
