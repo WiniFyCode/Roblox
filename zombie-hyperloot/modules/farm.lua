@@ -201,7 +201,26 @@ function Farm.buyAndDrinkPotion(potionKey, amount)
     Farm.drinkPotion(potionKey, amount)
 end
 
-
+----------------------------------------------------------
+-- 🔹 Auto Buy Christmas Gift Box
+function Farm.startAutoBuyChristmasGiftBoxLoop()
+    task.spawn(function()
+        while task.wait(0.1) do
+            if Config.scriptUnloaded then break end
+            
+            if Config.autoBuyChristmasGiftBoxEnabled then
+                pcall(function()
+                    local args = {
+                        3306896484,
+                        1013,
+                        1
+                    }
+                    game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
+                end)
+            end
+        end
+    end)
+end
 
 ----------------------------------------------------------
 -- 🔹 Input Handler for Chest Teleport

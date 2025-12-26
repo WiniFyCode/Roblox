@@ -184,6 +184,10 @@ Config.bobESPEnabled = true
 Config.autoDoorEnabled = true
 
 ----------------------------------------------------------
+-- 🔹 Auto Buy Christmas Gift Box
+Config.autoBuyChristmasGiftBoxEnabled = false
+
+----------------------------------------------------------
 -- 🔹 Visuals
 Config.removeFogEnabled = false
 Config.fullbrightEnabled = false
