@@ -1256,7 +1256,7 @@ function UI.createCharacterTab()
     elseif currentCharacterId == 1003 then
         autoSkillTooltip = "Automatically use Wraith Ultimate + Healing"
     elseif currentCharacterId == 1001 then
-        autoSkillTooltip = "Automatically use Assault Ultimate + Healing"
+        autoSkillTooltip = "Automatically use Assault Ultimate + Grenade (E) + Healing"
     elseif currentCharacterId == 1004 then
         autoSkillTooltip = "Automatically use Flag Bearer Ultimate + Healing"
     elseif currentCharacterId then
@@ -1332,6 +1332,14 @@ function UI.createCharacterTab()
             Default = Config.assaultUltimateInterval,
             Min = 0.3, Max = 20, Rounding = 1,
             Callback = function(Value) Config.assaultUltimateInterval = Value end
+        })
+
+        CharacterGroup:AddSlider("AssaultGrenadeInterval", {
+            Text = "Assault Grenade (E) Interval (s)",
+            Tooltip = "Skill E - Throw grenade to nearest zombie",
+            Default = Config.assaultGrenadeInterval,
+            Min = 0.3, Max = 10, Rounding = 1,
+            Callback = function(Value) Config.assaultGrenadeInterval = Value end
         })
     end
 

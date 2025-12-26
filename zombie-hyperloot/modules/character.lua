@@ -313,6 +313,43 @@ function Character.activateAssaultUltimate()
     return true
 end
 
+-- Assault Q Skill (1003) - Ném grenade tới vị trí zombie gần nhất
+function Character.activateAssaultGrenade()
+    local targetPart = getClosestZombiePart()
+    
+    -- Nếu không có zombie thì dừng
+    if not targetPart or not targetPart:IsA("BasePart") then
+        return false
+    end
+
+    local char = Config.localPlayer and Config.localPlayer.Character
+    if not char then return false end
+
+    local netMessage = char:FindFirstChild("NetMessage")
+    if not netMessage then return false end
+
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return false end
+
+    -- Tạo CFrame hướng từ player tới zombie
+    local targetPos = targetPart.Position
+    local playerPos = hrp.Position
+    local direction = (targetPos - playerPos).Unit
+    local targetCFrame = CFrame.new(targetPos, targetPos + direction)
+
+    local args = {
+        1003,
+        "Enter",
+        targetCFrame
+    }
+
+    pcall(function()
+        netMessage:WaitForChild("TrigerSkill"):FireServer(unpack(args))
+    end)
+
+    return true
+end
+
 -- Flag Bearer Ultimate (1004) - cần CFrame vị trí người chơi
 function Character.activateFlagBearerUltimate()
     Character.triggerSkill(1004, true)
@@ -392,10 +429,16 @@ function Character.startAllSkillLoops()
             function() return getClosestZombiePart() ~= nil end -- Check condition: có zombie mới chạy
         )
     elseif characterId == 1001 then
-        -- Assault - chỉ activate khi có zombie
+        -- Assault Ultimate - chỉ activate khi có zombie
         Character.startSkillLoop(
             function() return Config.assaultUltimateInterval or 0.3 end, 
             Character.activateAssaultUltimate,
+            function() return getClosestZombiePart() ~= nil end -- Check condition: có zombie mới chạy
+        )
+        -- Assault Q Skill (Grenade) - chỉ activate khi có zombie
+        Character.startSkillLoop(
+            function() return Config.assaultGrenadeInterval or 0.3 end, 
+            Character.activateAssaultGrenade,
             function() return getClosestZombiePart() ~= nil end -- Check condition: có zombie mới chạy
         )
     elseif characterId == 1004 then

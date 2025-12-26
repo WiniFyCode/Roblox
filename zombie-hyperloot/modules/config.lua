@@ -129,6 +129,7 @@ Config.healingSkillEnabled = false -- Toggle riêng cho Skill F (Healing)
 Config.armsmasterUltimateInterval = 15 -- Armsmaster Ultimate (1010)
 Config.wraithUltimateInterval = 0.3 -- Wraith Ultimate (1006)
 Config.assaultUltimateInterval = 0.3 -- Assault Ultimate (1001)
+Config.assaultGrenadeInterval = 0.3 -- Assault E Skill - Grenade (1003)
 Config.healingSkillInterval = 20 -- F Skill (Healing, 1002)
 Config.flagBearerUltimateInterval = 15 -- Flag Bearer Ultimate (1004)
 
