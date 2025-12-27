@@ -236,9 +236,7 @@ function Character.triggerSkill(skillId, usePosition, customCFrame)
     local char = Config.localPlayer and Config.localPlayer.Character
     if not char then return end
 
-    local tool = char:FindFirstChild("Tool")
-    if not tool then return end
-
+    -- Bỏ qua kiểm tra Tool để luôn cho phép cast skill
     local netMessage = char:FindFirstChild("NetMessage")
     if not netMessage then return end
 
