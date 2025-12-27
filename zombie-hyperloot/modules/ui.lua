@@ -1186,17 +1186,22 @@ function UI.createCharacterTab()
         displayToId = {}
     end
 
-    local function findIndex(list, value)
-        for index, item in ipairs(list) do
-            if item == value then
-                return index
+    -- Lấy character đang equip để set default
+    local currentCharacterId = Character.getCurrentCharacterId()
+    local defaultDisplay = nil
+
+    -- Tìm display string của character đang equip
+    if currentCharacterId and displayToId then
+        for display, id in pairs(displayToId) do
+            if id == currentCharacterId then
+                defaultDisplay = display
+                break
             end
         end
-        return nil
     end
 
-    local defaultDisplay = Config.selectedCharacterDisplay
-    if not defaultDisplay or not findIndex(displayList, defaultDisplay) then
+    -- Fallback nếu không tìm thấy
+    if not defaultDisplay then
         defaultDisplay = displayList[1]
     end
 
