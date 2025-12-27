@@ -126,11 +126,24 @@ Config.autoBulletBoxEnabled = true
 -- 🔹 Auto Skill
 Config.autoSkillEnabled = true
 Config.healingSkillEnabled = false -- Toggle riêng cho Skill F (Healing)
+
+-- Armsmaster (1006)
 Config.armsmasterUltimateInterval = 15 -- Armsmaster Ultimate (1010)
+
+-- Wraith (1003)
 Config.wraithUltimateInterval = 0.3 -- Wraith Ultimate (1006)
+
+-- Assault (1001)
 Config.assaultUltimateEnabled = true -- Toggle riêng cho Assault Ultimate (G)
 Config.assaultUltimateInterval = 0.3 -- Assault Ultimate (1001)
 
+-- Witch (1007)
+Config.witchUltimateEnabled = true -- Toggle riêng cho Witch Ultimate (1012)
+Config.witchUltimateInterval = 15 -- Witch Ultimate (1012)
+Config.witchGSkillEnabled = true -- Toggle riêng cho Witch Skill (G, 1013)
+Config.witchGSkillInterval = 0.3 -- Witch Skill (G, 1013)
+
+-- Common skills
 Config.healingSkillInterval = 20 -- F Skill (Healing, 1002)
 Config.flagBearerUltimateInterval = 15 -- Flag Bearer Ultimate (1004)
 

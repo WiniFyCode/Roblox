@@ -1277,6 +1277,8 @@ function UI.createCharacterTab()
         autoSkillTooltip = "Automatically use Assault Ultimate + Grenade (E) + Healing"
     elseif currentCharacterId == 1004 then
         autoSkillTooltip = "Automatically use Flag Bearer Ultimate + Healing"
+    elseif currentCharacterId == 1007 then
+        autoSkillTooltip = "Automatically use Witch Ultimate + G Skill + Healing"
     elseif currentCharacterId then
         autoSkillTooltip = "Automatically use Healing (this character doesn't have a unique ultimate)"
     end
@@ -1378,6 +1380,55 @@ function UI.createCharacterTab()
             Default = Config.flagBearerUltimateInterval,
             Min = 5, Max = 60, Rounding = 0,
             Callback = function(Value) Config.flagBearerUltimateInterval = Value end
+        })
+    end
+
+    -- Witch (1007) - Ultimate + Skill G
+    if currentCharacterId == 1007 then
+        CharacterGroup:AddToggle("WitchUltimateEnabled", {
+            Text = "Enable Witch Ultimate",
+            Tooltip = "Toggle Witch Ultimate skill (1012)",
+            Default = Config.witchUltimateEnabled,
+            Callback = function(Value)
+                Config.witchUltimateEnabled = Value
+                if UI.Library then
+                    UI.Library:Notify({
+                        Title = "Character",
+                        Description = Value and "Witch Ultimate enabled" or "Witch Ultimate disabled",
+                        Time = 2
+                    })
+                end
+            end
+        })
+
+        CharacterGroup:AddSlider("WitchUltimateInterval", {
+            Text = "Witch Ultimate Interval (s)",
+            Default = Config.witchUltimateInterval,
+            Min = 15, Max = 60, Rounding = 0,
+            Callback = function(Value) Config.witchUltimateInterval = Value end
+        })
+
+        CharacterGroup:AddToggle("WitchGSkillEnabled", {
+            Text = "Enable Witch Skill (G)",
+            Tooltip = "Toggle Witch Skill (G, 1013) - auto aims at nearest zombie",
+            Default = Config.witchGSkillEnabled,
+            Callback = function(Value)
+                Config.witchGSkillEnabled = Value
+                if UI.Library then
+                    UI.Library:Notify({
+                        Title = "Character",
+                        Description = Value and "Witch Skill (G) enabled" or "Witch Skill (G) disabled",
+                        Time = 2
+                    })
+                end
+            end
+        })
+
+        CharacterGroup:AddSlider("WitchGSkillInterval", {
+            Text = "Witch Skill (G) Interval (s)",
+            Default = Config.witchGSkillInterval,
+            Min = 0.3, Max = 20, Rounding = 1,
+            Callback = function(Value) Config.witchGSkillInterval = Value end
         })
     end
 

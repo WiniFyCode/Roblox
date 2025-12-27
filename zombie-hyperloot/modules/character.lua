@@ -18,6 +18,7 @@ Character.CharacterNames = {
     [1004] = "Flag Bearer",
     [1005] = "Ninja",
     [1006] = "Armsmaster",
+    [1007] = "Witch",
 }
 
 -- Lưu mapping display string -> id để UI dùng lại
@@ -315,6 +316,25 @@ end
 
 
 
+-- Witch Ultimate (1012)
+function Character.activateWitchUltimate()
+    Character.triggerSkill(1012, false)
+end
+
+-- Witch Skill (G) (1013) - dùng vị trí zombie gần nhất
+function Character.activateWitchGSkill()
+    local targetPart = getClosestZombiePart()
+
+    -- Nếu không có zombie thì dừng, không activate skill
+    if not targetPart or not targetPart:IsA("BasePart") then
+        return false
+    end
+
+    local targetCFrame = CFrame.new(targetPart.Position)
+    Character.triggerSkill(1013, true, targetCFrame)
+    return true
+end
+
 -- Flag Bearer Ultimate (1004) - cần CFrame vị trí người chơi
 function Character.activateFlagBearerUltimate()
     Character.triggerSkill(1004, true)
@@ -366,6 +386,16 @@ function Character.startAllSkillLoops()
             function() return getClosestZombiePart() ~= nil end
         )
         Character.startSkillLoop(
+            function() return Config.witchUltimateInterval or 15 end,
+            Character.activateWitchUltimate,
+            function() return Config.witchUltimateEnabled end
+        )
+        Character.startSkillLoop(
+            function() return Config.witchGSkillInterval or 0.3 end,
+            Character.activateWitchGSkill,
+            function() return Config.witchGSkillEnabled and getClosestZombiePart() ~= nil end
+        )
+        Character.startSkillLoop(
             function() return Config.healingSkillInterval end, 
             Character.activateHealingSkill,
             function() return Config.healingSkillEnabled end -- Check toggle
@@ -400,7 +430,18 @@ function Character.startAllSkillLoops()
             Character.activateAssaultUltimate,
             function() return Config.assaultUltimateEnabled and getClosestZombiePart() ~= nil end
         )
-
+    elseif characterId == 1007 then
+        -- Witch - Ultimate + Skill G
+        Character.startSkillLoop(
+            function() return Config.witchUltimateInterval or 15 end,
+            Character.activateWitchUltimate,
+            function() return Config.witchUltimateEnabled end
+        )
+        Character.startSkillLoop(
+            function() return Config.witchGSkillInterval or 0.3 end,
+            Character.activateWitchGSkill,
+            function() return Config.witchGSkillEnabled and getClosestZombiePart() ~= nil end
+        )
     elseif characterId == 1004 then
         -- Flag Bearer
         Character.startSkillLoop(function() return Config.flagBearerUltimateInterval or 15 end, Character.activateFlagBearerUltimate)
