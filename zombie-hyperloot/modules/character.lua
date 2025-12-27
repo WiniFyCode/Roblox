@@ -278,36 +278,6 @@ function Character.activateWraithUltimate()
     return true
 end
 
--- Wraith Q Skill (1007) - ném đến vị trí zombie gần nhất
-function Character.activateWraithQSkill()
-    local targetPart = getClosestZombiePart()
-    if not targetPart then return false end
-
-    local char = Config.localPlayer and Config.localPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return false end
-
-    -- CFrame tại vị trí zombie, hướng từ player đến zombie
-    local targetCFrame = CFrame.lookAt(targetPart.Position, hrp.Position)
-    Character.triggerSkill(1007, true, targetCFrame)
-    return true
-end
-
--- Assault Q Skill (1003) - ném đến vị trí zombie gần nhất
-function Character.activateAssaultQSkill()
-    local targetPart = getClosestZombiePart()
-    if not targetPart then return false end
-
-    local char = Config.localPlayer and Config.localPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return false end
-
-    -- CFrame tại vị trí zombie, hướng từ player đến zombie
-    local targetCFrame = CFrame.lookAt(targetPart.Position, hrp.Position)
-    Character.triggerSkill(1003, true, targetCFrame)
-    return true
-end
-
 -- Assault Ultimate (1001) - dùng 2 vector: cả 2 đều là vị trí zombie
 function Character.activateAssaultUltimate()
     local targetPart = getClosestZombiePart()
@@ -448,28 +418,18 @@ function Character.startAllSkillLoops()
         -- Armsmaster
         Character.startSkillLoop(function() return Config.armsmasterUltimateInterval end, Character.activateArmsmasterUltimate, nil)
     elseif characterId == 1003 then
-        -- Wraith - Ultimate (G) + Q Skill
+        -- Wraith - Ultimate (G)
         Character.startSkillLoop(
             function() return Config.wraithUltimateInterval or 0.3 end, 
             Character.activateWraithUltimate,
             function() return Config.wraithUltimateEnabled and getClosestZombiePart() ~= nil end
         )
-        Character.startSkillLoop(
-            function() return Config.wraithQSkillInterval or 0.7 end, 
-            Character.activateWraithQSkill,
-            function() return Config.wraithQSkillEnabled and getClosestZombiePart() ~= nil end
-        )
     elseif characterId == 1001 then
-        -- Assault Ultimate (G) + Q Skill
+        -- Assault Ultimate (G)
         Character.startSkillLoop(
             function() return Config.assaultUltimateInterval or 0.3 end, 
             Character.activateAssaultUltimate,
             function() return Config.assaultUltimateEnabled and getClosestZombiePart() ~= nil end
-        )
-        Character.startSkillLoop(
-            function() return Config.assaultQSkillInterval or 0.7 end, 
-            Character.activateAssaultQSkill,
-            function() return Config.assaultQSkillEnabled and getClosestZombiePart() ~= nil end
         )
     elseif characterId == 1007 then
         -- Witch - Ultimate + Skill G
