@@ -453,7 +453,7 @@ function Character.startAllSkillLoops()
             function() return Config.wraithUltimateEnabled and getClosestZombiePart() ~= nil end
         )
         Character.startSkillLoop(
-            function() return Config.wraithQSkillInterval or 0.5 end, 
+            function() return Config.wraithQSkillInterval or 0.7 end, 
             Character.activateWraithQSkill,
             function() return Config.wraithQSkillEnabled and getClosestZombiePart() ~= nil end
         )
