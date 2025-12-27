@@ -321,12 +321,25 @@ function Character.activateWitchUltimate()
     Character.triggerSkill(1012, false)
 end
 
--- Witch Skill (G) (1013) - dùng vị trí zombie gần nhất
+-- Witch Skill (G) (1013) - dùng vị trí zombie gần nhất, giới hạn 50 stud
 function Character.activateWitchGSkill()
     local targetPart = getClosestZombiePart()
 
     -- Nếu không có zombie thì dừng, không activate skill
     if not targetPart or not targetPart:IsA("BasePart") then
+        return false
+    end
+
+    -- Lấy nhân vật và HumanoidRootPart của người chơi để tính khoảng cách
+    local char = Config.localPlayer and Config.localPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        return false
+    end
+
+    -- Nếu zombie xa hơn 50 stud thì không cast skill (tránh lỗi server)
+    local distance = (hrp.Position - targetPart.Position).Magnitude
+    if distance > 50 then
         return false
     end
 
@@ -438,7 +451,7 @@ function Character.startAllSkillLoops()
             function() return Config.witchUltimateEnabled end
         )
         Character.startSkillLoop(
-            function() return Config.witchGSkillInterval or 0.3 end,
+            function() return Config.witchGSkillInterval or 0.5 end,
             Character.activateWitchGSkill,
             function() return Config.witchGSkillEnabled and getClosestZombiePart() ~= nil end
         )
