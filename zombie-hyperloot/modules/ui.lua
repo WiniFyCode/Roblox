@@ -1259,6 +1259,15 @@ function UI.createCharacterTab()
                     })
                 end
             end
+
+            -- Sau khi equip thành công, restart toàn bộ Auto Skill loops cho character mới
+            if success then
+                task.delay(1, function()
+                    if not Config.scriptUnloaded then
+                        Character.startAllSkillLoops()
+                    end
+                end)
+            end
         end
     })
 

@@ -27,6 +27,9 @@ Character.DisplayToId = {}
 -- Lưu character ID hiện tại
 Character.currentCharacterId = nil
 
+-- Version cho các skill loop (mỗi lần đổi character sẽ tăng version để dừng loop cũ)
+Character.skillLoopVersion = 0
+
 local function getRemoteFolder()
     local replicatedStorage = Config and Config.ReplicatedStorage or game:GetService("ReplicatedStorage")
     local remoteFolder = replicatedStorage:FindFirstChild("Remote")
@@ -338,9 +341,11 @@ function Character.activateFlagBearerUltimate()
     Character.triggerSkill(1004, true)
 end
 
-function Character.startSkillLoop(getInterval, action, checkCondition)
+function Character.startSkillLoop(getInterval, action, checkCondition, loopVersion)
     task.spawn(function()
-        if Config.autoSkillEnabled and not Config.scriptUnloaded then
+        local myVersion = loopVersion or Character.skillLoopVersion
+
+        if Config.autoSkillEnabled and not Config.scriptUnloaded and myVersion == Character.skillLoopVersion then
             task.wait(1)
             -- Nếu có checkCondition, chỉ chạy khi condition = true
             if not checkCondition or checkCondition() then
@@ -350,6 +355,8 @@ function Character.startSkillLoop(getInterval, action, checkCondition)
 
         while task.wait(getInterval()) do
             if Config.scriptUnloaded then break end
+            -- Nếu version đã thay đổi (đổi character), dừng loop cũ
+            if myVersion ~= Character.skillLoopVersion then break end
             if Config.autoSkillEnabled then
                 -- Nếu có checkCondition, chỉ chạy khi condition = true
                 if checkCondition then
@@ -366,83 +373,100 @@ function Character.startSkillLoop(getInterval, action, checkCondition)
 end
 
 function Character.startAllSkillLoops()
+    -- Mỗi lần gọi sẽ tăng version, các vòng lặp cũ tự dừng ở lần tick tiếp theo
+    Character.skillLoopVersion = (Character.skillLoopVersion or 0) + 1
+    local loopVersion = Character.skillLoopVersion
+
     -- Lấy character ID hiện tại từ server
     local characterId = Character.getCurrentCharacterId()
     
     if not characterId then
         warn("[ZombieHyperloot][Character] Không lấy được character ID, sẽ chạy tất cả skills")
         -- Fallback: chạy tất cả skills nếu không lấy được character ID
-        Character.startSkillLoop(function() return Config.armsmasterUltimateInterval end, Character.activateArmsmasterUltimate)
+        Character.startSkillLoop(function() return Config.armsmasterUltimateInterval end, Character.activateArmsmasterUltimate, nil, loopVersion)
         Character.startSkillLoop(
             function() return Config.wraithUltimateInterval or 0.3 end, 
             Character.activateWraithUltimate,
-            function() return getClosestZombiePart() ~= nil end
+            function() return getClosestZombiePart() ~= nil end,
+            loopVersion
         )
         Character.startSkillLoop(
             function() return Config.assaultUltimateInterval or 0.3 end, 
             Character.activateAssaultUltimate,
-            function() return getClosestZombiePart() ~= nil end
+            function() return getClosestZombiePart() ~= nil end,
+            loopVersion
         )
         Character.startSkillLoop(
             function() return Config.witchUltimateInterval or 15 end,
             Character.activateWitchUltimate,
-            function() return Config.witchUltimateEnabled end
+            function() return Config.witchUltimateEnabled end,
+            loopVersion
         )
         Character.startSkillLoop(
             function() return Config.witchGSkillInterval or 0.3 end,
             Character.activateWitchGSkill,
-            function() return Config.witchGSkillEnabled and getClosestZombiePart() ~= nil end
+            function() return Config.witchGSkillEnabled and getClosestZombiePart() ~= nil end,
+            loopVersion
         )
         Character.startSkillLoop(
             function() return Config.healingSkillInterval end, 
             Character.activateHealingSkill,
-            function() return Config.healingSkillEnabled end -- Check toggle
+            function() return Config.healingSkillEnabled end,
+            loopVersion
         )
-        Character.startSkillLoop(function() return Config.flagBearerUltimateInterval or 15 end, Character.activateFlagBearerUltimate)
+        Character.startSkillLoop(function() return Config.flagBearerUltimateInterval or 15 end, Character.activateFlagBearerUltimate, nil, loopVersion)
         return
     end
+
+    -- Cập nhật cache character hiện tại
+    Character.currentCharacterId = characterId
 
     -- Chỉ chạy skill tương ứng với character hiện tại
     -- Healing skill (1002) có thể dùng cho tất cả characters - có toggle riêng
     Character.startSkillLoop(
         function() return Config.healingSkillInterval end, 
         Character.activateHealingSkill,
-        function() return Config.healingSkillEnabled end -- Check toggle
+        function() return Config.healingSkillEnabled end,
+        loopVersion
     )
 
     -- Character-specific skills
     if characterId == 1006 then
         -- Armsmaster
-        Character.startSkillLoop(function() return Config.armsmasterUltimateInterval end, Character.activateArmsmasterUltimate)
+        Character.startSkillLoop(function() return Config.armsmasterUltimateInterval end, Character.activateArmsmasterUltimate, nil, loopVersion)
     elseif characterId == 1003 then
         -- Wraith - chỉ activate khi có zombie
         Character.startSkillLoop(
             function() return Config.wraithUltimateInterval or 0.3 end, 
             Character.activateWraithUltimate,
-            function() return getClosestZombiePart() ~= nil end -- Check condition: có zombie mới chạy
+            function() return getClosestZombiePart() ~= nil end,
+            loopVersion
         )
     elseif characterId == 1001 then
         -- Assault Ultimate (G) - chỉ activate khi có zombie và toggle bật
         Character.startSkillLoop(
             function() return Config.assaultUltimateInterval or 0.3 end, 
             Character.activateAssaultUltimate,
-            function() return Config.assaultUltimateEnabled and getClosestZombiePart() ~= nil end
+            function() return Config.assaultUltimateEnabled and getClosestZombiePart() ~= nil end,
+            loopVersion
         )
     elseif characterId == 1007 then
         -- Witch - Ultimate + Skill G
         Character.startSkillLoop(
             function() return Config.witchUltimateInterval or 15 end,
             Character.activateWitchUltimate,
-            function() return Config.witchUltimateEnabled end
+            function() return Config.witchUltimateEnabled end,
+            loopVersion
         )
         Character.startSkillLoop(
             function() return Config.witchGSkillInterval or 0.3 end,
             Character.activateWitchGSkill,
-            function() return Config.witchGSkillEnabled and getClosestZombiePart() ~= nil end
+            function() return Config.witchGSkillEnabled and getClosestZombiePart() ~= nil end,
+            loopVersion
         )
     elseif characterId == 1004 then
         -- Flag Bearer
-        Character.startSkillLoop(function() return Config.flagBearerUltimateInterval or 15 end, Character.activateFlagBearerUltimate)
+        Character.startSkillLoop(function() return Config.flagBearerUltimateInterval or 15 end, Character.activateFlagBearerUltimate, nil, loopVersion)
     end
     -- 1005 (Ninja) không có ultimate skill riêng
 end
