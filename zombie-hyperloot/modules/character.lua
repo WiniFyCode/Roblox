@@ -278,38 +278,32 @@ function Character.activateWraithUltimate()
     return true
 end
 
--- Wraith Q Skill (1007) - dùng CFrame hướng về zombie gần nhất
+-- Wraith Q Skill (1007) - ném đến vị trí zombie gần nhất
 function Character.activateWraithQSkill()
     local targetPart = getClosestZombiePart()
-    
-    if not targetPart or not targetPart:IsA("BasePart") then
-        return false
-    end
+    if not targetPart then return false end
 
     local char = Config.localPlayer and Config.localPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return false end
 
-    -- Tạo CFrame từ vị trí player nhìn về phía zombie
-    local targetCFrame = CFrame.lookAt(hrp.Position, targetPart.Position)
+    -- CFrame tại vị trí zombie, hướng từ player đến zombie
+    local targetCFrame = CFrame.lookAt(targetPart.Position, hrp.Position)
     Character.triggerSkill(1007, true, targetCFrame)
     return true
 end
 
--- Assault Q Skill (1003) - dùng CFrame hướng về zombie gần nhất
+-- Assault Q Skill (1003) - ném đến vị trí zombie gần nhất
 function Character.activateAssaultQSkill()
     local targetPart = getClosestZombiePart()
-    
-    if not targetPart or not targetPart:IsA("BasePart") then
-        return false
-    end
+    if not targetPart then return false end
 
     local char = Config.localPlayer and Config.localPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return false end
 
-    -- Tạo CFrame từ vị trí player nhìn về phía zombie
-    local targetCFrame = CFrame.lookAt(hrp.Position, targetPart.Position)
+    -- CFrame tại vị trí zombie, hướng từ player đến zombie
+    local targetCFrame = CFrame.lookAt(targetPart.Position, hrp.Position)
     Character.triggerSkill(1003, true, targetCFrame)
     return true
 end
