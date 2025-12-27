@@ -1315,7 +1315,15 @@ function UI.createCharacterTab()
     -- Right Groupbox - Character Skills
     local SkillGroup = CharacterTab:AddRightGroupbox("Character Skills")
 
-    SkillGroup:AddLabel("Armsmaster (1006)")
+    -- Helper function để tạo label với highlight
+    local function getCharacterLabel(name, id)
+        if currentCharacterId == id then
+            return "► " .. name .. " (EQUIPPED)"
+        end
+        return name
+    end
+
+    SkillGroup:AddLabel(getCharacterLabel("Armsmaster (1006)", 1006))
     SkillGroup:AddSlider("ArmsmasterUltimateInterval", {
         Text = "Ultimate Interval (s)",
         Default = Config.armsmasterUltimateInterval,
@@ -1324,7 +1332,7 @@ function UI.createCharacterTab()
     })
 
     SkillGroup:AddDivider()
-    SkillGroup:AddLabel("Wraith (1003)")
+    SkillGroup:AddLabel(getCharacterLabel("Wraith (1003)", 1003))
     SkillGroup:AddSlider("WraithUltimateInterval", {
         Text = "Ultimate Interval (s)",
         Default = Config.wraithUltimateInterval,
@@ -1333,7 +1341,7 @@ function UI.createCharacterTab()
     })
 
     SkillGroup:AddDivider()
-    SkillGroup:AddLabel("Assault (1001)")
+    SkillGroup:AddLabel(getCharacterLabel("Assault (1001)", 1001))
     SkillGroup:AddToggle("AssaultUltimateEnabled", {
         Text = "Enable Ultimate (G)",
         Default = Config.assaultUltimateEnabled,
@@ -1347,7 +1355,7 @@ function UI.createCharacterTab()
     })
 
     SkillGroup:AddDivider()
-    SkillGroup:AddLabel("Flag Bearer (1004)")
+    SkillGroup:AddLabel(getCharacterLabel("Flag Bearer (1004)", 1004))
     SkillGroup:AddSlider("FlagBearerUltimateInterval", {
         Text = "Ultimate Interval (s)",
         Default = Config.flagBearerUltimateInterval,
@@ -1356,7 +1364,7 @@ function UI.createCharacterTab()
     })
 
     SkillGroup:AddDivider()
-    SkillGroup:AddLabel("Witch (1007)")
+    SkillGroup:AddLabel(getCharacterLabel("Witch (1007)", 1007))
     SkillGroup:AddToggle("WitchUltimateEnabled", {
         Text = "Enable Ultimate",
         Default = Config.witchUltimateEnabled,
