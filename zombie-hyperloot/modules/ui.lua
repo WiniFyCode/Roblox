@@ -1335,14 +1335,31 @@ function UI.createCharacterTab()
     })
 
     -- Wraith (1003)
-    SkillGroup:AddToggle("WraithSection", {
+    local WraithBox = SkillGroup:AddToggle("WraithSection", {
         Text = getCharacterLabel("Wraith (1003)", 1003),
         Default = currentCharacterId == 1003,
-    }):AddDependencyBox():AddSlider("WraithUltimateInterval", {
-        Text = "Ultimate Interval (s)",
+    }):AddDependencyBox()
+    WraithBox:AddToggle("WraithUltimateEnabled", {
+        Text = "Enable Ultimate (G)",
+        Default = Config.wraithUltimateEnabled,
+        Callback = function(Value) Config.wraithUltimateEnabled = Value end
+    })
+    WraithBox:AddSlider("WraithUltimateInterval", {
+        Text = "Ultimate (G) Interval (s)",
         Default = Config.wraithUltimateInterval,
         Min = 0.3, Max = 20, Rounding = 1,
         Callback = function(Value) Config.wraithUltimateInterval = Value end
+    })
+    WraithBox:AddToggle("WraithQSkillEnabled", {
+        Text = "Enable Skill (Q)",
+        Default = Config.wraithQSkillEnabled,
+        Callback = function(Value) Config.wraithQSkillEnabled = Value end
+    })
+    WraithBox:AddSlider("WraithQSkillInterval", {
+        Text = "Skill (Q) Interval (s)",
+        Default = Config.wraithQSkillInterval,
+        Min = 0.7, Max = 10, Rounding = 1,
+        Callback = function(Value) Config.wraithQSkillInterval = Value end
     })
 
     -- Assault (1001)
@@ -1356,10 +1373,21 @@ function UI.createCharacterTab()
         Callback = function(Value) Config.assaultUltimateEnabled = Value end
     })
     AssaultBox:AddSlider("AssaultUltimateInterval", {
-        Text = "Ultimate Interval (s)",
+        Text = "Ultimate (G) Interval (s)",
         Default = Config.assaultUltimateInterval,
         Min = 0.3, Max = 20, Rounding = 1,
         Callback = function(Value) Config.assaultUltimateInterval = Value end
+    })
+    AssaultBox:AddToggle("AssaultQSkillEnabled", {
+        Text = "Enable Skill (Q)",
+        Default = Config.assaultQSkillEnabled,
+        Callback = function(Value) Config.assaultQSkillEnabled = Value end
+    })
+    AssaultBox:AddSlider("AssaultQSkillInterval", {
+        Text = "Skill (Q) Interval (s)",
+        Default = Config.assaultQSkillInterval,
+        Min = 0.7, Max = 10, Rounding = 1,
+        Callback = function(Value) Config.assaultQSkillInterval = Value end
     })
 
     -- Flag Bearer (1004)

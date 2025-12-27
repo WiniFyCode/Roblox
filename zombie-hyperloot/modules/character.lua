@@ -278,6 +278,34 @@ function Character.activateWraithUltimate()
     return true
 end
 
+-- Wraith Q Skill (1007) - dùng vị trí zombie gần nhất
+function Character.activateWraithQSkill()
+    local targetPart = getClosestZombiePart()
+    
+    -- Nếu không có zombie thì dừng, không activate skill
+    if not targetPart or not targetPart:IsA("BasePart") then
+        return false
+    end
+
+    local targetCFrame = CFrame.new(targetPart.Position)
+    Character.triggerSkill(1007, true, targetCFrame)
+    return true
+end
+
+-- Assault Q Skill (1003) - dùng vị trí zombie gần nhất
+function Character.activateAssaultQSkill()
+    local targetPart = getClosestZombiePart()
+    
+    -- Nếu không có zombie thì dừng, không activate skill
+    if not targetPart or not targetPart:IsA("BasePart") then
+        return false
+    end
+
+    local targetCFrame = CFrame.new(targetPart.Position)
+    Character.triggerSkill(1003, true, targetCFrame)
+    return true
+end
+
 -- Assault Ultimate (1001) - dùng 2 vector: cả 2 đều là vị trí zombie
 function Character.activateAssaultUltimate()
     local targetPart = getClosestZombiePart()
@@ -418,18 +446,28 @@ function Character.startAllSkillLoops()
         -- Armsmaster
         Character.startSkillLoop(function() return Config.armsmasterUltimateInterval end, Character.activateArmsmasterUltimate, nil)
     elseif characterId == 1003 then
-        -- Wraith - chỉ activate khi có zombie
+        -- Wraith - Ultimate (G) + Q Skill
         Character.startSkillLoop(
             function() return Config.wraithUltimateInterval or 0.3 end, 
             Character.activateWraithUltimate,
-            function() return getClosestZombiePart() ~= nil end
+            function() return Config.wraithUltimateEnabled and getClosestZombiePart() ~= nil end
+        )
+        Character.startSkillLoop(
+            function() return Config.wraithQSkillInterval or 0.5 end, 
+            Character.activateWraithQSkill,
+            function() return Config.wraithQSkillEnabled and getClosestZombiePart() ~= nil end
         )
     elseif characterId == 1001 then
-        -- Assault Ultimate (G) - chỉ activate khi có zombie và toggle bật
+        -- Assault Ultimate (G) + Q Skill
         Character.startSkillLoop(
             function() return Config.assaultUltimateInterval or 0.3 end, 
             Character.activateAssaultUltimate,
             function() return Config.assaultUltimateEnabled and getClosestZombiePart() ~= nil end
+        )
+        Character.startSkillLoop(
+            function() return Config.assaultQSkillInterval or 0.7 end, 
+            Character.activateAssaultQSkill,
+            function() return Config.assaultQSkillEnabled and getClosestZombiePart() ~= nil end
         )
     elseif characterId == 1007 then
         -- Witch - Ultimate + Skill G
