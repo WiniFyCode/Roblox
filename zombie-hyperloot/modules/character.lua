@@ -391,7 +391,7 @@ function Character.startAllSkillLoops()
             function() return Config.witchUltimateEnabled end
         )
         Character.startSkillLoop(
-            function() return Config.witchGSkillInterval or 0.3 end,
+            function() return Config.witchGSkillInterval or 0.5 end,
             Character.activateWitchGSkill,
             function() return Config.witchGSkillEnabled and getClosestZombiePart() ~= nil end
         )
