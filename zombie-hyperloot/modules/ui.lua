@@ -1273,28 +1273,10 @@ function UI.createCharacterTab()
 
     CharacterGroup:AddDivider()
 
-    -- Lấy character ID hiện tại để quyết định hiển thị skill nào
-    local currentCharacterId = Character.getCurrentCharacterId()
-    
-    -- Create Auto Skill toggle with dynamic tooltip
-    local autoSkillTooltip = "Automatically use the appropriate skill for the current character"
-    if currentCharacterId == 1006 then
-        autoSkillTooltip = "Automatically use Armsmaster Ultimate + Healing"
-    elseif currentCharacterId == 1003 then
-        autoSkillTooltip = "Automatically use Wraith Ultimate + Healing"
-    elseif currentCharacterId == 1001 then
-        autoSkillTooltip = "Automatically use Assault Ultimate + Grenade (E) + Healing"
-    elseif currentCharacterId == 1004 then
-        autoSkillTooltip = "Automatically use Flag Bearer Ultimate + Healing"
-    elseif currentCharacterId == 1007 then
-        autoSkillTooltip = "Automatically use Witch Ultimate + G Skill + Healing"
-    elseif currentCharacterId then
-        autoSkillTooltip = "Automatically use Healing (this character doesn't have a unique ultimate)"
-    end
-
+    -- Auto Skill toggle
     CharacterGroup:AddToggle("AutoSkill", {
         Text = "Auto Skill",
-        Tooltip = autoSkillTooltip,
+        Tooltip = "Automatically use skills based on equipped character",
         Default = Config.autoSkillEnabled,
         Callback = function(Value)
             Config.autoSkillEnabled = Value
@@ -1308,138 +1290,90 @@ function UI.createCharacterTab()
         end
     })
 
-    -- Healing Skill Toggle (bật/tắt Skill F)
+    -- Healing Skill Toggle (tất cả character đều có)
     CharacterGroup:AddToggle("HealingSkillEnabled", {
         Text = "Enable F Skill (Healing)",
-        Tooltip = "Toggle Skill F - All characters have this healing skill",
+        Tooltip = "All characters have this healing skill",
         Default = Config.healingSkillEnabled,
         Callback = function(Value)
             Config.healingSkillEnabled = Value
-            if UI.Library then
-                UI.Library:Notify({
-                    Title = "Character",
-                    Description = Value and "F Skill (Healing) enabled" or "F Skill (Healing) disabled",
-                    Time = 2
-                })
-            end
         end
     })
 
-    -- Healing Skill Interval (luôn hiển thị - character nào cũng có)
     CharacterGroup:AddSlider("HealingSkillInterval", {
-        Text = "F Skill (Healing) Interval (s)",
-        Tooltip = "Skill F - All characters have",
+        Text = "F Skill Interval (s)",
         Default = Config.healingSkillInterval,
         Min = 15, Max = 60, Rounding = 0,
         Callback = function(Value) Config.healingSkillInterval = Value end
     })
 
-    -- Armsmaster Ultimate (only show when character = 1006)
-    if currentCharacterId == 1006 then
-        CharacterGroup:AddSlider("ArmsmasterUltimateInterval", {
-            Text = "Armsmaster Ultimate Interval (s)",
-            Default = Config.armsmasterUltimateInterval,
-            Min = 15, Max = 60, Rounding = 0,
-            Callback = function(Value) Config.armsmasterUltimateInterval = Value end
-        })
-    end
+    -- Right Groupbox - Character Skills
+    local SkillGroup = CharacterTab:AddRightGroupbox("Character Skills")
 
-    -- Wraith Ultimate (chỉ hiển thị khi character = 1003)
-    if currentCharacterId == 1003 then
-        CharacterGroup:AddSlider("WraithUltimateInterval", {
-            Text = "Wraith Ultimate Interval (s)",
-            Default = Config.wraithUltimateInterval,
-            Min = 0.3, Max = 20, Rounding = 1,
-            Callback = function(Value) Config.wraithUltimateInterval = Value end
-        })
-    end
+    SkillGroup:AddLabel("Armsmaster (1006)")
+    SkillGroup:AddSlider("ArmsmasterUltimateInterval", {
+        Text = "Ultimate Interval (s)",
+        Default = Config.armsmasterUltimateInterval,
+        Min = 15, Max = 60, Rounding = 0,
+        Callback = function(Value) Config.armsmasterUltimateInterval = Value end
+    })
 
-    -- Assault Ultimate (chỉ hiển thị khi character = 1001)
-    if currentCharacterId == 1001 then
-        CharacterGroup:AddToggle("AssaultUltimateEnabled", {
-            Text = "Enable Ultimate (G)",
-            Tooltip = "Toggle Assault Ultimate skill",
-            Default = Config.assaultUltimateEnabled,
-            Callback = function(Value)
-                Config.assaultUltimateEnabled = Value
-                if UI.Library then
-                    UI.Library:Notify({
-                        Title = "Character",
-                        Description = Value and "Assault Ultimate enabled" or "Assault Ultimate disabled",
-                        Time = 2
-                    })
-                end
-            end
-        })
+    SkillGroup:AddDivider()
+    SkillGroup:AddLabel("Wraith (1003)")
+    SkillGroup:AddSlider("WraithUltimateInterval", {
+        Text = "Ultimate Interval (s)",
+        Default = Config.wraithUltimateInterval,
+        Min = 0.3, Max = 20, Rounding = 1,
+        Callback = function(Value) Config.wraithUltimateInterval = Value end
+    })
 
-        CharacterGroup:AddSlider("AssaultUltimateInterval", {
-            Text = "Ultimate (G) Interval (s)",
-            Default = Config.assaultUltimateInterval,
-            Min = 0.3, Max = 20, Rounding = 1,
-            Callback = function(Value) Config.assaultUltimateInterval = Value end
-        })
+    SkillGroup:AddDivider()
+    SkillGroup:AddLabel("Assault (1001)")
+    SkillGroup:AddToggle("AssaultUltimateEnabled", {
+        Text = "Enable Ultimate (G)",
+        Default = Config.assaultUltimateEnabled,
+        Callback = function(Value) Config.assaultUltimateEnabled = Value end
+    })
+    SkillGroup:AddSlider("AssaultUltimateInterval", {
+        Text = "Ultimate Interval (s)",
+        Default = Config.assaultUltimateInterval,
+        Min = 0.3, Max = 20, Rounding = 1,
+        Callback = function(Value) Config.assaultUltimateInterval = Value end
+    })
 
+    SkillGroup:AddDivider()
+    SkillGroup:AddLabel("Flag Bearer (1004)")
+    SkillGroup:AddSlider("FlagBearerUltimateInterval", {
+        Text = "Ultimate Interval (s)",
+        Default = Config.flagBearerUltimateInterval,
+        Min = 5, Max = 60, Rounding = 0,
+        Callback = function(Value) Config.flagBearerUltimateInterval = Value end
+    })
 
-    end
-
-    -- Flag Bearer Ultimate (chỉ hiển thị khi character = 1004)
-    if currentCharacterId == 1004 then
-        CharacterGroup:AddSlider("FlagBearerUltimateInterval", {
-            Text = "Flag Bearer Ultimate Interval (s)",
-            Default = Config.flagBearerUltimateInterval,
-            Min = 5, Max = 60, Rounding = 0,
-            Callback = function(Value) Config.flagBearerUltimateInterval = Value end
-        })
-    end
-
-    -- Witch (1007) - Ultimate + Skill G
-    if currentCharacterId == 1007 then
-        CharacterGroup:AddToggle("WitchUltimateEnabled", {
-            Text = "Enable Witch Ultimate",
-            Tooltip = "Toggle Witch Ultimate skill (1012)",
-            Default = Config.witchUltimateEnabled,
-            Callback = function(Value)
-                Config.witchUltimateEnabled = Value
-                if UI.Library then
-                    UI.Library:Notify({
-                        Title = "Character",
-                        Description = Value and "Witch Ultimate enabled" or "Witch Ultimate disabled",
-                        Time = 2
-                    })
-                end
-            end
-        })
-
-        CharacterGroup:AddSlider("WitchUltimateInterval", {
-            Text = "Witch Ultimate Interval (s)",
-            Default = Config.witchUltimateInterval,
-            Min = 15, Max = 60, Rounding = 0,
-            Callback = function(Value) Config.witchUltimateInterval = Value end
-        })
-
-        CharacterGroup:AddToggle("WitchGSkillEnabled", {
-            Text = "Enable Witch Skill (G)",
-            Tooltip = "Toggle Witch Skill (G, 1013) - auto aims at nearest zombie",
-            Default = Config.witchGSkillEnabled,
-            Callback = function(Value)
-                Config.witchGSkillEnabled = Value
-                if UI.Library then
-                    UI.Library:Notify({
-                        Title = "Character",
-                        Description = Value and "Witch Skill (G) enabled" or "Witch Skill (G) disabled",
-                        Time = 2
-                    })
-                end
-            end
-        })
-
-        CharacterGroup:AddSlider("WitchGSkillInterval", {
-            Text = "Witch Skill (G) Interval (s)",
-            Default = Config.witchGSkillInterval,
-            Min = 0.7, Max = 10, Rounding = 1,
-            Callback = function(Value) Config.witchGSkillInterval = Value end
-        })
-    end
+    SkillGroup:AddDivider()
+    SkillGroup:AddLabel("Witch (1007)")
+    SkillGroup:AddToggle("WitchUltimateEnabled", {
+        Text = "Enable Ultimate",
+        Default = Config.witchUltimateEnabled,
+        Callback = function(Value) Config.witchUltimateEnabled = Value end
+    })
+    SkillGroup:AddSlider("WitchUltimateInterval", {
+        Text = "Ultimate Interval (s)",
+        Default = Config.witchUltimateInterval,
+        Min = 15, Max = 60, Rounding = 0,
+        Callback = function(Value) Config.witchUltimateInterval = Value end
+    })
+    SkillGroup:AddToggle("WitchGSkillEnabled", {
+        Text = "Enable Skill (G)",
+        Default = Config.witchGSkillEnabled,
+        Callback = function(Value) Config.witchGSkillEnabled = Value end
+    })
+    SkillGroup:AddSlider("WitchGSkillInterval", {
+        Text = "Skill (G) Interval (s)",
+        Default = Config.witchGSkillInterval,
+        Min = 0.7, Max = 10, Rounding = 1,
+        Callback = function(Value) Config.witchGSkillInterval = Value end
+    })
 
     return CharacterTab
 end
