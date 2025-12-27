@@ -1324,105 +1324,100 @@ function UI.createCharacterTab()
     end
 
     -- Armsmaster (1006)
-    SkillGroup:AddToggle("ArmsmasterSection", {
-        Text = getCharacterLabel("Armsmaster (1006)", 1006),
-        Default = currentCharacterId == 1006,
-    }):AddDependencyBox():AddSlider("ArmsmasterUltimateInterval", {
+    SkillGroup:AddLabel(getCharacterLabel("Armsmaster (1006)", 1006))
+    SkillGroup:AddSlider("ArmsmasterUltimateInterval", {
         Text = "Ultimate Interval (s)",
         Default = Config.armsmasterUltimateInterval,
         Min = 15, Max = 60, Rounding = 0,
         Callback = function(Value) Config.armsmasterUltimateInterval = Value end
     })
 
+    SkillGroup:AddDivider()
+
     -- Wraith (1003)
-    local WraithBox = SkillGroup:AddToggle("WraithSection", {
-        Text = getCharacterLabel("Wraith (1003)", 1003),
-        Default = currentCharacterId == 1003,
-    }):AddDependencyBox()
-    WraithBox:AddToggle("WraithUltimateEnabled", {
+    SkillGroup:AddLabel(getCharacterLabel("Wraith (1003)", 1003))
+    SkillGroup:AddToggle("WraithUltimateEnabled", {
         Text = "Enable Ultimate (G)",
         Default = Config.wraithUltimateEnabled,
         Callback = function(Value) Config.wraithUltimateEnabled = Value end
     })
-    WraithBox:AddSlider("WraithUltimateInterval", {
+    SkillGroup:AddSlider("WraithUltimateInterval", {
         Text = "Ultimate (G) Interval (s)",
         Default = Config.wraithUltimateInterval,
         Min = 0.3, Max = 20, Rounding = 1,
         Callback = function(Value) Config.wraithUltimateInterval = Value end
     })
-    WraithBox:AddToggle("WraithQSkillEnabled", {
+    SkillGroup:AddToggle("WraithQSkillEnabled", {
         Text = "Enable Skill (Q)",
         Default = Config.wraithQSkillEnabled,
         Callback = function(Value) Config.wraithQSkillEnabled = Value end
     })
-    WraithBox:AddSlider("WraithQSkillInterval", {
+    SkillGroup:AddSlider("WraithQSkillInterval", {
         Text = "Skill (Q) Interval (s)",
         Default = Config.wraithQSkillInterval,
         Min = 0.7, Max = 10, Rounding = 1,
         Callback = function(Value) Config.wraithQSkillInterval = Value end
     })
 
+    SkillGroup:AddDivider()
+
     -- Assault (1001)
-    local AssaultBox = SkillGroup:AddToggle("AssaultSection", {
-        Text = getCharacterLabel("Assault (1001)", 1001),
-        Default = currentCharacterId == 1001,
-    }):AddDependencyBox()
-    AssaultBox:AddToggle("AssaultUltimateEnabled", {
+    SkillGroup:AddLabel(getCharacterLabel("Assault (1001)", 1001))
+    SkillGroup:AddToggle("AssaultUltimateEnabled", {
         Text = "Enable Ultimate (G)",
         Default = Config.assaultUltimateEnabled,
         Callback = function(Value) Config.assaultUltimateEnabled = Value end
     })
-    AssaultBox:AddSlider("AssaultUltimateInterval", {
+    SkillGroup:AddSlider("AssaultUltimateInterval", {
         Text = "Ultimate (G) Interval (s)",
         Default = Config.assaultUltimateInterval,
         Min = 0.3, Max = 20, Rounding = 1,
         Callback = function(Value) Config.assaultUltimateInterval = Value end
     })
-    AssaultBox:AddToggle("AssaultQSkillEnabled", {
+    SkillGroup:AddToggle("AssaultQSkillEnabled", {
         Text = "Enable Skill (Q)",
         Default = Config.assaultQSkillEnabled,
         Callback = function(Value) Config.assaultQSkillEnabled = Value end
     })
-    AssaultBox:AddSlider("AssaultQSkillInterval", {
+    SkillGroup:AddSlider("AssaultQSkillInterval", {
         Text = "Skill (Q) Interval (s)",
         Default = Config.assaultQSkillInterval,
         Min = 0.7, Max = 10, Rounding = 1,
         Callback = function(Value) Config.assaultQSkillInterval = Value end
     })
 
+    SkillGroup:AddDivider()
+
     -- Flag Bearer (1004)
-    SkillGroup:AddToggle("FlagBearerSection", {
-        Text = getCharacterLabel("Flag Bearer (1004)", 1004),
-        Default = currentCharacterId == 1004,
-    }):AddDependencyBox():AddSlider("FlagBearerUltimateInterval", {
+    SkillGroup:AddLabel(getCharacterLabel("Flag Bearer (1004)", 1004))
+    SkillGroup:AddSlider("FlagBearerUltimateInterval", {
         Text = "Ultimate Interval (s)",
         Default = Config.flagBearerUltimateInterval,
         Min = 5, Max = 60, Rounding = 0,
         Callback = function(Value) Config.flagBearerUltimateInterval = Value end
     })
 
+    SkillGroup:AddDivider()
+
     -- Witch (1007)
-    local WitchBox = SkillGroup:AddToggle("WitchSection", {
-        Text = getCharacterLabel("Witch (1007)", 1007),
-        Default = currentCharacterId == 1007,
-    }):AddDependencyBox()
-    WitchBox:AddToggle("WitchUltimateEnabled", {
+    SkillGroup:AddLabel(getCharacterLabel("Witch (1007)", 1007))
+    SkillGroup:AddToggle("WitchUltimateEnabled", {
         Text = "Enable Ultimate",
         Default = Config.witchUltimateEnabled,
         Callback = function(Value) Config.witchUltimateEnabled = Value end
     })
-    WitchBox:AddSlider("WitchUltimateInterval", {
+    SkillGroup:AddSlider("WitchUltimateInterval", {
         Text = "Ultimate Interval (s)",
         Default = Config.witchUltimateInterval,
         Min = 15, Max = 60, Rounding = 0,
         Callback = function(Value) Config.witchUltimateInterval = Value end
     })
-    WitchBox:AddToggle("WitchGSkillEnabled", {
+    SkillGroup:AddToggle("WitchGSkillEnabled", {
         Text = "Enable Skill (G)",
         Default = Config.witchGSkillEnabled,
         Callback = function(Value) Config.witchGSkillEnabled = Value end
     })
-    WitchBox:AddSlider("WitchGSkillInterval", {
+    SkillGroup:AddSlider("WitchGSkillInterval", {
         Text = "Skill (G) Interval (s)",
         Default = Config.witchGSkillInterval,
         Min = 0.7, Max = 10, Rounding = 1,
