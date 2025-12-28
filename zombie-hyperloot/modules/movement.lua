@@ -112,18 +112,34 @@ function Movement.disableNoClip()
     if Movement.noClipConnection then
         Movement.noClipConnection:Disconnect()
         Movement.noClipConnection = nil
-        
-        local char = Config.localPlayer.Character
-        if char then
-            for _, descendant in ipairs(char:GetDescendants()) do
-                if descendant:IsA("BasePart") then
+    end
+
+    local char = Config.localPlayer.Character
+    if char then
+        local hasOriginal = next(Movement.originalCollidableParts) ~= nil
+        for _, descendant in ipairs(char:GetDescendants()) do
+            if descendant:IsA("BasePart") then
+                if hasOriginal then
+                    -- Nếu part ban đầu collidable thì trả về true, còn lại giữ false
+                    if Movement.originalCollidableParts[descendant] then
+                        descendant.CanCollide = true
+                    else
+                        descendant.CanCollide = false
+                    end
+                else
+                    -- Trường hợp NoClip bình thường (không Anti-Zombie): trả hết về true như cũ
                     descendant.CanCollide = true
                 end
             end
         end
     end
-    restoreOriginalCollisions()
+
+    -- Xoá cache sau khi đã restore xong
+    for part in pairs(Movement.originalCollidableParts) do
+        Movement.originalCollidableParts[part] = nil
+    end
 end
+
 
 function Movement.applyNoClip()
     if Config.noClipEnabled then
