@@ -1340,7 +1340,7 @@ function UI.createCharacterTab()
     ArmsmasterGroup:AddSlider("ArmsmasterFSkillInterval", {
         Text = "Skill (F) Interval (s)",
         Default = Config.armsmasterFSkillInterval,
-        Min = 15, Max = 60, Rounding = 0,
+        Min = 20, Max = 60, Rounding = 0,
         Callback = function(Value) Config.armsmasterFSkillInterval = Value end
     })
 
@@ -1376,7 +1376,7 @@ function UI.createCharacterTab()
     WraithGroup:AddSlider("WraithFSkillInterval", {
         Text = "Skill (F) Interval (s)",
         Default = Config.wraithFSkillInterval,
-        Min = 15, Max = 60, Rounding = 0,
+        Min = 20, Max = 60, Rounding = 0,
         Callback = function(Value) Config.wraithFSkillInterval = Value end
     })
 
@@ -1412,7 +1412,7 @@ function UI.createCharacterTab()
     AssaultGroup:AddSlider("AssaultFSkillInterval", {
         Text = "Skill (F) Interval (s)",
         Default = Config.assaultFSkillInterval,
-        Min = 15, Max = 30, Rounding = 0,
+        Min = 20, Max = 30, Rounding = 0,
         Callback = function(Value) Config.assaultFSkillInterval = Value end
     })
 
@@ -1437,7 +1437,7 @@ function UI.createCharacterTab()
     FlagBearerGroup:AddSlider("FlagBearerFSkillInterval", {
         Text = "Skill (F) Interval (s)",
         Default = Config.flagBearerFSkillInterval,
-        Min = 15, Max = 30, Rounding = 0,
+        Min = 20, Max = 30, Rounding = 0,
         Callback = function(Value) Config.flagBearerFSkillInterval = Value end
     })
 

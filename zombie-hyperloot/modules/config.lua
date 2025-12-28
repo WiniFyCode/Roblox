@@ -130,7 +130,7 @@ Config.autoSkillEnabled = true
 Config.armsmasterUltimateEnabled = true -- Toggle cho Armsmaster Ultimate (1010)
 Config.armsmasterUltimateInterval = 15 -- Armsmaster Ultimate (1010)
 Config.armsmasterFSkillEnabled = true -- Toggle cho Armsmaster F Skill (Healing)
-Config.armsmasterFSkillInterval = 15 -- Armsmaster F Skill interval
+Config.armsmasterFSkillInterval = 20 -- Armsmaster F Skill interval
 
 -- Wraith (1003)
 Config.wraithUltimateEnabled = true -- Toggle riêng cho Wraith Ultimate (G)
@@ -138,7 +138,7 @@ Config.wraithUltimateInterval = 0.3 -- Wraith Ultimate (1006)
 Config.wraithQSkillEnabled = true -- Toggle riêng cho Wraith Q Skill (1007)
 Config.wraithQSkillInterval = 9 -- Wraith Q Skill (1007)
 Config.wraithFSkillEnabled = true -- Toggle cho Wraith F Skill (Healing)
-Config.wraithFSkillInterval = 15 -- Wraith F Skill interval
+Config.wraithFSkillInterval = 20 -- Wraith F Skill interval
 
 -- Assault (1001)
 Config.assaultUltimateEnabled = true -- Toggle riêng cho Assault Ultimate (G)
@@ -146,13 +146,13 @@ Config.assaultUltimateInterval = 0.3 -- Assault Ultimate (1001)
 Config.assaultQSkillEnabled = true -- Toggle riêng cho Assault Q Skill (1003)
 Config.assaultQSkillInterval = 9 -- Assault Q Skill (1003)
 Config.assaultFSkillEnabled = true -- Toggle cho Assault F Skill (Healing)
-Config.assaultFSkillInterval = 15 -- Assault F Skill interval
+Config.assaultFSkillInterval = 20 -- Assault F Skill interval
 
 -- Flag Bearer (1004)
 Config.flagBearerUltimateEnabled = true -- Toggle cho Flag Bearer Ultimate (1004)
 Config.flagBearerUltimateInterval = 15 -- Flag Bearer Ultimate (1004)
 Config.flagBearerFSkillEnabled = true -- Toggle cho Flag Bearer F Skill (Healing)
-Config.flagBearerFSkillInterval = 15 -- Flag Bearer F Skill interval
+Config.flagBearerFSkillInterval = 20 -- Flag Bearer F Skill interval
 
 -- Witch (1007)
 Config.witchUltimateEnabled = true -- Toggle riêng cho Witch Ultimate (1012)

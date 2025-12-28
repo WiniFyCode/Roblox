@@ -441,7 +441,7 @@ function Character.startAllSkillLoops()
             function() return Config.armsmasterUltimateEnabled end
         )
         Character.startSkillLoop(
-            function() return Config.armsmasterFSkillInterval or 15 end, 
+            function() return Config.armsmasterFSkillInterval or 20 end, 
             Character.activateHealingSkill,
             function() return Config.armsmasterFSkillEnabled end
         )
@@ -458,7 +458,7 @@ function Character.startAllSkillLoops()
             function() return Config.wraithQSkillEnabled and getClosestZombiePart() ~= nil end
         )
         Character.startSkillLoop(
-            function() return Config.wraithFSkillInterval or 15 end, 
+            function() return Config.wraithFSkillInterval or 20 end, 
             Character.activateHealingSkill,
             function() return Config.wraithFSkillEnabled end
         )
@@ -475,7 +475,7 @@ function Character.startAllSkillLoops()
             function() return Config.assaultQSkillEnabled and getClosestZombiePart() ~= nil end
         )
         Character.startSkillLoop(
-            function() return Config.assaultFSkillInterval or 15 end, 
+            function() return Config.assaultFSkillInterval or 20 end, 
             Character.activateHealingSkill,
             function() return Config.assaultFSkillEnabled end
         )
@@ -504,7 +504,7 @@ function Character.startAllSkillLoops()
             function() return Config.flagBearerUltimateEnabled end
         )
         Character.startSkillLoop(
-            function() return Config.flagBearerFSkillInterval or 15 end, 
+            function() return Config.flagBearerFSkillInterval or 20 end, 
             Character.activateHealingSkill,
             function() return Config.flagBearerFSkillEnabled end
         )
