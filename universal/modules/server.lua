@@ -36,6 +36,49 @@ function Server.createTab()
 		end,
 		Risky = true,
 	})
+
+	ServerInfoGroup:AddDivider()
+
+	-- Auto Leave on Player Join
+	local autoLeaveConnection = nil
+	ServerInfoGroup:AddToggle("AutoLeaveOnJoin", {
+		Text = "Auto Leave on Player Join",
+		Tooltip = "Automatically leave game when another player joins",
+		Default = false,
+		Callback = function(Value)
+			Config.autoLeaveOnJoinEnabled = Value
+			
+			if Value then
+				-- Connect listener
+				if autoLeaveConnection then
+					autoLeaveConnection:Disconnect()
+				end
+				autoLeaveConnection = Config.Players.PlayerAdded:Connect(function(player)
+					if Config.autoLeaveOnJoinEnabled and player ~= Config.LocalPlayer then
+						UI.Library:Notify({
+							Title = "Auto Leave",
+							Description = "Player joined: " .. player.Name .. " - Leaving game...",
+							Time = 2,
+						})
+						task.wait(0.5)
+						Config.LocalPlayer:Kick("Auto Leave: Player joined")
+					end
+				end)
+			else
+				-- Disconnect listener
+				if autoLeaveConnection then
+					autoLeaveConnection:Disconnect()
+					autoLeaveConnection = nil
+				end
+			end
+			
+			UI.Library:Notify({
+				Title = "Server",
+				Description = Value and "Auto Leave enabled" or "Auto Leave disabled",
+				Time = 2,
+			})
+		end
+	})
 	
 	local ServerListGroup = UI.Tabs.Server:AddRightGroupbox("Server List", "server")
 	

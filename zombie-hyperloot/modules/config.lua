@@ -235,6 +235,10 @@ Config.removeEffectsEnabled = true -- Tự động xóa effects khi dupe lần �
 Config.UI = {}
 
 ----------------------------------------------------------
+-- 🔹 Auto Leave on Player Join
+Config.autoLeaveOnJoinEnabled = false
+
+----------------------------------------------------------
 -- 🔹 Connection Storage (để cleanup)
 Config.connections = {}
 

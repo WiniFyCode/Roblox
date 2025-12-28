@@ -563,6 +563,53 @@ do
             Risky = true,
         })
 
+        ServerInfoGroup:AddDivider()
+
+        -- Auto Leave on Player Join
+        local autoLeaveConnection = nil
+        ServerInfoGroup:AddToggle("AutoLeaveOnJoin", {
+            Text = "Auto Leave on Player Join",
+            Tooltip = "Automatically leave game when another player joins",
+            Default = Config.autoLeaveOnJoinEnabled,
+            Callback = function(Value)
+                Config.autoLeaveOnJoinEnabled = Value
+                
+                if Value then
+                    -- Connect listener
+                    if autoLeaveConnection then
+                        autoLeaveConnection:Disconnect()
+                    end
+                    autoLeaveConnection = Players.PlayerAdded:Connect(function(player)
+                        if Config.autoLeaveOnJoinEnabled and player ~= LocalPlayer then
+                            if Library then
+                                Library:Notify({
+                                    Title = "Auto Leave",
+                                    Description = "Player joined: " .. player.Name .. " - Leaving game...",
+                                    Time = 2,
+                                })
+                            end
+                            task.wait(0.5)
+                            LocalPlayer:Kick("Auto Leave: Player joined")
+                        end
+                    end)
+                else
+                    -- Disconnect listener
+                    if autoLeaveConnection then
+                        autoLeaveConnection:Disconnect()
+                        autoLeaveConnection = nil
+                    end
+                end
+                
+                if Library then
+                    Library:Notify({
+                        Title = "Server",
+                        Description = Value and "Auto Leave enabled" or "Auto Leave disabled",
+                        Time = 2,
+                    })
+                end
+            end
+        })
+
         local ServerListGroup = ServerTab:AddRightGroupbox("Server List", "server")
         local serverList = {}
         local serverListDisplay = {}
