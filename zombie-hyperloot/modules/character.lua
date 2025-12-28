@@ -278,6 +278,20 @@ function Character.activateWraithUltimate()
     return true
 end
 
+-- Wraith Q Skill (1007) - chém zombie, dùng CFrame của player
+function Character.activateWraithQSkill()
+    local char = Config.localPlayer and Config.localPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return false end
+
+    -- Chỉ cast khi có zombie gần
+    local targetPart = getClosestZombiePart()
+    if not targetPart then return false end
+
+    Character.triggerSkill(1007, true, hrp.CFrame)
+    return true
+end
+
 -- Assault Ultimate (1001) - dùng 2 vector: cả 2 đều là vị trí zombie
 function Character.activateAssaultUltimate()
     local targetPart = getClosestZombiePart()
@@ -309,6 +323,20 @@ function Character.activateAssaultUltimate()
         netMessage:WaitForChild("TrigerSkill"):FireServer(unpack(args))
     end)
 
+    return true
+end
+
+-- Assault Q Skill (1003) - ném lựu đạn, dùng CFrame của player
+function Character.activateAssaultQSkill()
+    local char = Config.localPlayer and Config.localPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return false end
+
+    -- Chỉ cast khi có zombie gần
+    local targetPart = getClosestZombiePart()
+    if not targetPart then return false end
+
+    Character.triggerSkill(1003, true, hrp.CFrame)
     return true
 end
 
@@ -410,34 +438,55 @@ function Character.startAllSkillLoops()
     -- Cập nhật cache character hiện tại
     Character.currentCharacterId = characterId
 
-    -- Chỉ chạy skill tương ứng với character hiện tại
-    -- Healing skill (1002) có thể dùng cho tất cả characters - có toggle riêng
-    Character.startSkillLoop(
-        function() return Config.healingSkillInterval end, 
-        Character.activateHealingSkill,
-        function() return Config.healingSkillEnabled end
-    )
-
-    -- Character-specific skills
+    -- Character-specific skills (mỗi character có F skill riêng)
     if characterId == 1006 then
-        -- Armsmaster
-        Character.startSkillLoop(function() return Config.armsmasterUltimateInterval end, Character.activateArmsmasterUltimate, nil)
+        -- Armsmaster - Ultimate + F Skill
+        Character.startSkillLoop(
+            function() return Config.armsmasterUltimateInterval end, 
+            Character.activateArmsmasterUltimate, 
+            function() return Config.armsmasterUltimateEnabled end
+        )
+        Character.startSkillLoop(
+            function() return Config.armsmasterFSkillInterval or 15 end, 
+            Character.activateHealingSkill,
+            function() return Config.armsmasterFSkillEnabled end
+        )
     elseif characterId == 1003 then
-        -- Wraith - Ultimate (G)
+        -- Wraith - Ultimate (G) + Q Skill + F Skill
         Character.startSkillLoop(
             function() return Config.wraithUltimateInterval or 0.3 end, 
             Character.activateWraithUltimate,
             function() return Config.wraithUltimateEnabled and getClosestZombiePart() ~= nil end
         )
+        Character.startSkillLoop(
+            function() return Config.wraithQSkillInterval or 9 end, 
+            Character.activateWraithQSkill,
+            function() return Config.wraithQSkillEnabled and getClosestZombiePart() ~= nil end
+        )
+        Character.startSkillLoop(
+            function() return Config.wraithFSkillInterval or 15 end, 
+            Character.activateHealingSkill,
+            function() return Config.wraithFSkillEnabled end
+        )
     elseif characterId == 1001 then
-        -- Assault Ultimate (G)
+        -- Assault - Ultimate (G) + Q Skill + F Skill
         Character.startSkillLoop(
             function() return Config.assaultUltimateInterval or 0.3 end, 
             Character.activateAssaultUltimate,
             function() return Config.assaultUltimateEnabled and getClosestZombiePart() ~= nil end
         )
+        Character.startSkillLoop(
+            function() return Config.assaultQSkillInterval or 9 end, 
+            Character.activateAssaultQSkill,
+            function() return Config.assaultQSkillEnabled and getClosestZombiePart() ~= nil end
+        )
+        Character.startSkillLoop(
+            function() return Config.assaultFSkillInterval or 15 end, 
+            Character.activateHealingSkill,
+            function() return Config.assaultFSkillEnabled end
+        )
     elseif characterId == 1007 then
-        -- Witch - Ultimate + Skill G + Skill F
+        -- Witch - Ultimate + Skill G + Skill F (1014)
         Character.startSkillLoop(
             function() return Config.witchUltimateInterval or 15 end,
             Character.activateWitchUltimate,
@@ -454,8 +503,17 @@ function Character.startAllSkillLoops()
             function() return Config.witchFSkillEnabled end
         )
     elseif characterId == 1004 then
-        -- Flag Bearer
-        Character.startSkillLoop(function() return Config.flagBearerUltimateInterval or 15 end, Character.activateFlagBearerUltimate, nil)
+        -- Flag Bearer - Ultimate + F Skill
+        Character.startSkillLoop(
+            function() return Config.flagBearerUltimateInterval or 15 end, 
+            Character.activateFlagBearerUltimate, 
+            function() return Config.flagBearerUltimateEnabled end
+        )
+        Character.startSkillLoop(
+            function() return Config.flagBearerFSkillInterval or 15 end, 
+            Character.activateHealingSkill,
+            function() return Config.flagBearerFSkillEnabled end
+        )
     end
     -- 1005 (Ninja) không có ultimate skill riêng
 end

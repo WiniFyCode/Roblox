@@ -1311,23 +1311,6 @@ function UI.createCharacterTab()
         end
     })
 
-    -- Healing Skill Toggle (tất cả character đều có)
-    CharacterGroup:AddToggle("HealingSkillEnabled", {
-        Text = "Enable F Skill (Healing)",
-        Tooltip = "All characters have this healing skill",
-        Default = Config.healingSkillEnabled,
-        Callback = function(Value)
-            Config.healingSkillEnabled = Value
-        end
-    })
-
-    CharacterGroup:AddSlider("HealingSkillInterval", {
-        Text = "F Skill Interval (s)",
-        Default = Config.healingSkillInterval,
-        Min = 15, Max = 60, Rounding = 0,
-        Callback = function(Value) Config.healingSkillInterval = Value end
-    })
-
     -- Helper function để tạo label với highlight
     local function getCharacterLabel(name, id)
         if currentCharacterId == id then
@@ -1338,11 +1321,27 @@ function UI.createCharacterTab()
 
     -- Armsmaster (1006)
     local ArmsmasterGroup = CharacterTab:AddRightGroupbox(getCharacterLabel("Armsmaster (1006)", 1006))
+    ArmsmasterGroup:AddToggle("ArmsmasterUltimateEnabled", {
+        Text = "Enable Ultimate",
+        Default = currentCharacterId == 1006,
+        Callback = function(Value) Config.armsmasterUltimateEnabled = Value end
+    })
     ArmsmasterGroup:AddSlider("ArmsmasterUltimateInterval", {
         Text = "Ultimate Interval (s)",
         Default = Config.armsmasterUltimateInterval,
         Min = 15, Max = 60, Rounding = 0,
         Callback = function(Value) Config.armsmasterUltimateInterval = Value end
+    })
+    ArmsmasterGroup:AddToggle("ArmsmasterFSkillEnabled", {
+        Text = "Enable Skill (F) - Healing",
+        Default = currentCharacterId == 1006,
+        Callback = function(Value) Config.armsmasterFSkillEnabled = Value end
+    })
+    ArmsmasterGroup:AddSlider("ArmsmasterFSkillInterval", {
+        Text = "Skill (F) Interval (s)",
+        Default = Config.armsmasterFSkillInterval,
+        Min = 15, Max = 60, Rounding = 0,
+        Callback = function(Value) Config.armsmasterFSkillInterval = Value end
     })
 
     -- Wraith (1003)
@@ -1355,8 +1354,30 @@ function UI.createCharacterTab()
     WraithGroup:AddSlider("WraithUltimateInterval", {
         Text = "Ultimate (G) Interval (s)",
         Default = Config.wraithUltimateInterval,
-        Min = 0.3, Max = 20, Rounding = 1,
+        Min = 0.3, Max = 10, Rounding = 1,
         Callback = function(Value) Config.wraithUltimateInterval = Value end
+    })
+    WraithGroup:AddToggle("WraithQSkillEnabled", {
+        Text = "Enable Skill (Q)",
+        Default = currentCharacterId == 1003,
+        Callback = function(Value) Config.wraithQSkillEnabled = Value end
+    })
+    WraithGroup:AddSlider("WraithQSkillInterval", {
+        Text = "Skill (Q) Interval (s)",
+        Default = Config.wraithQSkillInterval,
+        Min = 5, Max = 30, Rounding = 0,
+        Callback = function(Value) Config.wraithQSkillInterval = Value end
+    })
+    WraithGroup:AddToggle("WraithFSkillEnabled", {
+        Text = "Enable Skill (F) - Healing",
+        Default = currentCharacterId == 1003,
+        Callback = function(Value) Config.wraithFSkillEnabled = Value end
+    })
+    WraithGroup:AddSlider("WraithFSkillInterval", {
+        Text = "Skill (F) Interval (s)",
+        Default = Config.wraithFSkillInterval,
+        Min = 15, Max = 60, Rounding = 0,
+        Callback = function(Value) Config.wraithFSkillInterval = Value end
     })
 
     -- Assault (1001)
@@ -1369,17 +1390,55 @@ function UI.createCharacterTab()
     AssaultGroup:AddSlider("AssaultUltimateInterval", {
         Text = "Ultimate (G) Interval (s)",
         Default = Config.assaultUltimateInterval,
-        Min = 0.3, Max = 20, Rounding = 1,
+        Min = 0.3, Max = 10, Rounding = 1,
         Callback = function(Value) Config.assaultUltimateInterval = Value end
+    })
+    AssaultGroup:AddToggle("AssaultQSkillEnabled", {
+        Text = "Enable Skill (Q)",
+        Default = currentCharacterId == 1001,
+        Callback = function(Value) Config.assaultQSkillEnabled = Value end
+    })
+    AssaultGroup:AddSlider("AssaultQSkillInterval", {
+        Text = "Skill (Q) Interval (s)",
+        Default = Config.assaultQSkillInterval,
+        Min = 9, Max = 30, Rounding = 0,
+        Callback = function(Value) Config.assaultQSkillInterval = Value end
+    })
+    AssaultGroup:AddToggle("AssaultFSkillEnabled", {
+        Text = "Enable Skill (F) - Healing",
+        Default = currentCharacterId == 1001,
+        Callback = function(Value) Config.assaultFSkillEnabled = Value end
+    })
+    AssaultGroup:AddSlider("AssaultFSkillInterval", {
+        Text = "Skill (F) Interval (s)",
+        Default = Config.assaultFSkillInterval,
+        Min = 15, Max = 30, Rounding = 0,
+        Callback = function(Value) Config.assaultFSkillInterval = Value end
     })
 
     -- Flag Bearer (1004)
     local FlagBearerGroup = CharacterTab:AddRightGroupbox(getCharacterLabel("Flag Bearer (1004)", 1004))
+    FlagBearerGroup:AddToggle("FlagBearerUltimateEnabled", {
+        Text = "Enable Ultimate",
+        Default = currentCharacterId == 1004,
+        Callback = function(Value) Config.flagBearerUltimateEnabled = Value end
+    })
     FlagBearerGroup:AddSlider("FlagBearerUltimateInterval", {
         Text = "Ultimate Interval (s)",
         Default = Config.flagBearerUltimateInterval,
-        Min = 5, Max = 60, Rounding = 0,
+        Min = 5, Max = 20, Rounding = 0,
         Callback = function(Value) Config.flagBearerUltimateInterval = Value end
+    })
+    FlagBearerGroup:AddToggle("FlagBearerFSkillEnabled", {
+        Text = "Enable Skill (F) - Healing",
+        Default = currentCharacterId == 1004,
+        Callback = function(Value) Config.flagBearerFSkillEnabled = Value end
+    })
+    FlagBearerGroup:AddSlider("FlagBearerFSkillInterval", {
+        Text = "Skill (F) Interval (s)",
+        Default = Config.flagBearerFSkillInterval,
+        Min = 15, Max = 30, Rounding = 0,
+        Callback = function(Value) Config.flagBearerFSkillInterval = Value end
     })
 
     -- Witch (1007)
@@ -1392,7 +1451,7 @@ function UI.createCharacterTab()
     WitchGroup:AddSlider("WitchUltimateInterval", {
         Text = "Ultimate Interval (s)",
         Default = Config.witchUltimateInterval,
-        Min = 15, Max = 60, Rounding = 0,
+        Min = 15, Max = 30, Rounding = 0,
         Callback = function(Value) Config.witchUltimateInterval = Value end
     })
     WitchGroup:AddToggle("WitchGSkillEnabled", {
@@ -1414,7 +1473,7 @@ function UI.createCharacterTab()
     WitchGroup:AddSlider("WitchFSkillInterval", {
         Text = "Skill (F) Interval (s)",
         Default = Config.witchFSkillInterval,
-        Min = 0.7, Max = 60, Rounding = 1,
+        Min = 0.7, Max = 10, Rounding = 1,
         Callback = function(Value) Config.witchFSkillInterval = Value end
     })
 
