@@ -86,6 +86,7 @@ function Server.createTab()
 	local autoLeaveNearbyEnabled = false
 	local autoLeaveNearbyDistance = 200
 	local autoLeaveNearbyConnection = nil
+	local autoLeaveNearbyTriggered = false
 
 	ServerInfoGroup:AddToggle("AutoLeaveOnNearby", {
 		Text = "Auto Leave on Player Nearby",
@@ -93,6 +94,7 @@ function Server.createTab()
 		Default = false,
 		Callback = function(Value)
 			autoLeaveNearbyEnabled = Value
+			autoLeaveNearbyTriggered = false
 			
 			if Value then
 				-- Start checking loop
@@ -100,7 +102,7 @@ function Server.createTab()
 					autoLeaveNearbyConnection:Disconnect()
 				end
 				autoLeaveNearbyConnection = game:GetService("RunService").Heartbeat:Connect(function()
-					if not autoLeaveNearbyEnabled then return end
+					if not autoLeaveNearbyEnabled or autoLeaveNearbyTriggered then return end
 					
 					local localChar = Config.LocalPlayer and Config.LocalPlayer.Character
 					local localHRP = localChar and localChar:FindFirstChild("HumanoidRootPart")
@@ -113,6 +115,7 @@ function Server.createTab()
 							if hrp then
 								local distance = (localHRP.Position - hrp.Position).Magnitude
 								if distance <= autoLeaveNearbyDistance then
+									autoLeaveNearbyTriggered = true
 									UI.Library:Notify({
 										Title = "Auto Leave",
 										Description = player.Name .. " is " .. math.floor(distance) .. " studs away - Leaving game...",

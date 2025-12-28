@@ -616,6 +616,7 @@ do
         local autoLeaveNearbyEnabled = false
         local autoLeaveNearbyDistance = 200
         local autoLeaveNearbyConnection = nil
+        local autoLeaveNearbyTriggered = false
 
         ServerInfoGroup:AddToggle("AutoLeaveOnNearby", {
             Text = "Auto Leave on Player Nearby",
@@ -623,6 +624,7 @@ do
             Default = false,
             Callback = function(Value)
                 autoLeaveNearbyEnabled = Value
+                autoLeaveNearbyTriggered = false
                 
                 if Value then
                     -- Start checking loop
@@ -630,7 +632,7 @@ do
                         autoLeaveNearbyConnection:Disconnect()
                     end
                     autoLeaveNearbyConnection = Config.RunService.Heartbeat:Connect(function()
-                        if not autoLeaveNearbyEnabled then return end
+                        if not autoLeaveNearbyEnabled or autoLeaveNearbyTriggered then return end
                         
                         local localChar = LocalPlayer and LocalPlayer.Character
                         local localHRP = localChar and localChar:FindFirstChild("HumanoidRootPart")
@@ -643,6 +645,7 @@ do
                                 if hrp then
                                     local distance = (localHRP.Position - hrp.Position).Magnitude
                                     if distance <= autoLeaveNearbyDistance then
+                                        autoLeaveNearbyTriggered = true
                                         if Library then
                                             Library:Notify({
                                                 Title = "Auto Leave",
