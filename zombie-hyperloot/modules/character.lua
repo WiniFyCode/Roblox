@@ -360,6 +360,76 @@ function Character.activateWitchFSkill()
     Character.triggerSkill(1014, false)
 end
 
+-- Ninja Ultimate (1008) - luôn target vào Head của zombie gần nhất (Instance)
+function Character.activateNinjaUltimate()
+    local targetPart = getClosestZombiePart()
+    if not targetPart or not targetPart:IsA("BasePart") then
+        return false
+    end
+
+    -- Luôn ưu tiên Head của zombie
+    local zombieModel = targetPart.Parent
+    if zombieModel and zombieModel:IsA("Model") then
+        local head = zombieModel:FindFirstChild("Head")
+        if head and head:IsA("BasePart") then
+            targetPart = head
+        end
+    end
+
+    local char = Config.localPlayer and Config.localPlayer.Character
+    if not char then return false end
+
+    local netMessage = char:FindFirstChild("NetMessage")
+    if not netMessage then return false end
+
+    local args = {
+        1008,
+        "Enter",
+        targetPart
+    }
+
+    pcall(function()
+        netMessage:WaitForChild("TrigerSkill"):FireServer(unpack(args))
+    end)
+
+    return true
+end
+
+-- Ninja Skill (Q) (1009) - luôn target vào Head của zombie gần nhất (Instance)
+function Character.activateNinjaQSkill()
+    local targetPart = getClosestZombiePart()
+    if not targetPart or not targetPart:IsA("BasePart") then
+        return false
+    end
+
+    -- Luôn ưu tiên Head của zombie
+    local zombieModel = targetPart.Parent
+    if zombieModel and zombieModel:IsA("Model") then
+        local head = zombieModel:FindFirstChild("Head")
+        if head and head:IsA("BasePart") then
+            targetPart = head
+        end
+    end
+
+    local char = Config.localPlayer and Config.localPlayer.Character
+    if not char then return false end
+
+    local netMessage = char:FindFirstChild("NetMessage")
+    if not netMessage then return false end
+
+    local args = {
+        1009,
+        "Enter",
+        targetPart
+    }
+
+    pcall(function()
+        netMessage:WaitForChild("TrigerSkill"):FireServer(unpack(args))
+    end)
+
+    return true
+end
+
 -- Flag Bearer Ultimate (1004) - cần CFrame vị trí người chơi
 function Character.activateFlagBearerUltimate()
     Character.triggerSkill(1004, true)
@@ -426,6 +496,16 @@ function Character.startAllSkillLoops()
             function() return Config.healingSkillEnabled end
         )
         Character.startSkillLoop(function() return Config.flagBearerUltimateInterval or 15 end, Character.activateFlagBearerUltimate, nil)
+        Character.startSkillLoop(
+            function() return Config.ninjaUltimateInterval or 10 end,
+            Character.activateNinjaUltimate,
+            function() return Config.ninjaUltimateEnabled and getClosestZombiePart() ~= nil end
+        )
+        Character.startSkillLoop(
+            function() return Config.ninjaQSkillInterval or 8 end,
+            Character.activateNinjaQSkill,
+            function() return Config.ninjaQSkillEnabled and getClosestZombiePart() ~= nil end
+        )
         return
     end
 
@@ -496,6 +576,18 @@ function Character.startAllSkillLoops()
             Character.activateWitchFSkill,
             function() return Config.witchFSkillEnabled end
         )
+    elseif characterId == 1005 then
+        -- Ninja - Ultimate (1008) + Skill Q (1009)
+        Character.startSkillLoop(
+            function() return Config.ninjaUltimateInterval or 10 end,
+            Character.activateNinjaUltimate,
+            function() return Config.ninjaUltimateEnabled and getClosestZombiePart() ~= nil end
+        )
+        Character.startSkillLoop(
+            function() return Config.ninjaQSkillInterval or 8 end,
+            Character.activateNinjaQSkill,
+            function() return Config.ninjaQSkillEnabled and getClosestZombiePart() ~= nil end
+        )
     elseif characterId == 1004 then
         -- Flag Bearer - Ultimate + F Skill
         Character.startSkillLoop(
@@ -509,7 +601,7 @@ function Character.startAllSkillLoops()
             function() return Config.flagBearerFSkillEnabled end
         )
     end
-    -- 1005 (Ninja) không có ultimate skill riêng
+    -- 1005 (Ninja) đã có auto skill riêng ở trên
 end
 
 ----------------------------------------------------------

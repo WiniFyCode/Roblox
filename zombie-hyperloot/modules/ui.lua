@@ -1416,6 +1416,31 @@ function UI.createCharacterTab()
         Callback = function(Value) Config.assaultFSkillInterval = Value end
     })
 
+    -- Ninja (1005)
+    local NinjaGroup = CharacterTab:AddRightGroupbox(getCharacterLabel("Ninja (1005)", 1005))
+    NinjaGroup:AddToggle("NinjaUltimateEnabled", {
+        Text = "Enable Ultimate (G)",
+        Default = currentCharacterId == 1005,
+        Callback = function(Value) Config.ninjaUltimateEnabled = Value end
+    })
+    NinjaGroup:AddSlider("NinjaUltimateInterval", {
+        Text = "Ultimate (G) Interval (s)",
+        Default = Config.ninjaUltimateInterval,
+        Min = 0.3, Max = 10, Rounding = 1,
+        Callback = function(Value) Config.ninjaUltimateInterval = Value end
+    })
+    NinjaGroup:AddToggle("NinjaQSkillEnabled", {
+        Text = "Enable Skill (Q)",
+        Default = currentCharacterId == 1005,
+        Callback = function(Value) Config.ninjaQSkillEnabled = Value end
+    })
+    NinjaGroup:AddSlider("NinjaQSkillInterval", {
+        Text = "Skill (Q) Interval (s)",
+        Default = Config.ninjaQSkillInterval,
+        Min = 1, Max = 10, Rounding = 0,
+        Callback = function(Value) Config.ninjaQSkillInterval = Value end
+    })
+
     -- Flag Bearer (1004)
     local FlagBearerGroup = CharacterTab:AddRightGroupbox(getCharacterLabel("Flag Bearer (1004)", 1004))
     FlagBearerGroup:AddToggle("FlagBearerUltimateEnabled", {
