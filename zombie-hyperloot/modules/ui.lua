@@ -1398,7 +1398,7 @@ function UI.createCharacterTab()
     WitchGroup:AddSlider("WitchFSkillInterval", {
         Text = "Skill (F) Interval (s)",
         Default = Config.witchFSkillInterval,
-        Min = 0.3, Max = 60, Rounding = 1,
+        Min = 0.7, Max = 60, Rounding = 1,
         Callback = function(Value) Config.witchFSkillInterval = Value end
     })
 
