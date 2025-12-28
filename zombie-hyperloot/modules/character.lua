@@ -326,17 +326,14 @@ function Character.activateAssaultUltimate()
     return true
 end
 
--- Assault Q Skill (1003) - ném lựu đạn, dùng CFrame của player
+-- Assault Q Skill (1003) - ném lựu đạn tới vị trí zombie
 function Character.activateAssaultQSkill()
-    local char = Config.localPlayer and Config.localPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return false end
-
-    -- Chỉ cast khi có zombie gần
     local targetPart = getClosestZombiePart()
     if not targetPart then return false end
 
-    Character.triggerSkill(1003, true, hrp.CFrame)
+    -- Ném tới vị trí zombie
+    local targetCFrame = CFrame.new(targetPart.Position)
+    Character.triggerSkill(1003, true, targetCFrame)
     return true
 end
 
