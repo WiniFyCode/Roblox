@@ -143,6 +143,8 @@ Config.witchUltimateEnabled = true -- Toggle riêng cho Witch Ultimate (1012)
 Config.witchUltimateInterval = 15 -- Witch Ultimate (1012)
 Config.witchGSkillEnabled = true -- Toggle riêng cho Witch Skill (G, 1013)
 Config.witchGSkillInterval = 0.7 -- Witch Skill (G, 1013)
+Config.witchFSkillEnabled = true -- Toggle riêng cho Witch Skill (F, 1014)
+Config.witchFSkillInterval = 0.3 -- Witch Skill (F, 1014)
 
 -- Common skills
 Config.healingSkillInterval = 20 -- F Skill (Healing, 1002)

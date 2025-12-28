@@ -1390,6 +1390,17 @@ function UI.createCharacterTab()
         Min = 0.7, Max = 10, Rounding = 1,
         Callback = function(Value) Config.witchGSkillInterval = Value end
     })
+    WitchGroup:AddToggle("WitchFSkillEnabled", {
+        Text = "Enable Skill (F)",
+        Default = currentCharacterId == 1007,
+        Callback = function(Value) Config.witchFSkillEnabled = Value end
+    })
+    WitchGroup:AddSlider("WitchFSkillInterval", {
+        Text = "Skill (F) Interval (s)",
+        Default = Config.witchFSkillInterval,
+        Min = 0.3, Max = 60, Rounding = 1,
+        Callback = function(Value) Config.witchFSkillInterval = Value end
+    })
 
     return CharacterTab
 end

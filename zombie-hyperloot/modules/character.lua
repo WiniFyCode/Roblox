@@ -333,6 +333,11 @@ function Character.activateWitchGSkill()
     return true
 end
 
+-- Witch Skill (F) (1014)
+function Character.activateWitchFSkill()
+    Character.triggerSkill(1014, false)
+end
+
 -- Flag Bearer Ultimate (1004) - cần CFrame vị trí người chơi
 function Character.activateFlagBearerUltimate()
     Character.triggerSkill(1004, true)
@@ -432,7 +437,7 @@ function Character.startAllSkillLoops()
             function() return Config.assaultUltimateEnabled and getClosestZombiePart() ~= nil end
         )
     elseif characterId == 1007 then
-        -- Witch - Ultimate + Skill G
+        -- Witch - Ultimate + Skill G + Skill F
         Character.startSkillLoop(
             function() return Config.witchUltimateInterval or 15 end,
             Character.activateWitchUltimate,
@@ -442,6 +447,11 @@ function Character.startAllSkillLoops()
             function() return Config.witchGSkillInterval or 0.7 end,
             Character.activateWitchGSkill,
             function() return Config.witchGSkillEnabled and getClosestZombiePart() ~= nil end
+        )
+        Character.startSkillLoop(
+            function() return Config.witchFSkillInterval or 0.3 end,
+            Character.activateWitchFSkill,
+            function() return Config.witchFSkillEnabled end
         )
     elseif characterId == 1004 then
         -- Flag Bearer
