@@ -198,7 +198,7 @@ end
 
 -- 🔹 Auto Skill (moved from Combat)
 local function getClosestZombiePart()
-    if not Config or not Config.entityFolder or not Config.localPlayer then
+    if not Config or not Config.localPlayer then
         return nil
     end
 
@@ -211,40 +211,45 @@ local function getClosestZombiePart()
     local closestPart = nil
     local closestDistance = math.huge
 
-    -- Thu thập tất cả model zombie hợp lệ
-    local candidateModels = {}
-
-    -- 1) Zombies trong Entity (trong map)
-    for _, zombie in ipairs(Config.entityFolder:GetChildren()) do
-        if zombie:IsA("Model") then
-            table.insert(candidateModels, zombie)
-        end
-    end
-
-    -- 2) Zombie ngoài sảnh: workspace.Map.FiringRange.Zombie4
-    local mapModel = Config.mapModel or (Config.Workspace and Config.Workspace:FindFirstChild("Map"))
-    if mapModel and mapModel:IsA("Model") then
-        local firingRange = mapModel:FindFirstChild("FiringRange", true)
-        if firingRange then
-            local zombie4 = firingRange:FindFirstChild("Zombie4")
-            if zombie4 and zombie4:IsA("Model") then
-                table.insert(candidateModels, zombie4)
+    -- Ưu tiên zombie trong Map.FiringRange
+    local map = workspace:FindFirstChild("Map")
+    local firingRange = map and map:FindFirstChild("FiringRange")
+    if firingRange then
+        for _, zombie in ipairs(firingRange:GetChildren()) do
+            if zombie:IsA("Model") then
+                local humanoid = zombie:FindFirstChildWhichIsA("Humanoid")
+                if humanoid and humanoid.Health > 0 then
+                    local head = zombie:FindFirstChild("Head")
+                    local hrp = zombie:FindFirstChild("HumanoidRootPart")
+                    local targetPart = head or hrp
+                    if targetPart and targetPart:IsA("BasePart") then
+                        local distance = (playerHRP.Position - targetPart.Position).Magnitude
+                        if distance < closestDistance then
+                            closestDistance = distance
+                            closestPart = targetPart
+                        end
+                    end
+                end
             end
         end
     end
 
-    -- Tìm part gần nhất trong tất cả candidate models
-    for _, zombie in ipairs(candidateModels) do
-        local humanoid = zombie:FindFirstChildWhichIsA("Humanoid")
-        if humanoid and humanoid.Health > 0 then
-            local head = zombie:FindFirstChild("Head")
-            local hrp = zombie:FindFirstChild("HumanoidRootPart")
-            local targetPart = head or hrp
-            if targetPart and targetPart:IsA("BasePart") then
-                local distance = (playerHRP.Position - targetPart.Position).Magnitude
-                if distance < closestDistance then
-                    closestDistance = distance
-                    closestPart = targetPart
+    -- Nếu không có zombie trong FiringRange, fallback về entityFolder
+    if not closestPart and Config.entityFolder then
+        for _, zombie in ipairs(Config.entityFolder:GetChildren()) do
+            if zombie:IsA("Model") then
+                local humanoid = zombie:FindFirstChildWhichIsA("Humanoid")
+                if humanoid and humanoid.Health > 0 then
+                    local head = zombie:FindFirstChild("Head")
+                    local hrp = zombie:FindFirstChild("HumanoidRootPart")
+                    local targetPart = head or hrp
+                    if targetPart and targetPart:IsA("BasePart") then
+                        local distance = (playerHRP.Position - targetPart.Position).Magnitude
+                        if distance < closestDistance then
+                            closestDistance = distance
+                            closestPart = targetPart
+                        end
+                    end
                 end
             end
         end
@@ -381,14 +386,28 @@ function Character.activateWitchFSkill()
     Character.triggerSkill(1014, false)
 end
 
--- Ninja Ultimate (1008) - luôn target vào Head của zombie gần nhất (Instance)
+-- Ninja Ultimate (1008)
+-- Nguyên lý:
+--  1) Gửi {1008, "Enter"} để kích hoạt trạng thái ultimate
+--  2) Sau đó gửi nhiều lần {1008, "Enter", targetPart} để bắn vào mục tiêu (Head)
 function Character.activateNinjaUltimate()
+    local char = Config.localPlayer and Config.localPlayer.Character
+    if not char then return false end
+
+    local netMessage = char:FindFirstChild("NetMessage")
+    if not netMessage then return false end
+
+    -- Bước 1: kích hoạt ultimate
+    pcall(function()
+        netMessage:WaitForChild("TrigerSkill"):FireServer(1008, "Enter")
+    end)
+
+    -- Bước 2: tìm mục tiêu (ưu tiên zombie trong Map.FiringRange, Head nếu có)
     local targetPart = getClosestZombiePart()
     if not targetPart or not targetPart:IsA("BasePart") then
         return false
     end
 
-    -- Luôn ưu tiên Head của zombie
     local zombieModel = targetPart.Parent
     if zombieModel and zombieModel:IsA("Model") then
         local head = zombieModel:FindFirstChild("Head")
@@ -397,21 +416,12 @@ function Character.activateNinjaUltimate()
         end
     end
 
-    local char = Config.localPlayer and Config.localPlayer.Character
-    if not char then return false end
-
-    local netMessage = char:FindFirstChild("NetMessage")
-    if not netMessage then return false end
-
-    local args = {
-        1008,
-        "Enter",
-        targetPart
-    }
-
-    pcall(function()
-        netMessage:WaitForChild("TrigerSkill"):FireServer(unpack(args))
-    end)
+    -- Bắn 5 lần vào cùng 1 mục tiêu (giống log: "bắn ra 5 cái")
+    for i = 1, 5 do
+        pcall(function()
+            netMessage:WaitForChild("TrigerSkill"):FireServer(1008, "Enter", targetPart)
+        end)
+    end
 
     return true
 end
