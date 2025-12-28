@@ -1437,7 +1437,7 @@ function UI.createCharacterTab()
     NinjaGroup:AddSlider("NinjaQSkillInterval", {
         Text = "Skill (Q) Interval (s)",
         Default = Config.ninjaQSkillInterval,
-        Min = 1, Max = 10, Rounding = 0,
+        Min = 9, Max = 30, Rounding = 0,
         Callback = function(Value) Config.ninjaQSkillInterval = Value end
     })
 

@@ -166,7 +166,7 @@ Config.witchFSkillInterval = 0.7 -- Witch Skill (F, 1014)
 Config.ninjaUltimateEnabled = true -- Toggle riêng cho Ninja Ultimate (1008)
 Config.ninjaUltimateInterval = 10 -- Ninja Ultimate (1008)
 Config.ninjaQSkillEnabled = true -- Toggle riêng cho Ninja Q Skill (1009)
-Config.ninjaQSkillInterval = 8 -- Ninja Q Skill (1009)
+Config.ninjaQSkillInterval = 9 -- Ninja Q Skill (1009)
 
 ----------------------------------------------------------
 -- 🔹 TrigerSkill Dupe (GunFire)

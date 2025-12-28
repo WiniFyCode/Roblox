@@ -211,19 +211,40 @@ local function getClosestZombiePart()
     local closestPart = nil
     local closestDistance = math.huge
 
+    -- Thu thập tất cả model zombie hợp lệ
+    local candidateModels = {}
+
+    -- 1) Zombies trong Entity (trong map)
     for _, zombie in ipairs(Config.entityFolder:GetChildren()) do
         if zombie:IsA("Model") then
-            local humanoid = zombie:FindFirstChildWhichIsA("Humanoid")
-            if humanoid and humanoid.Health > 0 then
-                local head = zombie:FindFirstChild("Head")
-                local hrp = zombie:FindFirstChild("HumanoidRootPart")
-                local targetPart = head or hrp
-                if targetPart and targetPart:IsA("BasePart") then
-                    local distance = (playerHRP.Position - targetPart.Position).Magnitude
-                    if distance < closestDistance then
-                        closestDistance = distance
-                        closestPart = targetPart
-                    end
+            table.insert(candidateModels, zombie)
+        end
+    end
+
+    -- 2) Zombie ngoài sảnh: workspace.Map.FiringRange.Zombie4
+    local mapModel = Config.mapModel or (Config.Workspace and Config.Workspace:FindFirstChild("Map"))
+    if mapModel and mapModel:IsA("Model") then
+        local firingRange = mapModel:FindFirstChild("FiringRange", true)
+        if firingRange then
+            local zombie4 = firingRange:FindFirstChild("Zombie4")
+            if zombie4 and zombie4:IsA("Model") then
+                table.insert(candidateModels, zombie4)
+            end
+        end
+    end
+
+    -- Tìm part gần nhất trong tất cả candidate models
+    for _, zombie in ipairs(candidateModels) do
+        local humanoid = zombie:FindFirstChildWhichIsA("Humanoid")
+        if humanoid and humanoid.Health > 0 then
+            local head = zombie:FindFirstChild("Head")
+            local hrp = zombie:FindFirstChild("HumanoidRootPart")
+            local targetPart = head or hrp
+            if targetPart and targetPart:IsA("BasePart") then
+                local distance = (playerHRP.Position - targetPart.Position).Magnitude
+                if distance < closestDistance then
+                    closestDistance = distance
+                    closestPart = targetPart
                 end
             end
         end
@@ -502,7 +523,7 @@ function Character.startAllSkillLoops()
             function() return Config.ninjaUltimateEnabled and getClosestZombiePart() ~= nil end
         )
         Character.startSkillLoop(
-            function() return Config.ninjaQSkillInterval or 8 end,
+            function() return Config.ninjaQSkillInterval or 9 end,
             Character.activateNinjaQSkill,
             function() return Config.ninjaQSkillEnabled and getClosestZombiePart() ~= nil end
         )
@@ -584,7 +605,7 @@ function Character.startAllSkillLoops()
             function() return Config.ninjaUltimateEnabled and getClosestZombiePart() ~= nil end
         )
         Character.startSkillLoop(
-            function() return Config.ninjaQSkillInterval or 8 end,
+            function() return Config.ninjaQSkillInterval or 9 end,
             Character.activateNinjaQSkill,
             function() return Config.ninjaQSkillEnabled and getClosestZombiePart() ~= nil end
         )
