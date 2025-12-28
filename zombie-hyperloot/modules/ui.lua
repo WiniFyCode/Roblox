@@ -1429,6 +1429,23 @@ function UI.createCharacterTab()
         Min = 0.3, Max = 10, Rounding = 1,
         Callback = function(Value) Config.ninjaUltimateInterval = Value end
     })
+
+    NinjaGroup:AddDropdown("NinjaUltimateTargetMode", {
+        Text = "Ultimate Target Mode",
+        Values = {"Single", "Multi"},
+        Default = Config.ninjaUltimateTargetMode or "Single",
+        Callback = function(Value)
+            Config.ninjaUltimateTargetMode = Value
+            if UI.Library then
+                UI.Library:Notify({
+                    Title = "Ninja Ultimate",
+                    Description = "Target Mode: " .. Value,
+                    Time = 2
+                })
+            end
+        end
+    })
+
     NinjaGroup:AddToggle("NinjaQSkillEnabled", {
         Text = "Enable Skill (Q)",
         Default = currentCharacterId == 1005,

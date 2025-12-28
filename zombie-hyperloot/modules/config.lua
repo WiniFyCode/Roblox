@@ -167,6 +167,7 @@ Config.ninjaUltimateEnabled = true -- Toggle riêng cho Ninja Ultimate (1008)
 Config.ninjaUltimateInterval = 10 -- Ninja Ultimate (1008)
 Config.ninjaQSkillEnabled = true -- Toggle riêng cho Ninja Q Skill (1009)
 Config.ninjaQSkillInterval = 9 -- Ninja Q Skill (1009)
+Config.ninjaUltimateTargetMode = "Single" -- "Single" hoặc "Multi" (bắn 1 hoặc nhiều mục tiêu)
 
 ----------------------------------------------------------
 -- 🔹 TrigerSkill Dupe (GunFire)

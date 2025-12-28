@@ -390,6 +390,7 @@ end
 -- Nguyên lý:
 --  1) Gửi {1008, "Enter"} để kích hoạt trạng thái ultimate
 --  2) Sau đó gửi nhiều lần {1008, "Enter", targetPart} để bắn vào mục tiêu (Head)
+--  + Cho phép chọn Đơn / Đa mục tiêu qua Config.ninjaUltimateTargetMode
 function Character.activateNinjaUltimate()
     local char = Config.localPlayer and Config.localPlayer.Character
     if not char then return false end
@@ -397,30 +398,103 @@ function Character.activateNinjaUltimate()
     local netMessage = char:FindFirstChild("NetMessage")
     if not netMessage then return false end
 
+    local targetMode = Config.ninjaUltimateTargetMode or "Single" -- "Single" hoặc "Multi"
+
     -- Bước 1: kích hoạt ultimate
     pcall(function()
         netMessage:WaitForChild("TrigerSkill"):FireServer(1008, "Enter")
     end)
 
-    -- Bước 2: tìm mục tiêu (ưu tiên zombie trong Map.FiringRange, Head nếu có)
-    local targetPart = getClosestZombiePart()
-    if not targetPart or not targetPart:IsA("BasePart") then
-        return false
-    end
+    -- Bước 2: chuẩn bị danh sách mục tiêu
+    local targets = {}
 
-    local zombieModel = targetPart.Parent
-    if zombieModel and zombieModel:IsA("Model") then
-        local head = zombieModel:FindFirstChild("Head")
-        if head and head:IsA("BasePart") then
-            targetPart = head
+    if targetMode == "Single" then
+        -- Đơn mục tiêu: chỉ lấy 1 zombie gần nhất
+        local part = getClosestZombiePart()
+        if part and part:IsA("BasePart") then
+            local model = part.Parent
+            if model and model:IsA("Model") then
+                local head = model:FindFirstChild("Head")
+                if head and head:IsA("BasePart") then
+                    part = head
+                end
+            end
+            table.insert(targets, part)
+        end
+    else
+        -- Đa mục tiêu: lấy tối đa 5 zombie gần nhất (ưu tiên FiringRange)
+        local collected = {}
+        local playerHRP = char:FindFirstChild("HumanoidRootPart")
+        if playerHRP then
+            local function collectFromFolder(folder)
+                if not folder then return end
+                for _, zombie in ipairs(folder:GetChildren()) do
+                    if zombie:IsA("Model") then
+                        local humanoid = zombie:FindFirstChildWhichIsA("Humanoid")
+                        if humanoid and humanoid.Health > 0 then
+                            local head = zombie:FindFirstChild("Head")
+                            local hrp = zombie:FindFirstChild("HumanoidRootPart")
+                            local part = head or hrp
+                            if part and part:IsA("BasePart") then
+                                local distance = (playerHRP.Position - part.Position).Magnitude
+                                table.insert(collected, {part = part, distance = distance})
+                            end
+                        end
+                    end
+                end
+            end
+
+            -- Ưu tiên Map.FiringRange trước
+            local map = workspace:FindFirstChild("Map")
+            local firingRange = map and map:FindFirstChild("FiringRange")
+            collectFromFolder(firingRange)
+
+            -- Nếu vẫn chưa đủ mục tiêu, lấy thêm từ Entity
+            if #collected < 5 and Config.entityFolder then
+                collectFromFolder(Config.entityFolder)
+            end
+
+            -- Sort theo khoảng cách tăng dần
+            table.sort(collected, function(a, b)
+                return a.distance < b.distance
+            end)
+
+            for i = 1, math.min(5, #collected) do
+                local entry = collected[i]
+                local part = entry.part
+                if part and part:IsA("BasePart") then
+                    local model = part.Parent
+                    if model and model:IsA("Model") then
+                        local head = model:FindFirstChild("Head")
+                        if head and head:IsA("BasePart") then
+                            part = head
+                        end
+                    end
+                    table.insert(targets, part)
+                end
+            end
         end
     end
 
-    -- Bắn 5 lần vào cùng 1 mục tiêu (giống log: "bắn ra 5 cái")
-    for i = 1, 5 do
+    if #targets == 0 then
+        return false
+    end
+
+    -- Bắn tối đa 5 phi tiêu, chia theo danh sách targets
+    local maxShots = 5
+    local shotIndex = 1
+    for i = 1, maxShots do
+        local targetPart = targets[shotIndex]
+        if not targetPart or not targetPart:IsA("BasePart") then break end
+
         pcall(function()
             netMessage:WaitForChild("TrigerSkill"):FireServer(1008, "Enter", targetPart)
         end)
+
+        shotIndex = shotIndex + 1
+        if shotIndex > #targets then
+            shotIndex = 1
+        end
     end
 
     return true
