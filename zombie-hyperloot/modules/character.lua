@@ -278,17 +278,14 @@ function Character.activateWraithUltimate()
     return true
 end
 
--- Wraith Q Skill (1007) - chém zombie, dùng CFrame của player
+-- Wraith Q Skill (1007) - chém tới vị trí zombie gần nhất
 function Character.activateWraithQSkill()
-    local char = Config.localPlayer and Config.localPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return false end
-
-    -- Chỉ cast khi có zombie gần
     local targetPart = getClosestZombiePart()
     if not targetPart then return false end
 
-    Character.triggerSkill(1007, true, hrp.CFrame)
+    -- Chém tới vị trí zombie
+    local targetCFrame = CFrame.new(targetPart.Position)
+    Character.triggerSkill(1007, true, targetCFrame)
     return true
 end
 
