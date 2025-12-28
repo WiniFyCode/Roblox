@@ -400,12 +400,7 @@ function Character.activateNinjaUltimate()
 
     local targetMode = Config.ninjaUltimateTargetMode or "Single" -- "Single" hoặc "Multi"
 
-    -- Bước 1: kích hoạt ultimate
-    pcall(function()
-        netMessage:WaitForChild("TrigerSkill"):FireServer(1008, "Enter")
-    end)
-
-    -- Bước 2: chuẩn bị danh sách mục tiêu
+    -- Bước 1: chuẩn bị danh sách mục tiêu (nếu không có thì dừng, KHÔNG kích hoạt ultimate)
     local targets = {}
 
     if targetMode == "Single" then
@@ -476,9 +471,15 @@ function Character.activateNinjaUltimate()
         end
     end
 
+    -- Nếu không có zombie nào thì dừng, không gửi bất kỳ TrigerSkill nào
     if #targets == 0 then
         return false
     end
+
+    -- Bước 2: kích hoạt ultimate
+    pcall(function()
+        netMessage:WaitForChild("TrigerSkill"):FireServer(1008, "Enter")
+    end)
 
     -- Bắn tối đa 5 phi tiêu, chia theo danh sách targets
     local maxShots = 5
