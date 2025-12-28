@@ -68,6 +68,7 @@ local function cleanupScript()
     Config.espBobEnabled = true
     Config.autoDoorEnabled = false
     Config.autoBuyChristmasGiftBoxEnabled = false
+    Config.autoBuySantaClausGiftEnabled = false
 
     -- Disconnect all connections
     if renderSteppedConnection then
@@ -172,6 +173,7 @@ end)
 -- 🔹 Setup Farm
 Farm.startAutoBulletBoxLoop()
 Farm.startAutoBuyChristmasGiftBoxLoop()
+Farm.startAutoBuySantaClausGiftLoop()
 Farm.setupChestTeleportInput()
 
 ----------------------------------------------------------

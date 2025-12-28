@@ -204,6 +204,10 @@ Config.autoDoorEnabled = true
 Config.autoBuyChristmasGiftBoxEnabled = false
 
 ----------------------------------------------------------
+-- 🔹 Auto Buy Santa Claus Gift
+Config.autoBuySantaClausGiftEnabled = false
+
+----------------------------------------------------------
 -- 🔹 Visuals
 Config.removeFogEnabled = false
 Config.fullbrightEnabled = false

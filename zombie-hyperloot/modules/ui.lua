@@ -1008,6 +1008,22 @@ function UI.createEventTab()
         end
     })
 
+    EventGroup:AddToggle("AutoBuySantaClausGift", {
+        Text = "Auto Buy Santa Claus Gift",
+        Tooltip = "Automatically buy Santa Claus Gift every second",
+        Default = Config.autoBuySantaClausGiftEnabled,
+        Callback = function(Value)
+            Config.autoBuySantaClausGiftEnabled = Value
+            if UI.Library then
+                UI.Library:Notify({
+                    Title = "Event",
+                    Description = Value and "Auto Buy Santa Claus Gift enabled" or "Auto Buy Santa Claus Gift disabled",
+                    Time = 2
+                })
+            end
+        end
+    })
+
     return EventTab
 end
 

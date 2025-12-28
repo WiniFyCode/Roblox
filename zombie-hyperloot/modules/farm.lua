@@ -223,6 +223,28 @@ function Farm.startAutoBuyChristmasGiftBoxLoop()
 end
 
 ----------------------------------------------------------
+-- 🔹 Auto Buy Santa Claus Gift
+function Farm.startAutoBuySantaClausGiftLoop()
+    task.spawn(function()
+        while task.wait(0.1) do
+            if Config.scriptUnloaded then break end
+            
+            if Config.autoBuySantaClausGiftEnabled then
+                pcall(function()
+                    local args = {
+                        514457962,
+                        "ChristmasReward",
+                        "BuyItem",
+                        1
+                    }
+                    game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
+                end)
+            end
+        end
+    end)
+end
+
+----------------------------------------------------------
 -- 🔹 Input Handler for Chest Teleport
 
 function Farm.setupChestTeleportInput()
