@@ -610,6 +610,83 @@ do
             end
         })
 
+        ServerInfoGroup:AddDivider()
+
+        -- Auto Leave on Player Nearby
+        local autoLeaveNearbyEnabled = false
+        local autoLeaveNearbyDistance = 200
+        local autoLeaveNearbyConnection = nil
+
+        ServerInfoGroup:AddToggle("AutoLeaveOnNearby", {
+            Text = "Auto Leave on Player Nearby",
+            Tooltip = "Automatically leave game when another player is within range",
+            Default = false,
+            Callback = function(Value)
+                autoLeaveNearbyEnabled = Value
+                
+                if Value then
+                    -- Start checking loop
+                    if autoLeaveNearbyConnection then
+                        autoLeaveNearbyConnection:Disconnect()
+                    end
+                    autoLeaveNearbyConnection = Config.RunService.Heartbeat:Connect(function()
+                        if not autoLeaveNearbyEnabled then return end
+                        
+                        local localChar = LocalPlayer and LocalPlayer.Character
+                        local localHRP = localChar and localChar:FindFirstChild("HumanoidRootPart")
+                        if not localHRP then return end
+                        
+                        for _, player in ipairs(Players:GetPlayers()) do
+                            if player ~= LocalPlayer then
+                                local char = player.Character
+                                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                                if hrp then
+                                    local distance = (localHRP.Position - hrp.Position).Magnitude
+                                    if distance <= autoLeaveNearbyDistance then
+                                        if Library then
+                                            Library:Notify({
+                                                Title = "Auto Leave",
+                                                Description = player.Name .. " is " .. math.floor(distance) .. " studs away - Leaving game...",
+                                                Time = 2,
+                                            })
+                                        end
+                                        task.wait(0.5)
+                                        LocalPlayer:Kick("Auto Leave: Player nearby (" .. player.Name .. ")")
+                                        return
+                                    end
+                                end
+                            end
+                        end
+                    end)
+                else
+                    -- Disconnect loop
+                    if autoLeaveNearbyConnection then
+                        autoLeaveNearbyConnection:Disconnect()
+                        autoLeaveNearbyConnection = nil
+                    end
+                end
+                
+                if Library then
+                    Library:Notify({
+                        Title = "Server",
+                        Description = Value and "Auto Leave Nearby enabled" or "Auto Leave Nearby disabled",
+                        Time = 2,
+                    })
+                end
+            end
+        })
+
+        ServerInfoGroup:AddSlider("AutoLeaveNearbyDistance", {
+            Text = "Leave Distance (studs)",
+            Default = 200,
+            Min = 100,
+            Max = 500,
+            Rounding = 0,
+            Callback = function(Value)
+                autoLeaveNearbyDistance = Value
+            end
+        })
+
         local ServerListGroup = ServerTab:AddRightGroupbox("Server List", "server")
         local serverList = {}
         local serverListDisplay = {}
