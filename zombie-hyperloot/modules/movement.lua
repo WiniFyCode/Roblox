@@ -1,7 +1,8 @@
 --[[
     Movement Module - Zombie Hyperloot
-    Speed, NoClip, Anti-Zombie, Camera Teleport, Noclip Cam
+    Speed, NoClip, Camera Teleport, Noclip Cam
 ]]
+
 
 local Movement = {}
 local Config = nil
@@ -9,87 +10,16 @@ local Config = nil
 -- Connections
 Movement.noClipConnection = nil
 Movement.speedConnection = nil
-Movement.humanoidHipHeightConnection = nil
 Movement.originalCollidableParts = {}
 Movement.originalWalkSpeed = nil
+
 
 function Movement.init(config)
     Config = config
 end
 
-----------------------------------------------------------
--- 🔹 Anti-Zombie (HipHeight)
-local function disconnectHipHeightListener()
-    if Movement.humanoidHipHeightConnection then
-        Movement.humanoidHipHeightConnection:Disconnect()
-        Movement.humanoidHipHeightConnection = nil
-    end
-end
 
-local function restoreOriginalCollisions()
-    for part in pairs(Movement.originalCollidableParts) do
-        if part and part.Parent then
-            part.CanCollide = true
-        end
-        Movement.originalCollidableParts[part] = nil
-    end
-end
 
-local function enforceHipHeight(humanoid)
-    if not humanoid or not humanoid.Parent then return end
-    local desired = math.max(0, tonumber(Config.hipHeightValue) or 20)
-    humanoid.HipHeight = desired
-end
-
-function Movement.enableAntiZombieNoClip()
-    Movement.disableNoClip()
-    Movement.noClipConnection = Config.RunService.Stepped:Connect(function()
-        local char = Config.localPlayer.Character
-        if not char then return end
-        for _, descendant in ipairs(char:GetDescendants()) do
-            if descendant:IsA("BasePart") and descendant.CanCollide then
-                Movement.originalCollidableParts[descendant] = true
-                descendant.CanCollide = false
-            end
-        end
-    end)
-end
-
-function Movement.disableAntiZombie()
-    disconnectHipHeightListener()
-    Movement.disableNoClip()
-    local char = Config.localPlayer.Character
-    local humanoid = char and char:FindFirstChild("Humanoid")
-    if humanoid and Config.originalHipHeight ~= nil then
-        humanoid.HipHeight = Config.originalHipHeight
-    end
-    Config.originalHipHeight = nil
-end
-
-function Movement.applyAntiZombie()
-    local char = Config.localPlayer.Character
-    local humanoid = char and char:FindFirstChild("Humanoid")
-    if not char or not humanoid then
-        Movement.disableAntiZombie()
-        return
-    end
-    
-    if Config.antiZombieEnabled then
-        if Config.originalHipHeight == nil then
-            Config.originalHipHeight = humanoid.HipHeight
-        end
-        enforceHipHeight(humanoid)
-        Movement.enableAntiZombieNoClip()
-        disconnectHipHeightListener()
-        Movement.humanoidHipHeightConnection = humanoid:GetPropertyChangedSignal("HipHeight"):Connect(function()
-            if Config.antiZombieEnabled then
-                enforceHipHeight(humanoid)
-            end
-        end)
-    else
-        Movement.disableAntiZombie()
-    end
-end
 
 ----------------------------------------------------------
 -- 🔹 NoClip
@@ -388,11 +318,9 @@ end
 ----------------------------------------------------------
 -- 🔹 Character Respawn Handler
 function Movement.onCharacterAdded(character)
-    Movement.disableAntiZombie()
-    Config.originalHipHeight = nil
     Movement.originalWalkSpeed = nil
     task.wait(0.5)
-    Movement.applyAntiZombie()
+
     if Config.speedEnabled then
         local humanoid = character:FindFirstChild("Humanoid")
         if humanoid then
@@ -406,13 +334,14 @@ function Movement.onCharacterAdded(character)
     end
 end
 
+
 ----------------------------------------------------------
 -- 🔹 Cleanup
 function Movement.cleanup()
-    Movement.disableAntiZombie()
     Movement.disableNoClip()
     Movement.stopSpeedBoost()
     Movement.stopAntiAFK()
+
 
     if Config.noclipCamEnabled then
         Config.noclipCamEnabled = false

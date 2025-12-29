@@ -609,32 +609,6 @@ function UI.createMovementTab()
         end
     })
 
-    MovementLeftGroup:AddToggle("AntiZombie", {
-        Text = "Anti-Zombie",
-        Default = Config.antiZombieEnabled,
-        Callback = function(Value)
-            Config.antiZombieEnabled = Value
-            Movement.applyAntiZombie()
-            if UI.Library then
-                UI.Library:Notify({
-                    Title = "Movement",
-                    Description = Value and "Anti-Zombie enabled" or "Anti-Zombie disabled",
-                    Time = 2
-                })
-            end
-        end
-    })
-
-    MovementLeftGroup:AddSlider("HipHeight", {
-        Text = "HipHeight",
-        Default = Config.hipHeightValue,
-        Min = 0, Max = 200, Rounding = 1,
-        Callback = function(Value)
-            Config.hipHeightValue = Value
-            if Config.antiZombieEnabled then Movement.applyAntiZombie() end
-        end
-    })
-
     MovementLeftGroup:AddToggle("AntiAFK", {
         Text = "Anti AFK",
         Tooltip = "Prevents being kicked for inactivity",
@@ -1658,21 +1632,6 @@ function UI.createSettingsTab(cleanupCallback)
         end
     })
 
-    KeybindsGroup:AddLabel("Anti-Zombie (Toggle)"):AddKeyPicker("AntiZombieKey", {
-        Default = "M",
-        Mode = "Toggle",
-        Text = "Toggle Anti-Zombie",
-        NoUI = false,
-        Callback = function(Value)
-            if Value then
-                Config.antiZombieEnabled = not Config.antiZombieEnabled
-                if Movement and Movement.applyAntiZombie then
-                    Movement.applyAntiZombie()
-                end
-            end
-        end
-    })
-
     KeybindsGroup:AddLabel("Auto Chest (Press)"):AddKeyPicker("ChestTeleportKey", {
         Default = "T",
         Mode = "Press",
@@ -1721,12 +1680,6 @@ function UI.createSettingsTab(cleanupCallback)
                 end)
             end
             
-            if Options.AntiZombieKey then
-                Options.AntiZombieKey:OnChanged(function()
-                    Config.hipHeightToggleKey = Options.AntiZombieKey.Value
-                end)
-            end
-            
             if Options.ChestTeleportKey then
                 Options.ChestTeleportKey:OnChanged(function()
                     Config.teleportKey = Options.ChestTeleportKey.Value
@@ -1765,7 +1718,6 @@ function UI.createInfoTab()
             Right Click - Activate Aimbot (if enabled)
             T Key - Auto Open All Chests  
             X Key - Camera Teleport to Zombies
-            M Key - Toggle Anti-Zombie
             N Key - Toggle Noclip Cam
             R Key - Toggle Auto Rotate 360°
             Right Ctrl - Open/Close Menu
@@ -1781,7 +1733,6 @@ function UI.createInfoTab()
             • Combine Aimbot + Hitbox for maximum efficiency
             • Use ESP to track zombies through walls
             • ESP Player shows enemies through walls with boxes
-            • Anti-Zombie keeps you safe from attacks
             • Auto Skill provides continuous damage
             • Camera Teleport is great for farming
             • Auto Chest collects all loot instantly

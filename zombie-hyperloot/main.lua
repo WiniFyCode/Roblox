@@ -63,7 +63,6 @@ local function cleanupScript()
     Config.autoSkillEnabled = false
     Config.noClipEnabled = false
     Config.speedEnabled = false
-    Config.antiZombieEnabled = false
     Config.supplyESPEnabled = false
     Config.espBobEnabled = true
     Config.autoDoorEnabled = false
@@ -152,7 +151,6 @@ Character.startAllSkillLoops()
 
 ----------------------------------------------------------
 -- 🔹 Setup Movement
-Movement.applyAntiZombie()
 if Config.noclipCamEnabled then
     task.defer(Movement.applyNoclipCam)
 end
@@ -384,12 +382,6 @@ end)
 -- 🔹 Camera Teleport Input Handler
 inputBeganConnection = Config.UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed or Config.scriptUnloaded then return end
-    
-    -- HipHeight Toggle (M key)
-    if input.KeyCode == Config.hipHeightToggleKey then
-        Config.antiZombieEnabled = not Config.antiZombieEnabled
-        Movement.applyAntiZombie()
-    end
     
     -- Auto Rotate Toggle (R key)
     if input.KeyCode == Config.autoRotateToggleKey then

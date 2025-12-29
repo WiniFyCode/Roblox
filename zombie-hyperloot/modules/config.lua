@@ -67,7 +67,6 @@ Config.espPlayerHighlight = true
 -- 🔹 Keybinds
 Config.teleportKey = Enum.KeyCode.T -- Mở chest
 Config.cameraTeleportKey = Enum.KeyCode.X -- Camera teleport
-Config.hipHeightToggleKey = Enum.KeyCode.M -- Toggle Anti-Zombie
 Config.noclipCamToggleKey = Enum.KeyCode.N -- Toggle Noclip Cam
 Config.unloadKey = Enum.KeyCode.End -- Unload script
 
@@ -86,12 +85,6 @@ Config.cameraTargetMode = "Nearest" -- "LowestHealth" hoặc "Nearest"
 Config.cameraOffsetX = 0
 Config.cameraOffsetY = 10 -- Giống file gốc
 Config.cameraOffsetZ = -2
-
-----------------------------------------------------------
--- 🔹 Anti-Zombie (HipHeight)
-Config.antiZombieEnabled = false
-Config.hipHeightValue = 10
-Config.originalHipHeight = nil
 
 ----------------------------------------------------------
 -- 🔹 NoClip
