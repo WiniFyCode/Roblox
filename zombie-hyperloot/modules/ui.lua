@@ -1432,6 +1432,18 @@ function UI.createCharacterTab()
         Callback = function(Value) Config.ninjaQSkillInterval = Value end
     })
 
+    NinjaGroup:AddToggle("NinjaFSkillEnabled", {
+        Text = "Enable Skill (F) - Healing",
+        Default = currentCharacterId == 1005,
+        Callback = function(Value) Config.ninjaFSkillEnabled = Value end
+    })
+    NinjaGroup:AddSlider("NinjaFSkillInterval", {
+        Text = "Skill (F) Interval (s)",
+        Default = Config.ninjaFSkillInterval or 20,
+        Min = 20, Max = 30, Rounding = 0,
+        Callback = function(Value) Config.ninjaFSkillInterval = Value end
+    })
+
     -- Flag Bearer (1004)
     local FlagBearerGroup = CharacterTab:AddRightGroupbox(getCharacterLabel("Flag Bearer (1004)", 1004))
     FlagBearerGroup:AddToggle("FlagBearerUltimateEnabled", {

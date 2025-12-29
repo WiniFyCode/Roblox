@@ -683,7 +683,7 @@ function Character.startAllSkillLoops()
             function() return Config.witchFSkillEnabled end
         )
     elseif characterId == 1005 then
-        -- Ninja - Ultimate (1008) + Skill Q (1009)
+        -- Ninja - Ultimate (1008) + Skill Q (1009) + Skill F (Healing 1002)
         Character.startSkillLoop(
             function() return Config.ninjaUltimateInterval or 10 end,
             Character.activateNinjaUltimate,
@@ -693,6 +693,11 @@ function Character.startAllSkillLoops()
             function() return Config.ninjaQSkillInterval or 9 end,
             Character.activateNinjaQSkill,
             function() return Config.ninjaQSkillEnabled and getClosestZombiePart() ~= nil end
+        )
+        Character.startSkillLoop(
+            function() return Config.ninjaFSkillInterval or 20 end,
+            Character.activateHealingSkill,
+            function() return Config.ninjaFSkillEnabled end
         )
     elseif characterId == 1004 then
         -- Flag Bearer - Ultimate + F Skill
