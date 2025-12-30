@@ -569,7 +569,7 @@ function UI.createCombatTab()
 
     CombatRightGroup:AddToggle("AutoRotate", {
         Text = "Aimbot 360°",
-        Tooltip = "Enable feature, then press R in-game to toggle",
+        Tooltip = "Enable feature, then press L in-game to toggle",
         Default = Config.autoRotateEnabled,
         Callback = function(Value)
             Config.autoRotateEnabled = Value
@@ -1936,15 +1936,20 @@ function UI.createSettingsTab(cleanupCallback)
     KeybindsGroup:AddLabel("Feature Keybinds")
 
     KeybindsGroup:AddLabel("Auto Rotate (Toggle)"):AddKeyPicker("AutoRotateKey", {
-        Default = "R",
+        Default = "L",
         Mode = "Toggle",
         Text = "Auto Rotate 360°",
         NoUI = false,
         Callback = function(Value)
             if Value then
-                Config.autoRotateEnabled = not Config.autoRotateEnabled
+                -- Chỉ bật/tắt trạng thái active, vẫn phải được phép bởi toggle trong Movement
+                if not Config.autoRotateEnabled then
+                    return
+                end
+
+                Config.autoRotateActive = not (Config.autoRotateActive or false)
                 if Combat and Combat.toggleAutoRotate then
-                    Combat.toggleAutoRotate(Config.autoRotateEnabled)
+                    Combat.toggleAutoRotate(Config.autoRotateActive)
                 end
             end
         end

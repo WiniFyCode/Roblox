@@ -383,9 +383,9 @@ end)
 inputBeganConnection = Config.UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed or Config.scriptUnloaded then return end
     
-    -- Auto Rotate Toggle (R key)
+    -- Auto Rotate Toggle (L key)
     if input.KeyCode == Config.autoRotateToggleKey then
-        -- Chỉ cho phép dùng phím R khi tính năng đã được bật trong menu
+        -- Chỉ cho phép dùng phím L khi tính năng đã được bật trong menu
         if not Config.autoRotateEnabled then
             return
         end

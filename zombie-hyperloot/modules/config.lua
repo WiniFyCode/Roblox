@@ -109,9 +109,9 @@ Config.noclipCamEnabled = true
 ----------------------------------------------------------
 -- 🔹 Auto Camera Rotation 360°
 Config.autoRotateEnabled = false -- Cho phép dùng Auto Rotate (bật/tắt trong tab Movement)
-Config.autoRotateActive = false -- Trạng thái đang xoay hay không (do phím R điều khiển)
+Config.autoRotateActive = false -- Trạng thái đang xoay hay không (do phím toggle hoặc phím L)
 Config.autoRotateSmoothness = 0.05 -- 0 = instant, higher = smoother
-Config.autoRotateToggleKey = Enum.KeyCode.R -- Phím R để toggle
+Config.autoRotateToggleKey = Enum.KeyCode.L -- Phím L để toggle
 
 ----------------------------------------------------------
 -- 🔹 Auto BulletBox & Item Magnet
