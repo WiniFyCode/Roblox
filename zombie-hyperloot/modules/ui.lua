@@ -47,6 +47,316 @@ function UI.createWindow()
 end
 
 ----------------------------------------------------------
+-- 🔹 Server Tab
+function UI.createServerTab()
+    local ServerTab = UI.Window:AddTab("Server", "server")
+    local TeleportService = game:GetService("TeleportService")
+    local HttpService = game:GetService("HttpService")
+
+    local ServerInfoGroup = ServerTab:AddLeftGroupbox("Server Information", "server")
+    ServerInfoGroup:AddLabel("Current server info:")
+    ServerInfoGroup:AddLabel("PlaceId: " .. tostring(game.PlaceId))
+    ServerInfoGroup:AddLabel("JobId: " .. tostring(game.JobId))
+    ServerInfoGroup:AddLabel("Players: " .. tostring(#Config.Players:GetPlayers()) .. "/" .. tostring(Config.Players.MaxPlayers or "?"))
+
+    ServerInfoGroup:AddButton({
+        Text = "Rejoin Server",
+        Func = function()
+            TeleportService:Teleport(game.PlaceId, Config.localPlayer)
+        end,
+        Risky = true,
+    })
+
+    ServerInfoGroup:AddDivider()
+
+    -- Auto Leave on Player Join
+    local autoLeaveConnection = nil
+    ServerInfoGroup:AddToggle("AutoLeaveOnJoin", {
+        Text = "Auto Leave on Player Join",
+        Tooltip = "Automatically leave game when another player joins",
+        Default = Config.autoLeaveOnJoinEnabled,
+        Callback = function(Value)
+            Config.autoLeaveOnJoinEnabled = Value
+            
+            if Value then
+                -- Connect listener
+                if autoLeaveConnection then
+                    autoLeaveConnection:Disconnect()
+                end
+                autoLeaveConnection = Config.Players.PlayerAdded:Connect(function(player)
+                    if Config.autoLeaveOnJoinEnabled and player ~= Config.localPlayer then
+                        if UI.Library then
+                            UI.Library:Notify({
+                                Title = "Auto Leave",
+                                Description = "Player joined: " .. player.Name .. " - Leaving game...",
+                                Time = 2,
+                            })
+                        end
+                        task.wait(0.5)
+                        Config.localPlayer:Kick("Auto Leave: Player joined")
+                    end
+                end)
+            else
+                -- Disconnect listener
+                if autoLeaveConnection then
+                    autoLeaveConnection:Disconnect()
+                    autoLeaveConnection = nil
+                end
+            end
+            
+            if UI.Library then
+                UI.Library:Notify({
+                    Title = "Server",
+                    Description = Value and "Auto Leave enabled" or "Auto Leave disabled",
+                    Time = 2,
+                })
+            end
+        end
+    })
+
+    ServerInfoGroup:AddDivider()
+
+    -- Auto Leave on Player Nearby
+    local autoLeaveNearbyEnabled = false
+    local autoLeaveNearbyDistance = 200
+    local autoLeaveNearbyConnection = nil
+    local autoLeaveNearbyTriggered = false
+
+    ServerInfoGroup:AddToggle("AutoLeaveOnNearby", {
+        Text = "Auto Leave on Player Nearby",
+        Tooltip = "Automatically leave game when another player is within range",
+        Default = false,
+        Callback = function(Value)
+            autoLeaveNearbyEnabled = Value
+            autoLeaveNearbyTriggered = false
+            
+            if Value then
+                -- Start checking loop
+                if autoLeaveNearbyConnection then
+                    autoLeaveNearbyConnection:Disconnect()
+                end
+                autoLeaveNearbyConnection = Config.RunService.Heartbeat:Connect(function()
+                    if not autoLeaveNearbyEnabled or autoLeaveNearbyTriggered then return end
+                    
+                    local localChar = Config.localPlayer and Config.localPlayer.Character
+                    local localHRP = localChar and localChar:FindFirstChild("HumanoidRootPart")
+                    if not localHRP then return end
+                    
+                    for _, player in ipairs(Config.Players:GetPlayers()) do
+                        if player ~= Config.localPlayer then
+                            local char = player.Character
+                            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                            if hrp then
+                                local distance = (localHRP.Position - hrp.Position).Magnitude
+                                if distance <= autoLeaveNearbyDistance then
+                                    autoLeaveNearbyTriggered = true
+                                    if UI.Library then
+                                        UI.Library:Notify({
+                                            Title = "Auto Leave",
+                                            Description = player.Name .. " is " .. math.floor(distance) .. " studs away - Leaving game...",
+                                            Time = 2,
+                                        })
+                                    end
+                                    task.wait(0.5)
+                                    Config.localPlayer:Kick("Auto Leave: Player nearby (" .. player.Name .. ")")
+                                    return
+                                end
+                            end
+                        end
+                    end
+                end)
+            else
+                -- Disconnect loop
+                if autoLeaveNearbyConnection then
+                    autoLeaveNearbyConnection:Disconnect()
+                    autoLeaveNearbyConnection = nil
+                end
+            end
+            
+            if UI.Library then
+                UI.Library:Notify({
+                    Title = "Server",
+                    Description = Value and "Auto Leave Nearby enabled" or "Auto Leave Nearby disabled",
+                    Time = 2,
+                })
+            end
+        end
+    })
+
+    ServerInfoGroup:AddSlider("AutoLeaveNearbyDistance", {
+        Text = "Leave Distance (studs)",
+        Default = 200,
+        Min = 100,
+        Max = 500,
+        Rounding = 0,
+        Callback = function(Value)
+            autoLeaveNearbyDistance = Value
+        end
+    })
+
+    local ServerListGroup = ServerTab:AddRightGroupbox("Server List", "server")
+    local serverList = {}
+    local serverListDisplay = {}
+    local serverDropdown = ServerListGroup:AddDropdown("ZHServerList", {
+        Values = {},
+        Text = "Server List",
+    })
+
+    ServerListGroup:AddButton({
+        Text = "Refresh server list",
+        Func = function()
+            local success, result = pcall(function()
+                return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" ..
+                    game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+            end)
+
+            if not success or not result or not result.data then
+                if UI.Library then
+                    UI.Library:Notify({
+                        Title = "Server",
+                        Description = "Failed to load server list",
+                        Time = 3,
+                    })
+                end
+                return
+            end
+
+            serverList = {}
+            serverListDisplay = {}
+
+            for _, server in ipairs(result.data) do
+                if server.id ~= game.JobId then
+                    local currentPlayers = server.playing or server.playerCount or 0
+                    local maxPlayers = server.maxPlayers or "?"
+                    local ping = server.ping or server.latency or "?"
+                    local fps = server.fps or "?"
+                    local shortId = typeof(server.id) == "string" and string.sub(server.id, 1, 6) or tostring(server.id)
+                    local display = string.format("%d/%s|ping: %s|fps: %s|%s", currentPlayers, maxPlayers, tostring(ping), tostring(fps), shortId)
+                    table.insert(serverList, server)
+                    table.insert(serverListDisplay, display)
+                end
+            end
+
+            if #serverListDisplay == 0 then
+                if UI.Library then
+                    UI.Library:Notify({
+                        Title = "Server",
+                        Description = "No other servers found",
+                        Time = 3,
+                    })
+                end
+            else
+                if UI.Library then
+                    UI.Library:Notify({
+                        Title = "Server",
+                        Description = "Refreshed " .. tostring(#serverListDisplay) .. " servers",
+                        Time = 3,
+                    })
+                end
+            end
+
+            if serverDropdown and serverDropdown.SetValues then
+                serverDropdown:SetValues(serverListDisplay)
+            end
+        end,
+    })
+
+    ServerListGroup:AddButton({
+        Text = "Join Selected Server",
+        Func = function()
+            local Options = UI.Library and UI.Library.Options
+            if not Options or not Options.ZHServerList then
+                if UI.Library then
+                    UI.Library:Notify({
+                        Title = "Server",
+                        Description = "You haven't selected any server",
+                        Time = 3,
+                    })
+                end
+                return
+            end
+
+            local selected = Options.ZHServerList.Value
+            if not selected or selected == "" then
+                if UI.Library then
+                    UI.Library:Notify({
+                        Title = "Server",
+                        Description = "You haven't selected any server",
+                        Time = 3,
+                    })
+                end
+                return
+            end
+
+            local selectedIndex
+            for i, display in ipairs(serverListDisplay) do
+                if display == selected then
+                    selectedIndex = i
+                    break
+                end
+            end
+
+            if not selectedIndex then
+                if UI.Library then
+                    UI.Library:Notify({
+                        Title = "Server",
+                        Description = "Selected server not found",
+                        Time = 3,
+                    })
+                end
+                return
+            end
+
+            local serverData = serverList[selectedIndex]
+            if serverData and serverData.id then
+                TeleportService:TeleportToPlaceInstance(game.PlaceId, serverData.id, Config.localPlayer)
+            else
+                if UI.Library then
+                    UI.Library:Notify({
+                        Title = "Server",
+                        Description = "Invalid server data",
+                        Time = 3,
+                    })
+                end
+            end
+        end,
+        Risky = true,
+    })
+
+    ServerListGroup:AddButton({
+        Text = "Server Hop",
+        Func = function()
+            local success, servers = pcall(function()
+                return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" ..
+                    game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+            end)
+
+            if not success or not servers or not servers.data then
+                if UI.Library then
+                    UI.Library:Notify({
+                        Title = "Server",
+                        Description = "Failed to load server list",
+                        Time = 3,
+                    })
+                end
+                return
+            end
+
+            for _, server in pairs(servers.data) do
+                if server.id ~= game.JobId then
+                    TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, Config.localPlayer)
+                    break
+                end
+            end
+        end,
+        Risky = true,
+    })
+
+    return ServerTab
+end
+
+
+----------------------------------------------------------
 -- 🔹 Combat Tab
 function UI.createCombatTab()
     local CombatTab = UI.Window:AddTab("Combat", "sword")
@@ -259,11 +569,17 @@ function UI.createCombatTab()
 
     CombatRightGroup:AddToggle("AutoRotate", {
         Text = "Aimbot 360°",
-        Tooltip = "Camera automatically rotates to the nearest zombie (press R to toggle)",
+        Tooltip = "Enable feature, then press R in-game to toggle",
         Default = Config.autoRotateEnabled,
         Callback = function(Value)
             Config.autoRotateEnabled = Value
-            Combat.toggleAutoRotate(Value)
+
+            -- Nếu tắt toggle trong menu thì tắt hẳn auto rotate
+            if not Value then
+                Config.autoRotateActive = false
+                Combat.toggleAutoRotate(false)
+            end
+
             if UI.Library then
                 UI.Library:Notify({
                     Title = "Auto Rotate",
@@ -1720,59 +2036,6 @@ function UI.createSettingsTab(cleanupCallback)
 end
 
 ----------------------------------------------------------
--- 🔹 Info Tab
-function UI.createInfoTab()
-    local InfoTab = UI.Window:AddTab("Info", "info")
-    local InfoGroup = InfoTab:AddLeftGroupbox("Info")
-
-    InfoGroup:AddLabel("Controls", true)
-    InfoGroup:AddLabel([[
-            Right Click - Activate Aimbot (if enabled)
-            T Key - Auto Open All Chests  
-            X Key - Camera Teleport to Zombies
-            N Key - Toggle Noclip Cam
-            R Key - Toggle Auto Rotate 360°
-            Right Ctrl - Open/Close Menu
-            
-            Auto Rotate 360° - Camera tự xoay tới zombie gần nhất
-            Supply ESP - Hiển thị bên trái màn hình
-            Auto refresh mỗi 15 giây
-]], true)
-
-    InfoGroup:AddDivider()
-    InfoGroup:AddLabel("Tips", true)
-    InfoGroup:AddLabel([[
-            • Combine Aimbot + Hitbox for maximum efficiency
-            • Use ESP to track zombies through walls
-            • ESP Player shows enemies through walls with boxes
-            • Auto Skill provides continuous damage
-            • Camera Teleport is great for farming
-            • Auto Chest collects all loot instantly
-            • Aimbot targets both zombies and players
-            • Auto Rotate 360° (R key) tự động nhắm zombie gần nhất
-]], true)
-
-    InfoGroup:AddDivider()
-    InfoGroup:AddLabel("Cleanup", true)
-    InfoGroup:AddLabel([[
-            • End key - Unload script & cleanup everything
-            • Right Ctrl - Toggle menu
-            • Camera Teleport (X) tự tắt aimbot, tự bật lại khi kết thúc
-]], true)
-
-    InfoGroup:AddDivider()
-    InfoGroup:AddLabel("Important", true)
-    InfoGroup:AddLabel([[
-            • Some features may not work in all games
-            • Use responsibly to avoid detection
-            • Adjust settings based on your playstyle
-            • Disable features if experiencing lag
-]], true)
-
-    return InfoTab
-end
-
-----------------------------------------------------------
 -- 🔹 HUD Customization Tab
 function UI.createHUDTab()
     local HUDTab = UI.Window:AddTab("HUD Customize", "monitor")
@@ -2191,8 +2454,8 @@ function UI.buildAllTabs(cleanupCallback)
     UI.createCharacterTab()
     UI.createVisualsTab()
     UI.createHUDTab()
+    UI.createServerTab()
     UI.createSettingsTab(cleanupCallback)
-    UI.createInfoTab()
     
     -- Setup OnUnload callback for Obsidian UI
     if UI.Library and cleanupCallback then

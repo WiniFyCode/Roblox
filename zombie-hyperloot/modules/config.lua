@@ -72,8 +72,9 @@ Config.unloadKey = Enum.KeyCode.End -- Unload script
 
 ----------------------------------------------------------
 -- 🔹 Teleport Settings
-Config.teleportEnabled = true
-Config.cameraTeleportEnabled = true
+-- Mặc định tắt, chỉ hoạt động khi bạn bật trong menu
+Config.teleportEnabled = false
+Config.cameraTeleportEnabled = false
 Config.cameraTeleportActive = false
 Config.teleportToLastZombie = false
 Config.cameraTeleportStartPosition = nil
@@ -107,7 +108,8 @@ Config.noclipCamEnabled = true
 
 ----------------------------------------------------------
 -- 🔹 Auto Camera Rotation 360°
-Config.autoRotateEnabled = false
+Config.autoRotateEnabled = false -- Cho phép dùng Auto Rotate (bật/tắt trong tab Movement)
+Config.autoRotateActive = false -- Trạng thái đang xoay hay không (do phím R điều khiển)
 Config.autoRotateSmoothness = 0.05 -- 0 = instant, higher = smoother
 Config.autoRotateToggleKey = Enum.KeyCode.R -- Phím R để toggle
 
@@ -157,12 +159,12 @@ Config.witchFSkillInterval = 0.7 -- Witch Skill (F, 1014)
 
 -- Ninja (1005)
 Config.ninjaUltimateEnabled = true -- Toggle riêng cho Ninja Ultimate (1008)
-Config.ninjaUltimateInterval = 10 -- Ninja Ultimate (1008)
-Config.ninjaQSkillEnabled = true -- Toggle riêng cho Ninja Q Skill (1009)
+Config.ninjaUltimateInterval = 1 -- Ninja Ultimate (1008), kích hoạt mỗi 1 giây
+Config.ninjaQSkillEnabled = false -- Tắt auto Ninja Q Skill (1009) mặc định
 Config.ninjaQSkillInterval = 9 -- Ninja Q Skill (1009)
-Config.ninjaFSkillEnabled = true -- Toggle cho Ninja F Skill (Healing)
+Config.ninjaFSkillEnabled = false -- Tắt auto Ninja F Skill (Healing) mặc định
 Config.ninjaFSkillInterval = 20 -- Ninja F Skill interval
-Config.ninjaUltimateTargetMode = "Single" -- "Single" hoặc "Multi" (bắn 1 hoặc nhiều mục tiêu)
+Config.ninjaUltimateTargetMode = "Multi" -- "Single" hoặc "Multi" (bắn 1 hoặc nhiều mục tiêu)
 
 ----------------------------------------------------------
 -- 🔹 TrigerSkill Dupe (GunFire)
