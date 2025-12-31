@@ -1305,37 +1305,35 @@ local function removeHighlight(player)
 end
 
 local function updateHighlights()
-  	for _, player in ipairs(Players:GetPlayers()) do
-  		if player ~= LocalPlayer then
-  			local char = player.Character
-  			local hum = char and char:FindFirstChildOfClass("Humanoid")
-  			local hasAnyPart = char and char:FindFirstChildWhichIsA("BasePart")
-  			local isAlive = hum and hum.Health > 0
-  		
-  			if char and (isAlive or hasAnyPart) then
-  				if Toggles.PlayerESP.Value and Toggles.ESPHighlight.Value then
-  					if Toggles.ESPTeamCheck.Value and player.Team == LocalPlayer.Team then
-  						removeHighlight(player)
-  					else
-  						-- Update color if highlight exists
-  						if espHighlights[player] then
-  							local isEnemy = Toggles.ESPTeamCheck.Value and player.Team ~= LocalPlayer.Team
-  							local color = isEnemy and Options.ESPEnemyColor.Value or Options.ESPColor.Value
-  							espHighlights[player].FillColor = color
-  							espHighlights[player].OutlineColor = color
-  						else
-  							addHighlight(player)
-  						end
-  					end
-  				else
-  					removeHighlight(player)
-  				end
-  			else
-  				removeHighlight(player)
-  			end
-  		end
-  	end
-  end
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer then
+			local char = player.Character
+			local hum = char and char:FindFirstChildOfClass("Humanoid")
+
+			if char and hum and hum.Health > 0 then
+				if Toggles.PlayerESP.Value and Toggles.ESPHighlight.Value then
+					if Toggles.ESPTeamCheck.Value and player.Team == LocalPlayer.Team then
+						removeHighlight(player)
+					else
+						-- Update color if highlight exists
+						if espHighlights[player] then
+							local isEnemy = Toggles.ESPTeamCheck.Value and player.Team ~= LocalPlayer.Team
+							local color = isEnemy and Options.ESPEnemyColor.Value or Options.ESPColor.Value
+							espHighlights[player].FillColor = color
+							espHighlights[player].OutlineColor = color
+						else
+							addHighlight(player)
+						end
+					end
+				else
+					removeHighlight(player)
+				end
+			else
+				removeHighlight(player)
+			end
+		end
+	end
+end
 
 local function drawPlayerESP(player, cf, size, hum)
 	if not hasDrawingAPI or not Toggles.PlayerESP.Value then
@@ -1523,51 +1521,49 @@ local function initializeESP()
 end
 
 local function updateESP()
-  	if not Toggles.PlayerESP.Value then
-  		for _, data in pairs(espObjects) do
-  			hideESP(data)
-  		end
-  		return
-  	end
-  	
-  	for _, player in ipairs(Players:GetPlayers()) do
-  		if player ~= LocalPlayer then
-  			local char = player.Character
-  			local hum = char and char:FindFirstChildOfClass("Humanoid")
-  			local hasAnyPart = char and char:FindFirstChildWhichIsA("BasePart")
-  			local isAlive = hum and hum.Health > 0
-  		
-  			if char and (isAlive or hasAnyPart) then
-  				-- Team check - ẩn ESP cho teammate nếu bật
-  				if Toggles.ESPTeamCheck.Value and player.Team == LocalPlayer.Team then
-  					hideESP(espObjects[player])
-  				else
-  					-- Try GetBoundingBox first
-  					local ok, cf, size = pcall(char.GetBoundingBox, char)
-  					
-  					-- Fallback to HumanoidRootPart if GetBoundingBox fails (e.g. invisible player)
-  					if not ok or not cf or not size then
-  						local hrp = char:FindFirstChild("HumanoidRootPart")
-  						if hrp then
-  							cf = hrp.CFrame
-  							-- Estimate character size
-  							size = Vector3.new(4, 5, 2)
-  							ok = true
-  						end
-  					end
-  					
-  					if ok and cf and size then
-  						drawPlayerESP(player, cf, size, hum)
-  					else
-  						hideESP(espObjects[player])
-  					end
-  				end
-  			else
-  				hideESP(espObjects[player])
-  			end
-  		end
-  	end
-  end
+	if not Toggles.PlayerESP.Value then
+		for _, data in pairs(espObjects) do
+			hideESP(data)
+		end
+		return
+	end
+
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer then
+			local char = player.Character
+			local hum = char and char:FindFirstChildOfClass("Humanoid")
+
+			if char and hum and hum.Health > 0 then
+				-- Team check - ẩn ESP cho teammate nếu bật
+				if Toggles.ESPTeamCheck.Value and player.Team == LocalPlayer.Team then
+					hideESP(espObjects[player])
+				else
+					-- Try GetBoundingBox first
+					local ok, cf, size = pcall(char.GetBoundingBox, char)
+					
+					-- Fallback to HumanoidRootPart if GetBoundingBox fails (e.g. invisible player)
+					if not ok or not cf or not size then
+						local hrp = char:FindFirstChild("HumanoidRootPart")
+						if hrp then
+							cf = hrp.CFrame
+							-- Estimate character size
+							size = Vector3.new(4, 5, 2)
+							ok = true
+						end
+					end
+					
+					if ok and cf and size then
+						drawPlayerESP(player, cf, size, hum)
+					else
+						hideESP(espObjects[player])
+					end
+				end
+			else
+				hideESP(espObjects[player])
+			end
+		end
+	end
+end
 
 -- Initialize ESP
 initializeESP()

@@ -288,10 +288,8 @@ local function updateHighlights()
 		if player ~= Config.LocalPlayer then
 			local char = player.Character
 			local hum = char and char:FindFirstChildOfClass("Humanoid")
-			local hasAnyPart = char and char:FindFirstChildWhichIsA("BasePart")
-			local isAlive = hum and hum.Health > 0
 			
-			if char and (isAlive or hasAnyPart) then
+			if char and hum and hum.Health > 0 then
 				if UI.Toggles.PlayerESP.Value and UI.Toggles.ESPHighlight.Value then
 					if UI.Toggles.ESPTeamCheck.Value and player.Team == Config.LocalPlayer.Team then
 						removeHighlight(player)
@@ -507,10 +505,8 @@ local function updateESP()
 		if player ~= Config.LocalPlayer then
 			local char = player.Character
 			local hum = char and char:FindFirstChildOfClass("Humanoid")
-			local hasAnyPart = char and char:FindFirstChildWhichIsA("BasePart")
-			local isAlive = hum and hum.Health > 0
 			
-			if char and (isAlive or hasAnyPart) then
+			if char and hum and hum.Health > 0 then
 				-- Team check - ẩn ESP cho teammate nếu bật
 				if UI.Toggles.ESPTeamCheck.Value and player.Team == Config.LocalPlayer.Team then
 					hideESP(espObjects[player])
