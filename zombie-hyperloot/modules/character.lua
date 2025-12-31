@@ -685,7 +685,7 @@ function Character.startAllSkillLoops()
     elseif characterId == 1005 then
         -- Ninja - Ultimate (1008) + Skill Q (1009) + Skill F (Healing 1002)
         Character.startSkillLoop(
-            function() return Config.ninjaUltimateInterval or 10 end,
+            function() return Config.ninjaUltimateInterval or 1 end,
             Character.activateNinjaUltimate,
             function() return Config.ninjaUltimateEnabled and getClosestZombiePart() ~= nil end
         )
