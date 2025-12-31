@@ -15,7 +15,7 @@ end
 ----------------------------------------------------------
 -- 🔹 Redeem Codes
 function Farm.redeemAllCodes()
-    local codes = {"RAID1212", "CHRISTMAS", "UPD1212"}
+    local codes = {"RAID1212", "CHRISTMAS", "UPD1212", "NEWYEAR"}
     for _, code in ipairs(codes) do
         pcall(function()
             local args = {2073358730, code}
