@@ -121,6 +121,10 @@ Config.autoBulletBoxEnabled = true
 -- 🔹 Auto Skill
 Config.autoSkillEnabled = true
 
+-- Ưu tiên bắn vào Map.FiringRange (dummy tập bắn)
+-- Nếu tắt, script sẽ chỉ target zombie trong Entity
+Config.firingRangePriorityEnabled = false
+
 -- Armsmaster (1006)
 Config.armsmasterUltimateEnabled = true -- Toggle cho Armsmaster Ultimate (1010)
 Config.armsmasterUltimateInterval = 15 -- Armsmaster Ultimate (1010)
@@ -175,8 +179,8 @@ Config.trigerSkillDupeCount = 5
 -- 🔹 Aimbot Configuration
 Config.aimbotEnabled = true
 Config.aimbotHoldMouse2 = false -- Giữ chuột phải để aim
-Config.aimbotSmoothness = 0.1 -- 0 = instant, 1 = very slow
-Config.aimbotPrediction = 0.1 -- Dự đoán chuyển động
+Config.aimbotSmoothness = 0.7 -- 0 = instant, 1 = very slow
+Config.aimbotPrediction = 0 -- Dự đoán chuyển động
 Config.aimbotFOVEnabled = true
 Config.aimbotFOVRadius = 50
 Config.aimbotTargetMode = "Zombies" -- "Zombies", "Players", "All"

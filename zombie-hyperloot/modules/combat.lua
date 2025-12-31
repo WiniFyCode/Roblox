@@ -144,7 +144,7 @@ Combat.hasFOVDrawing = false
 -- Auto Camera Rotation 360°
 Combat.autoRotateConnection = nil
 Combat.autoRotateEnabled = false
-Combat.rotationSmoothness = 0.05 -- 0 = instant, higher = smoother
+Combat.rotationSmoothness = 0.5 -- 0 = instant, higher = smoother
 
 local function sendMouseButton1State(isDown)
     if not Config or not Config.VirtualInputManager then

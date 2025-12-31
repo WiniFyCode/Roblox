@@ -211,10 +211,10 @@ local function getClosestZombiePart()
     local closestPart = nil
     local closestDistance = math.huge
 
-    -- Ưu tiên zombie trong Map.FiringRange
+    -- Ưu tiên zombie trong Map.FiringRange (chỉ khi bật chức năng)
     local map = workspace:FindFirstChild("Map")
     local firingRange = map and map:FindFirstChild("FiringRange")
-    if firingRange then
+    if Config and Config.firingRangePriorityEnabled and firingRange then
         for _, zombie in ipairs(firingRange:GetChildren()) do
             if zombie:IsA("Model") then
                 local humanoid = zombie:FindFirstChildWhichIsA("Humanoid")
@@ -234,7 +234,7 @@ local function getClosestZombiePart()
         end
     end
 
-    -- Nếu không có zombie trong FiringRange, fallback về entityFolder
+    -- Nếu không có zombie (hoặc FiringRange bị tắt), fallback về entityFolder
     if not closestPart and Config.entityFolder then
         for _, zombie in ipairs(Config.entityFolder:GetChildren()) do
             if zombie:IsA("Model") then
@@ -417,7 +417,7 @@ function Character.activateNinjaUltimate()
             table.insert(targets, part)
         end
     else
-        -- Đa mục tiêu: lấy tối đa 5 zombie gần nhất (ưu tiên FiringRange)
+        -- Đa mục tiêu: lấy tối đa 5 zombie gần nhất (ưu tiên FiringRange nếu được bật)
         local collected = {}
         local playerHRP = char:FindFirstChild("HumanoidRootPart")
         if playerHRP then
@@ -439,12 +439,15 @@ function Character.activateNinjaUltimate()
                 end
             end
 
-            -- Ưu tiên Map.FiringRange trước
+            -- Ưu tiên Map.FiringRange trước (chỉ khi bật chức năng)
             local map = workspace:FindFirstChild("Map")
             local firingRange = map and map:FindFirstChild("FiringRange")
-            collectFromFolder(firingRange)
+            if Config and Config.firingRangePriorityEnabled then
+                collectFromFolder(firingRange)
+            end
 
             -- Nếu vẫn chưa đủ mục tiêu, lấy thêm từ Entity
+
             if #collected < 5 and Config.entityFolder then
                 collectFromFolder(Config.entityFolder)
             end

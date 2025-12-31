@@ -533,6 +533,22 @@ function UI.createCombatTab()
         end
     })
 
+    CombatRightGroup:AddToggle("FiringRangePriority", {
+        Text = "Ưu tiên FiringRange",
+        Tooltip = "Bật: auto skill ưu tiên dummy trong Map.FiringRange",
+        Default = Config.firingRangePriorityEnabled,
+        Callback = function(Value)
+            Config.firingRangePriorityEnabled = Value
+            if UI.Library then
+                UI.Library:Notify({
+                    Title = "FiringRange",
+                    Description = Value and "Ưu tiên FiringRange (dummy) đã bật" or "Ưu tiên FiringRange đã tắt",
+                    Time = 2
+                })
+            end
+        end
+    })
+
     CombatRightGroup:AddSlider("HitboxSize", {
         Text = "Hitbox Size",
         Default = 4, Min = 1, Max = 20, Rounding = 1,
