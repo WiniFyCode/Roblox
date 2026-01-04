@@ -680,28 +680,29 @@ function Map.startSupplyESP()
     Map.createSupplyUI()
     Map.updateSupplyDisplay()
     
-    -- Auto refresh mỗi 15 giây
+    -- Quét full Supply/Task/Car mỗi 5 giây để giảm lag
     task.spawn(function()
-        while task.wait(15) do
+        while task.wait(5) do
             if Config.scriptUnloaded then break end
             if Config.supplyESPEnabled then
+                -- Cập nhật danh sách Supply + nút Supply
                 Map.updateSupplyDisplay()
+
+                -- Cập nhật trạng thái Task/Car (có prompt thì hiện nút)
+                if Map.taskButton then
+                    Map.taskButton.Visible = (findTaskPrompt() ~= nil)
+                end
+                if Map.carButton then
+                    Map.carButton.Visible = (findCarPrompt() ~= nil)
+                end
             end
         end
     end)
     
-    -- Update distance realtime
+    -- Heartbeat chỉ update khoảng cách (nhẹ)
     Map.refreshConnection = Config.RunService.Heartbeat:Connect(function()
         if not Config.supplyESPEnabled then return end
         Map.updateSupplyDistances()
-
-        -- Task/Car chỉ hiện khi có prompt
-        if Map.taskButton then
-            Map.taskButton.Visible = (findTaskPrompt() ~= nil)
-        end
-        if Map.carButton then
-            Map.carButton.Visible = (findCarPrompt() ~= nil)
-        end
     end)
 end
 
