@@ -13,6 +13,20 @@ Map.supplyFrame = nil
 Map.supplyButtons = {}
 Map.refreshConnection = nil
 
+-- Extra buttons & cached prompts
+Map.taskButton = nil
+Map.carButton = nil
+Map.cachedCarPrompt = nil
+Map.cachedTaskPrompt = nil
+
+
+-- Extra buttons & cached prompts
+Map.taskButton = nil
+Map.carButton = nil
+Map.cachedCarPrompt = nil
+Map.cachedTaskPrompt = nil
+
+
 -- Auto Door tracking
 Map.autoDoorEnabled = false
 Map.doorConnection = nil
@@ -144,7 +158,7 @@ function Map.findAllSupplies()
     return supplies
 end
 
-function Map.teleportToSupply(supplyPosition)
+function Map.teleportToSupply(supplyData)
     local char = Config.localPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then
@@ -152,8 +166,116 @@ function Map.teleportToSupply(supplyPosition)
         return
     end
     
+    if not supplyData or not supplyData.position or not supplyData.part then
+        warn("[Supply] supplyData không hợp lệ")
+        return
+    end
+
+    local targetPos = supplyData.position
+    
     -- Teleport tới supply (cao hơn 5 studs để tránh bị stuck)
-    hrp.CFrame = CFrame.new(supplyPosition + Vector3.new(0, 5, 0))
+    hrp.CFrame = CFrame.new(targetPos + Vector3.new(0, 5, 0))
+
+    -- Tự động bấm ProximityPrompt nếu tìm được gần supply
+    local prompt = nil
+    local model = supplyData.part:FindFirstAncestorOfClass("Model") or supplyData.part.Parent
+    if model then
+        for _, desc in ipairs(model:GetDescendants()) do
+            if desc:IsA("ProximityPrompt") then
+                prompt = desc
+                break
+            end
+        end
+    end
+
+    if prompt and typeof(fireproximityprompt) == "function" then
+        task.delay(0.25, function()
+            pcall(function()
+                if prompt and prompt.Enabled then
+                    fireproximityprompt(prompt)
+                end
+            end)
+        end)
+    end
+end
+
+local function getPromptWorldPosition(prompt)
+    if not prompt then return nil end
+    local parent = prompt.Parent
+
+    if parent:IsA("Attachment") then
+        local parentPart = parent.Parent
+        if parentPart and parentPart:IsA("BasePart") then
+            return parentPart.Position
+        end
+    end
+
+    local adornee = prompt.Adornee
+    if adornee and adornee:IsA("BasePart") then
+        return adornee.Position
+    end
+
+    if parent:IsA("BasePart") then
+        return parent.Position
+    end
+
+    return nil
+end
+
+local function firePromptOnce(prompt)
+    if prompt and typeof(fireproximityprompt) == "function" then
+        task.delay(0.25, function()
+            pcall(function()
+                if prompt and prompt.Enabled then
+                    fireproximityprompt(prompt)
+                end
+            end)
+        end)
+    end
+end
+
+local function findCarPrompt()
+    if Map.cachedCarPrompt and Map.cachedCarPrompt.Parent then
+        return Map.cachedCarPrompt
+    end
+
+    local map = Config.Workspace:FindFirstChild("Map")
+    if not map then return nil end
+
+    for _, mapChild in ipairs(map:GetChildren()) do
+        local eItem = mapChild:FindFirstChild("EItem")
+        if eItem then
+            local car = eItem:FindFirstChild("Car", true)
+            if car and car:FindFirstChildOfClass("ProximityPrompt") then
+                Map.cachedCarPrompt = car:FindFirstChildOfClass("ProximityPrompt")
+                return Map.cachedCarPrompt
+            end
+        end
+    end
+
+    return nil
+end
+
+local function findTaskPrompt()
+    if Map.cachedTaskPrompt and Map.cachedTaskPrompt.Parent then
+        return Map.cachedTaskPrompt
+    end
+
+    local map = Config.Workspace:FindFirstChild("Map")
+    if not map then return nil end
+
+    for _, mapChild in ipairs(map:GetChildren()) do
+        local eItem = mapChild:FindFirstChild("EItem")
+        if eItem then
+            local task = eItem:FindFirstChild("Task", true)
+            if task and task:FindFirstChildOfClass("ProximityPrompt") then
+                Map.cachedTaskPrompt = task:FindFirstChildOfClass("ProximityPrompt")
+                return Map.cachedTaskPrompt
+            end
+        end
+    end
+
+    return nil
 end
 
 function Map.createSupplyUI()
@@ -182,6 +304,152 @@ function Map.createSupplyUI()
     listLayout.SortOrder = Enum.SortOrder.LayoutOrder
     listLayout.Padding = UDim.new(0, 5)
     listLayout.Parent = Map.supplyFrame
+
+    -- Tạo nút Task
+    do
+        local button = Instance.new("TextButton")
+        button.Name = "TaskButton"
+        button.Size = UDim2.new(0, 110, 0, 30)
+        button.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+        button.BackgroundTransparency = 0.05
+        button.BorderSizePixel = 0
+        button.Font = Enum.Font.GothamSemibold
+        button.TextSize = 13
+        button.TextColor3 = Color3.fromRGB(200, 200, 200)
+        button.TextXAlignment = Enum.TextXAlignment.Left
+        button.Text = "Task"
+        button.AutoButtonColor = false
+        button.Parent = Map.supplyFrame
+
+        local buttonCorner = Instance.new("UICorner")
+        buttonCorner.CornerRadius = UDim.new(0, 4)
+        buttonCorner.Parent = button
+
+        local buttonStroke = Instance.new("UIStroke")
+        buttonStroke.Color = Color3.fromRGB(40, 40, 40)
+        buttonStroke.Thickness = 1
+        buttonStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+        buttonStroke.Parent = button
+
+        local accentBar = Instance.new("Frame")
+        accentBar.Name = "Accent"
+        accentBar.Size = UDim2.new(1, 0, 0, 2)
+        accentBar.Position = UDim2.new(0, 0, 1, -2)
+        accentBar.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
+        accentBar.BorderSizePixel = 0
+        accentBar.Parent = button
+
+        local accentCorner = Instance.new("UICorner")
+        accentCorner.CornerRadius = UDim.new(0, 4)
+        accentCorner.Parent = accentBar
+
+        local padding = Instance.new("UIPadding")
+        padding.PaddingLeft = UDim.new(0, 10)
+        padding.PaddingRight = UDim.new(0, 10)
+        padding.PaddingBottom = UDim.new(0, 2)
+        padding.Parent = button
+
+        button.MouseButton1Click:Connect(function()
+            local prompt = findTaskPrompt()
+            if not prompt then
+                warn("[Task] Không tìm thấy ProximityPrompt Task")
+                return
+            end
+
+            local worldPos = getPromptWorldPosition(prompt)
+            local char = Config.localPlayer.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if hrp and worldPos then
+                hrp.CFrame = CFrame.new(worldPos + Vector3.new(0, 5, 0))
+                firePromptOnce(prompt)
+            end
+        end)
+
+        button.MouseEnter:Connect(function()
+            button.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+            buttonStroke.Color = Color3.fromRGB(60, 60, 60)
+        end)
+
+        button.MouseLeave:Connect(function()
+            button.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+            buttonStroke.Color = Color3.fromRGB(40, 40, 40)
+        end)
+
+        Map.taskButton = button
+    end
+
+    -- Tạo nút Car
+    do
+        local button = Instance.new("TextButton")
+        button.Name = "CarButton"
+        button.Size = UDim2.new(0, 110, 0, 30)
+        button.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+        button.BackgroundTransparency = 0.05
+        button.BorderSizePixel = 0
+        button.Font = Enum.Font.GothamSemibold
+        button.TextSize = 13
+        button.TextColor3 = Color3.fromRGB(200, 200, 200)
+        button.TextXAlignment = Enum.TextXAlignment.Left
+        button.Text = "Car"
+        button.AutoButtonColor = false
+        button.Parent = Map.supplyFrame
+
+        local buttonCorner = Instance.new("UICorner")
+        buttonCorner.CornerRadius = UDim.new(0, 4)
+        buttonCorner.Parent = button
+
+        local buttonStroke = Instance.new("UIStroke")
+        buttonStroke.Color = Color3.fromRGB(40, 40, 40)
+        buttonStroke.Thickness = 1
+        buttonStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+        buttonStroke.Parent = button
+
+        local accentBar = Instance.new("Frame")
+        accentBar.Name = "Accent"
+        accentBar.Size = UDim2.new(1, 0, 0, 2)
+        accentBar.Position = UDim2.new(0, 0, 1, -2)
+        accentBar.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+        accentBar.BorderSizePixel = 0
+        accentBar.Parent = button
+
+        local accentCorner = Instance.new("UICorner")
+        accentCorner.CornerRadius = UDim.new(0, 4)
+        accentCorner.Parent = accentBar
+
+        local padding = Instance.new("UIPadding")
+        padding.PaddingLeft = UDim.new(0, 10)
+        padding.PaddingRight = UDim.new(0, 10)
+        padding.PaddingBottom = UDim.new(0, 2)
+        padding.Parent = button
+
+        button.MouseButton1Click:Connect(function()
+            local prompt = findCarPrompt()
+            if not prompt then
+                warn("[Car] Không tìm thấy ProximityPrompt Car")
+                return
+            end
+
+            local worldPos = getPromptWorldPosition(prompt)
+            local char = Config.localPlayer.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if hrp and worldPos then
+                hrp.CFrame = CFrame.new(worldPos + Vector3.new(0, 5, 0))
+                firePromptOnce(prompt)
+            end
+        end)
+
+        button.MouseEnter:Connect(function()
+            button.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+            buttonStroke.Color = Color3.fromRGB(60, 60, 60)
+        end)
+
+        button.MouseLeave:Connect(function()
+            button.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+            buttonStroke.Color = Color3.fromRGB(40, 40, 40)
+        end)
+
+        Map.carButton = button
+    end
     
     Map.supplyScreenGui.Parent = game:GetService("CoreGui")
     
@@ -190,6 +458,7 @@ function Map.createSupplyUI()
     
     return true
 end
+
 
 function Map.updateSupplyPosition()
     if not Map.supplyFrame then return end
@@ -278,8 +547,9 @@ function Map.updateSupplyDisplay()
         
         -- Click event
         button.MouseButton1Click:Connect(function()
-            Map.teleportToSupply(supply.position)
+            Map.teleportToSupply(supply)
         end)
+
         
         -- Hover effect
         button.MouseEnter:Connect(function()
@@ -299,9 +569,11 @@ function Map.updateSupplyDisplay()
         })
     end
     
-    -- Tự động resize frame theo số lượng buttons
-    local totalHeight = #Map.supplyItems * 32 + (#Map.supplyItems - 1) * 5 -- 32px mỗi button + 5px padding
+    -- Tự động resize frame theo số lượng buttons (bao gồm 2 nút Task/Car)
+    local totalButtons = #Map.supplyItems + 2
+    local totalHeight = totalButtons * 32 + (totalButtons - 1) * 5 -- 32px mỗi button + 5px padding
     Map.supplyFrame.Size = UDim2.new(0, 140, 0, totalHeight)
+
     
     -- Update vị trí theo config
     Map.updateSupplyPosition()
@@ -314,22 +586,40 @@ function Map.updateSupplyDistances()
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
     
+    -- Tính khoảng cách thật rồi chia theo tỉ lệ (gần nhất -> xa nhất)
+    local distances = {}
+    local minDist = math.huge
+    local maxDist = 0
+    
+    for i, supply in ipairs(Map.supplyItems) do
+        local d = (hrp.Position - supply.position).Magnitude
+        distances[i] = d
+        if d < minDist then minDist = d end
+        if d > maxDist then maxDist = d end
+    end
+    
+    local range = maxDist - minDist
+    if range < 1 then range = 1 end -- tránh chia 0
+    
     for i, data in ipairs(Map.supplyButtons) do
         local supply = Map.supplyItems[i]
         local button = data.button
         local accent = data.accent
+        local distance = distances[i]
         
-        if button and supply then
-            local distance = (hrp.Position - supply.position).Magnitude
+        if button and supply and distance then
             button.Text = string.format("Supply %d: %.0fm", i, distance)
             
-            -- Đổi màu Accent Bar theo khoảng cách
-            if distance < 50 then
-                accent.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Xanh lá - gần
-            elseif distance < 150 then
-                accent.BackgroundColor3 = Color3.fromRGB(255, 255, 0) -- Vàng - trung bình
+            -- Chuẩn hóa 0..1 theo min/max khoảng cách
+            local t = (distance - minDist) / range -- 0 = gần nhất, 1 = xa nhất
+            
+            -- Đổi màu theo tỉ lệ thực tế: gần nhất xanh, xa nhất đỏ, giữa là vàng
+            if t < 1/3 then
+                accent.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Gần nhất
+            elseif t < 2/3 then
+                accent.BackgroundColor3 = Color3.fromRGB(255, 255, 0) -- Trung bình
             else
-                accent.BackgroundColor3 = Color3.fromRGB(255, 100, 100) -- Đỏ - xa
+                accent.BackgroundColor3 = Color3.fromRGB(255, 100, 100) -- Xa nhất
             end
         end
     end
