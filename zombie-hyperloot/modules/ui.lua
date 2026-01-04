@@ -1203,7 +1203,7 @@ function UI.createMapTab()
 
     MapGroup:AddToggle("AutoDoor", {
         Text = "Auto Open Door",
-        Tooltip = "Automatically open doors when available",
+        Tooltip = "Automatically open doors when available (check every 5s)",
         Default = Config.autoDoorEnabled,
         Callback = function(Value)
             Config.autoDoorEnabled = Value
@@ -1214,33 +1214,6 @@ function UI.createMapTab()
                     Description = Value and "Auto Open Door enabled" or "Auto Open Door disabled",
                     Time = 2
                 })
-            end
-        end
-    })
-
-    MapGroup:AddToggle("AutoTask", {
-        Text = "Auto Task",
-        Tooltip = "Automatically trigger Task ProximityPrompt when available (one-time)",
-        Default = Config.autoTaskEnabled,
-        Callback = function(Value)
-            Config.autoTaskEnabled = Value
-            Map.toggleAutoTask(Value)
-            if UI.Library then
-                UI.Library:Notify({
-                    Title = "Map",
-                    Description = Value and "Auto Task enabled" or "Auto Task disabled",
-                    Time = 2
-                })
-            end
-        end
-    })
-
-    MapGroup:AddButton({
-        Text = "Leave Car",
-        Tooltip = "Trigger Car ProximityPrompt once to leave the vehicle",
-        Func = function()
-            if Map and Map.leaveCarOnce then
-                Map.leaveCarOnce()
             end
         end
     })

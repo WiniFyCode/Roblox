@@ -18,14 +18,6 @@ Map.autoDoorEnabled = false
 Map.doorConnection = nil
 Map.lastDoorCheck = 0
 
--- Auto Task tracking (Task & Car ProximityPrompt)
-Map.autoTaskEnabled = false
-Map.taskConnection = nil
-
--- Auto Refill Ammo tracking
-Map.autoRefillEnabled = false
-Map.refillConnection = nil
-
 function Map.init(config)
     Config = config
 end
@@ -437,12 +429,12 @@ function Map.toggleAutoDoor(enabled)
 end
 
 function Map.startAutoDoor()
-    Map.stopAutoDoor() -- Ensure no old connection
+    Map.stopAutoDoor() -- Đảm bảo không có connection cũ
     Map.autoDoorEnabled = true
 
     local fx = Config.Workspace:FindFirstChild("FX") or Config.fxFolder
     if not fx then
-        warn("[AutoDoor] FX not found for door tracking")
+        warn("[AutoDoor] Không tìm thấy FX để theo dõi cửa")
         return
     end
 
@@ -463,17 +455,17 @@ function Map.startAutoDoor()
         end
     end
 
-    -- If door already exists, try open once immediately
+    -- Nếu cửa đã tồn tại sẵn thì mở luôn 1 lần
     tryOpenDoor()
 
-    -- When FX gets a new child named "Task" (door), auto open immediately
+    -- Khi trong FX có child mới tên "Task" (cửa), sẽ auto mở ngay
     Map.doorConnection = fx.ChildAdded:Connect(function(child)
         if child.Name == "Task" and child:IsA("BasePart") then
             tryOpenDoor()
         end
     end)
 
-    print("[AutoDoor] Auto open door enabled")
+    print("[AutoDoor] Auto open door đã được bật")
 end
 
 function Map.stopAutoDoor()
@@ -482,330 +474,15 @@ function Map.stopAutoDoor()
         Map.doorConnection:Disconnect()
         Map.doorConnection = nil
     end
-    print("[AutoDoor] Auto open door disabled")
+    print("[AutoDoor] Auto open door đã được tắt")
 end
 
-
-----------------------------------------------------------
--- 🔹 Auto Task Functions (Task & Car ProximityPrompt)
-
--- Tìm ProximityPrompt cho Task trong Map (workspace.Map.*.EItem.Task)
-function Map.getTaskProximityPrompt()
-    local map = Config.Workspace:FindFirstChild("Map") or Config.mapModel
-    if not map then return nil end
-
-    for _, mapChild in ipairs(map:GetChildren()) do
-        local eItem = mapChild:FindFirstChild("EItem")
-        if eItem then
-            local taskObj = eItem:FindFirstChild("Task")
-            if taskObj then
-                -- Thử trực tiếp trên Task
-                local prompt = taskObj:FindFirstChildOfClass("ProximityPrompt")
-                if not prompt then
-                    for _, desc in ipairs(taskObj:GetDescendants()) do
-                        if desc:IsA("ProximityPrompt") then
-                            prompt = desc
-                            break
-                        end
-                    end
-                end
-                if prompt then
-                    return prompt
-                end
-            end
-        end
-    end
-
-    return nil
-end
-
--- Tìm ProximityPrompt cho Car trong Map (workspace.Map.*.EItem.Car)
-function Map.getCarProximityPrompt()
-    local map = Config.Workspace:FindFirstChild("Map") or Config.mapModel
-    if not map then return nil end
-
-    for _, mapChild in ipairs(map:GetChildren()) do
-        local eItem = mapChild:FindFirstChild("EItem")
-        if eItem then
-            local carObj = eItem:FindFirstChild("Car")
-            if carObj then
-                local prompt = carObj:FindFirstChildOfClass("ProximityPrompt")
-                if not prompt then
-                    for _, desc in ipairs(carObj:GetDescendants()) do
-                        if desc:IsA("ProximityPrompt") then
-                            prompt = desc
-                            break
-                        end
-                    end
-                end
-                if prompt then
-                    return prompt
-                end
-            end
-        end
-    end
-
-    return nil
-end
-
-local function firePrompt(prompt)
-    if not prompt then return false end
-
-    if typeof(fireproximityprompt) == "function" then
-        local ok = pcall(function()
-            fireproximityprompt(prompt)
-        end)
-        if ok then return true end
-    end
-
-    -- Fallback nếu executor không có fireproximityprompt (giả lập phím E)
-    local vim = game:GetService("VirtualInputManager")
-    vim:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-    task.wait(0.05)
-    vim:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-
-    return true
-end
-
--- Bấm Task 1 lần
-function Map.triggerTaskOnce()
-    local prompt = Map.getTaskProximityPrompt()
-    if not prompt then return 0 end
-    local ok = firePrompt(prompt)
-    if ok then
-        if Config.UI and Config.UI.Library then
-            Config.UI.Library:Notify({
-                Title = "Map",
-                Description = "Task triggered",
-                Time = 2
-            })
-        end
-        return 1
-    end
-    return 0
-end
-
--- Bấm Car prompt 1 lần (Leave car)
-function Map.leaveCarOnce()
-    local prompt = Map.getCarProximityPrompt()
-    if not prompt then
-        if Config.UI and Config.UI.Library then
-            Config.UI.Library:Notify({
-                Title = "Map",
-                Description = "Không tìm thấy Car ProximityPrompt",
-                Time = 2
-            })
-        end
-        return 0
-    end
-
-    local ok = firePrompt(prompt)
-    if ok and Config.UI and Config.UI.Library then
-        Config.UI.Library:Notify({
-            Title = "Map",
-            Description = "Leave car triggered",
-            Time = 2
-        })
-    end
-    return ok and 1 or 0
-end
-
-function Map.toggleAutoTask(enabled)
-    Map.autoTaskEnabled = enabled
-
-    if enabled then
-        Map.startAutoTask()
-    else
-        Map.stopAutoTask()
-    end
-end
-
-function Map.startAutoTask()
-    Map.stopAutoTask() -- clear old connection if any
-    Map.autoTaskEnabled = true
-
-    Map.taskConnection = task.spawn(function()
-        while task.wait(2) do -- check every 2s (lightweight)
-            if Config.scriptUnloaded or not Map.autoTaskEnabled then
-                break
-            end
-
-            local triggered = Map.triggerTaskOnce()
-            if triggered > 0 then
-                -- Task only needs to be triggered once, then stop
-                break
-            end
-        end
-
-        Map.autoTaskEnabled = false
-        Map.taskConnection = nil
-    end)
-
-    print("[AutoTask] Auto Task enabled")
-end
-
-function Map.stopAutoTask()
-    Map.autoTaskEnabled = false
-    if Map.taskConnection then
-        Map.taskConnection = nil
-        print("[AutoTask] Auto Task disabled")
-    end
-end
-
-----------------------------------------------------------
--- 🔹 Auto Refill Ammo Functions
-
--- Tìm tất cả Supply ProximityPrompts trong Map
-function Map.getAllSupplyPrompts()
-    local prompts = {}
-    local map = Config.Workspace:FindFirstChild("Map")
-    if not map then return prompts end
-    
-    for _, mapChild in ipairs(map:GetChildren()) do
-        if mapChild:IsA("Model") then
-            local eItem = mapChild:FindFirstChild("EItem")
-            if eItem then
-                -- Duyệt qua tất cả children của EItem
-                for _, eItemChild in ipairs(eItem:GetChildren()) do
-                    -- Tìm SM_Prop_SupplyPile
-                    for _, descendant in ipairs(eItemChild:GetDescendants()) do
-                        if descendant:IsA("BasePart") and string.match(descendant.Name, "SM_Prop_SupplyPile") then
-                            -- Tìm ProximityPrompt trong descendants
-                            for _, child in ipairs(descendant:GetDescendants()) do
-                                if child:IsA("ProximityPrompt") then
-                                    table.insert(prompts, {
-                                        prompt = child,
-                                        part = descendant,
-                                        position = descendant.Position
-                                    })
-                                    break
-                                end
-                            end
-                            break
-                        end
-                    end
-                end
-            end
-        end
-    end
-    
-    return prompts
-end
-
--- Tìm Supply gần nhất
-function Map.getNearestSupplyPrompt()
-    local char = Config.localPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return nil end
-    
-    local supplies = Map.getAllSupplyPrompts()
-    if #supplies == 0 then return nil end
-    
-    local nearestSupply = nil
-    local nearestDistance = math.huge
-    
-    for _, supply in ipairs(supplies) do
-        local distance = (hrp.Position - supply.position).Magnitude
-        if distance < nearestDistance then
-            nearestDistance = distance
-            nearestSupply = supply
-        end
-    end
-    
-    return nearestSupply, nearestDistance
-end
-
--- Refill ammo 1 lần (teleport + fire prompt + teleport back)
-function Map.refillAmmoOnce()
-    local char = Config.localPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if not hrp then
-        warn("[AutoRefill] Không tìm thấy HumanoidRootPart")
-        return false
-    end
-    
-    local supply, distance = Map.getNearestSupplyPrompt()
-    if not supply then
-        warn("[AutoRefill] Không tìm thấy Supply nào")
-        return false
-    end
-    
-    -- Lưu vị trí cũ
-    local oldCFrame = hrp.CFrame
-    
-    -- Teleport đến supply
-    hrp.CFrame = CFrame.new(supply.position + Vector3.new(0, 3, 0))
-    task.wait(0.2)
-    
-    -- Fire proximity prompt
-    if typeof(fireproximityprompt) == "function" then
-        pcall(function()
-            fireproximityprompt(supply.prompt)
-        end)
-    end
-    
-    task.wait(0.2)
-    
-    -- Teleport về
-    hrp.CFrame = oldCFrame
-    
-    if Config.UI and Config.UI.Library then
-        Config.UI.Library:Notify({
-            Title = "Auto Refill",
-            Description = string.format("Refilled ammo (%.0fm)", distance),
-            Time = 2
-        })
-    end
-    
-    return true
-end
-
-function Map.toggleAutoRefill(enabled)
-    Map.autoRefillEnabled = enabled
-    
-    if enabled then
-        Map.startAutoRefill()
-    else
-        Map.stopAutoRefill()
-    end
-end
-
-function Map.startAutoRefill()
-    Map.stopAutoRefill() -- Clear old connection
-    Map.autoRefillEnabled = true
-    
-    Map.refillConnection = task.spawn(function()
-        while task.wait(5) do -- Check every 5 seconds
-            if Config.scriptUnloaded or not Map.autoRefillEnabled then
-                break
-            end
-            
-            -- Check ammo (giả sử có function check ammo trong Config)
-            -- Nếu không có, có thể refill định kỳ hoặc check qua UI
-            Map.refillAmmoOnce()
-        end
-        
-        Map.refillConnection = nil
-    end)
-    
-    print("[AutoRefill] Auto refill ammo enabled")
-end
-
-function Map.stopAutoRefill()
-    Map.autoRefillEnabled = false
-    if Map.refillConnection then
-        Map.refillConnection = nil
-        print("[AutoRefill] Auto refill ammo disabled")
-    end
-end
 
 ----------------------------------------------------------
 -- 🔹 Cleanup
 function Map.cleanup()
     Map.stopSupplyESP()
     Map.stopAutoDoor()
-    Map.stopAutoTask()
-    Map.stopAutoRefill()
 end
 
 return Map

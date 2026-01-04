@@ -220,10 +220,6 @@ Config.bobESPEnabled = true
 Config.autoDoorEnabled = true
 
 ----------------------------------------------------------
--- 🔹 Auto Task
-Config.autoTaskEnabled = false
-
-----------------------------------------------------------
 -- 🔹 Auto Buy Christmas Gift Box
 Config.autoBuyChristmasGiftBoxEnabled = false
 

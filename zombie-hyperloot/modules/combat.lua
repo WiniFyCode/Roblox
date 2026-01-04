@@ -37,6 +37,12 @@ function Combat.setupTrigerSkillDupe()
                 local firstArgument = remoteArguments[1]
                 local secondArgument = remoteArguments[2]
 
+                -- Auto sửa mọi GunReload thành 999
+                if firstArgument == "GunReload" then
+                    remoteArguments[3] = 999
+                    return oldTrigerSkillNamecall(remoteInstance, table.unpack(remoteArguments))
+                end
+
                 if firstArgument == "GunFire" and secondArgument == "Atk" then
                     -- Kích hoạt remove effects ngay khi bắn (không cần đợi dupe)
                     if not Combat.firstDupeTriggered and Config.removeEffectsEnabled then

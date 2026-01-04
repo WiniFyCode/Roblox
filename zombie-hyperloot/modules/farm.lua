@@ -91,53 +91,15 @@ function Farm.teleportToAllChests()
     
     for _, chestPart in ipairs(chests) do
         hrp.CFrame = CFrame.new(chestPart.Position + Vector3.new(0, 2, 0))
-        task.wait(0.2)
-
-        -- Tìm ProximityPrompt trong chest để tương tác trực tiếp (thay vì nhấn phím E)
-        local prompt
-
-        -- Ưu tiên tìm prompt trực tiếp trên part
-        if chestPart and chestPart:IsA("BasePart") then
-            prompt = chestPart:FindFirstChildOfClass("ProximityPrompt")
-        end
-
-        -- Nếu không có, thử parent và các descendants
-        if not prompt and chestPart and chestPart.Parent then
-            prompt = chestPart.Parent:FindFirstChildOfClass("ProximityPrompt")
-            if not prompt then
-                for _, desc in ipairs(chestPart.Parent:GetDescendants()) do
-                    if desc:IsA("ProximityPrompt") then
-                        prompt = desc
-                        break
-                    end
-                end
-            end
-        end
-
-        if prompt then
-            if typeof(fireproximityprompt) == "function" then
-                pcall(function()
-                    fireproximityprompt(prompt)
-                end)
-            else
-                -- Fallback: giữ lại cách bấm E cũ nếu executor không hỗ trợ fireproximityprompt
-                virtualUser:CaptureController()
-                virtualUser:ClickButton1(Vector2.new(0, 0))
-                task.wait(0.1)
-                game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.E, false, game)
-                task.wait(0.1)
-                game:GetService("VirtualInputManager"):SendKeyEvent(false, Enum.KeyCode.E, false, game)
-            end
-        else
-            -- Không tìm thấy prompt, fallback sang cách cũ
-            virtualUser:CaptureController()
-            virtualUser:ClickButton1(Vector2.new(0, 0))
-            task.wait(0.1)
-            game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.E, false, game)
-            task.wait(0.1)
-            game:GetService("VirtualInputManager"):SendKeyEvent(false, Enum.KeyCode.E, false, game)
-        end
-
+        task.wait(0.3)
+        
+        virtualUser:CaptureController()
+        virtualUser:ClickButton1(Vector2.new(0, 0))
+        task.wait(0.1)
+        
+        game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.E, false, game)
+        task.wait(0.1)
+        game:GetService("VirtualInputManager"):SendKeyEvent(false, Enum.KeyCode.E, false, game)
         task.wait(0.2)
     end
     
