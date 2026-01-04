@@ -189,9 +189,17 @@ local function getPromptWorldPosition(prompt)
         end
     end
 
-    -- Nhiều map để Prompt trực tiếp dưới Part (ví dụ: EItem.Task.ProximityPrompt)
-    if parent and parent:IsA("BasePart") then
-        return parent.Position
+    if parent then
+        -- Nhiều map để Prompt trực tiếp dưới Part
+        if parent:IsA("BasePart") then
+            return parent.Position
+        end
+
+        -- Trường hợp như hình bạn gửi: Task/Car là folder/model, part thật nằm dưới (vd: default)
+        local part = parent:FindFirstChildWhichIsA("BasePart", true)
+        if part then
+            return part.Position
+        end
     end
 
     -- Một số Prompt có thuộc tính Adornee, nhưng không phải cái nào cũng có
@@ -225,14 +233,27 @@ local function findCarPrompt()
     local map = Config.Workspace:FindFirstChild("Map")
     if not map then return nil end
 
-    for _, mapChild in ipairs(map:GetChildren()) do
-        local eItem = mapChild:FindFirstChild("EItem")
-        if eItem then
-            local car = eItem:FindFirstChild("Car", true)
-            if car and car:FindFirstChildOfClass("ProximityPrompt") then
-                Map.cachedCarPrompt = car:FindFirstChildOfClass("ProximityPrompt")
-                return Map.cachedCarPrompt
+    -- Tìm bất kỳ ProximityPrompt nào có parent tên "Car" dưới Map
+    for _, inst in ipairs(map:GetDescendants()) do
+        if inst:IsA("ProximityPrompt") then
+            local parent = inst.Parent
+            if parent and parent.Name == "Car" then
+                Map.cachedCarPrompt = inst
+                return inst
             end
+        end
+    end
+
+    return nil
+end
+
+local function findCarPart()
+    local map = Config.Workspace:FindFirstChild("Map")
+    if not map then return nil end
+
+    for _, inst in ipairs(map:GetDescendants()) do
+        if inst:IsA("BasePart") and inst.Name == "Car" then
+            return inst
         end
     end
 
@@ -247,19 +268,33 @@ local function findTaskPrompt()
     local map = Config.Workspace:FindFirstChild("Map")
     if not map then return nil end
 
-    for _, mapChild in ipairs(map:GetChildren()) do
-        local eItem = mapChild:FindFirstChild("EItem")
-        if eItem then
-            local task = eItem:FindFirstChild("Task", true)
-            if task and task:FindFirstChildOfClass("ProximityPrompt") then
-                Map.cachedTaskPrompt = task:FindFirstChildOfClass("ProximityPrompt")
-                return Map.cachedTaskPrompt
+    -- Tìm bất kỳ ProximityPrompt nào có parent tên "Task" dưới Map
+    for _, inst in ipairs(map:GetDescendants()) do
+        if inst:IsA("ProximityPrompt") then
+            local parent = inst.Parent
+            if parent and parent.Name == "Task" then
+                Map.cachedTaskPrompt = inst
+                return inst
             end
         end
     end
 
     return nil
 end
+
+local function findTaskPart()
+    local map = Config.Workspace:FindFirstChild("Map")
+    if not map then return nil end
+
+    for _, inst in ipairs(map:GetDescendants()) do
+        if inst:IsA("BasePart") and inst.Name == "Task" then
+            return inst
+        end
+    end
+
+    return nil
+end
+
 
 function Map.createSupplyUI()
     -- Xóa UI cũ nếu có
@@ -336,19 +371,32 @@ function Map.createSupplyUI()
 
         button.MouseButton1Click:Connect(function()
             local prompt = findTaskPrompt()
-            if not prompt then
-                warn("[Task] Không tìm thấy ProximityPrompt Task")
-                return
+            local worldPos = nil
+
+            if prompt then
+                worldPos = getPromptWorldPosition(prompt)
             end
 
-            local worldPos = getPromptWorldPosition(prompt)
+            -- Fallback: nếu không có prompt thì teleport tới part "Task"
+            if not worldPos then
+                local taskPart = findTaskPart()
+                if taskPart then
+                    worldPos = taskPart.Position
+                end
+            end
+
             local char = Config.localPlayer.Character
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
             if hrp and worldPos then
                 hrp.CFrame = CFrame.new(worldPos + Vector3.new(0, 5, 0))
-                firePromptOnce(prompt)
+                if prompt then
+                    firePromptOnce(prompt)
+                end
+            else
+                warn("[Task] Không thể teleport tới Task (không tìm thấy vị trí)")
             end
         end)
+
 
         button.MouseEnter:Connect(function()
             button.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
@@ -411,19 +459,32 @@ function Map.createSupplyUI()
 
         button.MouseButton1Click:Connect(function()
             local prompt = findCarPrompt()
-            if not prompt then
-                warn("[Car] Không tìm thấy ProximityPrompt Car")
-                return
+            local worldPos = nil
+
+            if prompt then
+                worldPos = getPromptWorldPosition(prompt)
             end
 
-            local worldPos = getPromptWorldPosition(prompt)
+            -- Fallback: nếu không có prompt thì teleport tới part "Car"
+            if not worldPos then
+                local carPart = findCarPart()
+                if carPart then
+                    worldPos = carPart.Position
+                end
+            end
+
             local char = Config.localPlayer.Character
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
             if hrp and worldPos then
                 hrp.CFrame = CFrame.new(worldPos + Vector3.new(0, 5, 0))
-                firePromptOnce(prompt)
+                if prompt then
+                    firePromptOnce(prompt)
+                end
+            else
+                warn("[Car] Không thể teleport tới Car (không tìm thấy vị trí)")
             end
         end)
+
 
         button.MouseEnter:Connect(function()
             button.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
