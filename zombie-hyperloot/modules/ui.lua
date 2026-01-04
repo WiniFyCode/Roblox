@@ -534,15 +534,15 @@ function UI.createCombatTab()
     })
 
     CombatRightGroup:AddToggle("FiringRangePriority", {
-        Text = "Ưu tiên FiringRange",
-        Tooltip = "Bật: auto skill ưu tiên dummy trong Map.FiringRange",
+        Text = "Target Dummies",
+        Tooltip = "Enable: auto skill prioritizes dummies in Map.FiringRange",
         Default = Config.firingRangePriorityEnabled,
         Callback = function(Value)
             Config.firingRangePriorityEnabled = Value
             if UI.Library then
                 UI.Library:Notify({
                     Title = "FiringRange",
-                    Description = Value and "Ưu tiên FiringRange (dummy) đã bật" or "Ưu tiên FiringRange đã tắt",
+                    Description = Value and "FiringRange (dummy) priority enabled" or "FiringRange priority disabled",
                     Time = 2
                 })
             end
