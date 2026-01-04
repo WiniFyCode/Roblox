@@ -228,6 +228,229 @@ function Visuals.toggleRemoveEffects(enabled)
 end
 
 ----------------------------------------------------------
+-- 🔹 ProximityPrompt Range Circle
+Visuals.rangeCircles = {}
+
+function Visuals.createRangeCircle(promptObject, radius, color)
+    if not promptObject or not promptObject.Parent then
+        warn("[Visuals] Invalid ProximityPrompt object")
+        return nil
+    end
+    
+    -- Tìm part chứa prompt
+    local parentPart = promptObject.Parent
+    if not parentPart:IsA("BasePart") and not parentPart:IsA("Attachment") then
+        warn("[Visuals] ProximityPrompt parent is not a BasePart or Attachment")
+        return nil
+    end
+    
+    -- Nếu parent là Attachment, lấy part chứa attachment
+    local targetPart = parentPart
+    if parentPart:IsA("Attachment") then
+        targetPart = parentPart.Parent
+    end
+    
+    if not targetPart or not targetPart:IsA("BasePart") then
+        warn("[Visuals] Cannot find BasePart for range circle")
+        return nil
+    end
+    
+    -- Tạo Part hình trụ làm vòng tròn
+    local circle = Instance.new("Part")
+    circle.Name = "RangeCircle"
+    circle.Shape = Enum.PartType.Cylinder
+    circle.Size = Vector3.new(0.2, radius * 2, radius * 2) -- Cylinder: X = height, Y/Z = diameter
+    circle.Anchored = true
+    circle.CanCollide = false
+    circle.Transparency = 0.7
+    circle.Material = Enum.Material.Neon
+    circle.Color = color or Color3.fromRGB(255, 255, 0) -- Vàng mặc định
+    circle.TopSurface = Enum.SurfaceType.Smooth
+    circle.BottomSurface = Enum.SurfaceType.Smooth
+    
+    -- Đặt vị trí và xoay để nằm ngang (vòng tròn trên mặt đất)
+    circle.CFrame = targetPart.CFrame * CFrame.Angles(0, 0, math.rad(90))
+    
+    -- Tạo WeldConstraint để circle theo part
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0 = targetPart
+    weld.Part1 = circle
+    weld.Parent = circle
+    
+    circle.Parent = workspace
+    
+    -- Lưu vào table để cleanup sau
+    table.insert(Visuals.rangeCircles, circle)
+    
+    return circle
+end
+
+function Visuals.drawProximityRange(promptPath, radius, color)
+    local success, prompt = pcall(function()
+        -- Parse path string thành object
+        local parts = string.split(promptPath, ".")
+        local current = game
+        
+        for _, part in ipairs(parts) do
+            -- Xử lý GetChildren()[index]
+            if string.match(part, "GetChildren%(%)[[](%d+)[]]") then
+                local index = tonumber(string.match(part, "GetChildren%(%)[[](%d+)[]]"))
+                current = current:GetChildren()[index]
+            -- Xử lý ["name"]
+            elseif string.match(part, '%["(.+)"%]') then
+                local name = string.match(part, '%["(.+)"%]')
+                current = current:FindFirstChild(name)
+            -- Xử lý name thông thường
+            else
+                current = current:FindFirstChild(part)
+            end
+            
+            if not current then
+                warn("[Visuals] Path not found: " .. promptPath)
+                return nil
+            end
+        end
+        
+        return current
+    end)
+    
+    if not success or not prompt then
+        warn("[Visuals] Failed to find ProximityPrompt at path: " .. promptPath)
+        return nil
+    end
+    
+    return Visuals.createRangeCircle(prompt, radius, color)
+end
+
+-- Vẽ vòng tròn cho tất cả Supply, Task, Car
+function Visuals.drawAllProximityRanges()
+    if not Config then
+        warn("[Visuals] Config not initialized")
+        return
+    end
+    
+    local map = Config.Workspace:FindFirstChild("Map")
+    if not map then
+        warn("[Visuals] Map not found")
+        return
+    end
+    
+    local count = {supply = 0, task = 0, car = 0}
+    
+    for _, mapChild in ipairs(map:GetChildren()) do
+        if mapChild:IsA("Model") then
+            local eItem = mapChild:FindFirstChild("EItem")
+            if eItem then
+                -- Supply (màu vàng)
+                for _, eItemChild in ipairs(eItem:GetChildren()) do
+                    for _, descendant in ipairs(eItemChild:GetDescendants()) do
+                        if descendant:IsA("BasePart") and string.match(descendant.Name, "SM_Prop_SupplyPile") then
+                            for _, child in ipairs(descendant:GetDescendants()) do
+                                if child:IsA("ProximityPrompt") then
+                                    Visuals.createRangeCircle(child, 10, Color3.fromRGB(255, 255, 0)) -- Vàng
+                                    count.supply = count.supply + 1
+                                    break
+                                end
+                            end
+                            break
+                        end
+                    end
+                end
+                
+                -- Task (màu xanh dương)
+                local taskObj = eItem:FindFirstChild("Task")
+                if taskObj then
+                    for _, desc in ipairs(taskObj:GetDescendants()) do
+                        if desc:IsA("ProximityPrompt") then
+                            Visuals.createRangeCircle(desc, 10, Color3.fromRGB(0, 150, 255)) -- Xanh dương
+                            count.task = count.task + 1
+                            break
+                        end
+                    end
+                end
+                
+                -- Car (màu xanh lá)
+                local carObj = eItem:FindFirstChild("Car")
+                if carObj then
+                    for _, desc in ipairs(carObj:GetDescendants()) do
+                        if desc:IsA("ProximityPrompt") then
+                            Visuals.createRangeCircle(desc, 10, Color3.fromRGB(0, 255, 0)) -- Xanh lá
+                            count.car = count.car + 1
+                            break
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    print(string.format("[Visuals] Drew range circles: %d Supply, %d Task, %d Car", count.supply, count.task, count.car))
+    
+    if Config.UI and Config.UI.Library then
+        Config.UI.Library:Notify({
+            Title = "Range Circles",
+            Description = string.format("Drew: %d Supply, %d Task, %d Car", count.supply, count.task, count.car),
+            Time = 3
+        })
+    end
+end
+
+function Visuals.clearRangeCircles()
+    for _, circle in ipairs(Visuals.rangeCircles) do
+        if circle and circle.Parent then
+            circle:Destroy()
+        end
+    end
+    Visuals.rangeCircles = {}
+end
+
+----------------------------------------------------------
+-- 🔹 Reload Gun Full Ammo
+function Visuals.reloadGunFullAmmo()
+    local success, err = pcall(function()
+        local player = game:GetService("Players").LocalPlayer
+        local char = player.Character
+        if not char then
+            warn("[ReloadGun] Character not found")
+            return false
+        end
+        
+        local netMessage = char:WaitForChild("NetMessage", 2)
+        if not netMessage then
+            warn("[ReloadGun] NetMessage not found")
+            return false
+        end
+        
+        local trigerSkill = netMessage:WaitForChild("TrigerSkill", 2)
+        if not trigerSkill then
+            warn("[ReloadGun] TrigerSkill not found")
+            return false
+        end
+        
+        -- Fire server với args GunReload
+        local args = {"GunReload", "Enter", 999}
+        trigerSkill:FireServer(unpack(args))
+        
+        if Config and Config.UI and Config.UI.Library then
+            Config.UI.Library:Notify({
+                Title = "Reload Gun",
+                Description = "Full ammo reloaded!",
+                Time = 2
+            })
+        end
+        
+        return true
+    end)
+    
+    if not success then
+        warn("[ReloadGun] Error: " .. tostring(err))
+        return false
+    end
+    
+    return true
+end
+
+----------------------------------------------------------
 -- 🔹 Cleanup
 function Visuals.cleanup()
     Visuals.restoreFog()
@@ -238,6 +461,9 @@ function Visuals.cleanup()
     if Visuals.effectsRemoved then
         Visuals.restoreAllEffects()
     end
+    
+    -- Xóa range circles
+    Visuals.clearRangeCircles()
 end
 
 return Visuals
