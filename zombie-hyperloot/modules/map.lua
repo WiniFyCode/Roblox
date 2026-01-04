@@ -59,7 +59,7 @@ function Map.teleportToWaitAreaAndStart()
     local char = Config.localPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not char or not hrp then
-        warn("[MapTeleport] Không tìm thấy nhân vật hoặc HumanoidRootPart")
+        warn("[MapTeleport] Could not find character or HumanoidRootPart")
         return
     end
 
@@ -111,7 +111,7 @@ function Map.replayCurrentMatch()
     local replicatedStorage = game:GetService("ReplicatedStorage")
     local remoteFolder = replicatedStorage:FindFirstChild("Remote")
     if not remoteFolder then
-        warn("[ReplayMatch] Không tìm thấy ReplicatedStorage.Remote")
+        warn("[ReplayMatch] Could not find ReplicatedStorage.Remote")
         return
     end
 
@@ -162,7 +162,7 @@ function Map.teleportToSupply(supplyData)
     local char = Config.localPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then
-        warn("[Supply] Không tìm thấy HumanoidRootPart")
+        warn("[Supply] Could not find HumanoidRootPart")
         return
     end
     
@@ -393,7 +393,7 @@ function Map.createSupplyUI()
                     firePromptOnce(prompt)
                 end
             else
-                warn("[Task] Không thể teleport tới Task (không tìm thấy vị trí)")
+                warn("[Task] Cannot teleport to Task (position not found)")
             end
         end)
 
@@ -781,7 +781,7 @@ function Map.startAutoDoor()
 
     local fx = Config.Workspace:FindFirstChild("FX") or Config.fxFolder
     if not fx then
-        warn("[AutoDoor] Không tìm thấy FX để theo dõi cửa")
+        warn("[AutoDoor] Could not find FX to track door")
         return
     end
 
@@ -812,7 +812,7 @@ function Map.startAutoDoor()
         end
     end)
 
-    print("[AutoDoor] Auto open door đã được bật")
+    print("[AutoDoor] Auto open door enabled")
 end
 
 function Map.stopAutoDoor()
@@ -821,7 +821,7 @@ function Map.stopAutoDoor()
         Map.doorConnection:Disconnect()
         Map.doorConnection = nil
     end
-    print("[AutoDoor] Auto open door đã được tắt")
+    print("[AutoDoor] Auto open door disabled")
 end
 
 

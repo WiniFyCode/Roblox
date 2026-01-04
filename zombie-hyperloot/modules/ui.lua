@@ -1504,7 +1504,7 @@ function UI.createCharacterTab()
     local displayList, displayToId = Character.getCharacterDisplayList()
 
     if not displayList or #displayList == 0 then
-        displayList = {"Không đọc được dữ liệu (vào game trước đã)"}
+        displayList = {"Failed to read character data (join a game first)"}
         displayToId = {}
     end
 
@@ -1625,9 +1625,9 @@ function UI.createCharacterTab()
         return name
     end
 
-    -- Nếu không lấy được character hiện tại, thông báo và không vẽ group skill
+    -- If we cannot get current character, show info and skip skill group
     if not currentCharacterId then
-        CharacterGroup:AddLabel("Không xác định nhân vật hiện tại - hãy vào game và equip character rồi mở lại menu.")
+        CharacterGroup:AddLabel("Unable to detect current character - join the game, equip a character, then reopen the menu.")
         return CharacterTab
     end
 

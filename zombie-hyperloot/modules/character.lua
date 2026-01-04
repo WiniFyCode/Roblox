@@ -114,7 +114,7 @@ function Character.getCharacterDisplayList()
     Character.DisplayToId = {}
 
     if not characters then
-        return {"Không đọc được dữ liệu (vào game trước đã)"}, {}
+        return {"Failed to read character data (join a game first)"}, {}
     end
 
     local list = {}
