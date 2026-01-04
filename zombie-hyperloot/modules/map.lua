@@ -166,57 +166,40 @@ function Map.teleportToSupply(supplyData)
         return
     end
     
-    if not supplyData or not supplyData.position or not supplyData.part then
+    if not supplyData or not supplyData.position then
         warn("[Supply] supplyData không hợp lệ")
         return
     end
 
     local targetPos = supplyData.position
     
-    -- Teleport tới supply (cao hơn 5 studs để tránh bị stuck)
+    -- Chỉ teleport tới supply (cao hơn 5 studs để tránh bị stuck)
     hrp.CFrame = CFrame.new(targetPos + Vector3.new(0, 5, 0))
-
-    -- Tự động bấm ProximityPrompt nếu tìm được gần supply
-    local prompt = nil
-    local model = supplyData.part:FindFirstAncestorOfClass("Model") or supplyData.part.Parent
-    if model then
-        for _, desc in ipairs(model:GetDescendants()) do
-            if desc:IsA("ProximityPrompt") then
-                prompt = desc
-                break
-            end
-        end
-    end
-
-    if prompt and typeof(fireproximityprompt) == "function" then
-        task.delay(0.25, function()
-            pcall(function()
-                if prompt and prompt.Enabled then
-                    fireproximityprompt(prompt)
-                end
-            end)
-        end)
-    end
 end
 
 local function getPromptWorldPosition(prompt)
     if not prompt then return nil end
     local parent = prompt.Parent
 
-    if parent:IsA("Attachment") then
+    -- Trường hợp phổ biến: ProximityPrompt nằm trong Attachment gắn vào Part
+    if parent and parent:IsA("Attachment") then
         local parentPart = parent.Parent
         if parentPart and parentPart:IsA("BasePart") then
             return parentPart.Position
         end
     end
 
-    local adornee = prompt.Adornee
-    if adornee and adornee:IsA("BasePart") then
-        return adornee.Position
+    -- Nhiều map để Prompt trực tiếp dưới Part (ví dụ: EItem.Task.ProximityPrompt)
+    if parent and parent:IsA("BasePart") then
+        return parent.Position
     end
 
-    if parent:IsA("BasePart") then
-        return parent.Position
+    -- Một số Prompt có thuộc tính Adornee, nhưng không phải cái nào cũng có
+    local ok, adornee = pcall(function()
+        return prompt.Adornee
+    end)
+    if ok and adornee and adornee:IsA("BasePart") then
+        return adornee.Position
     end
 
     return nil
@@ -319,7 +302,9 @@ function Map.createSupplyUI()
         button.TextXAlignment = Enum.TextXAlignment.Left
         button.Text = "Task"
         button.AutoButtonColor = false
+        button.Visible = false
         button.Parent = Map.supplyFrame
+
 
         local buttonCorner = Instance.new("UICorner")
         buttonCorner.CornerRadius = UDim.new(0, 4)
@@ -392,7 +377,9 @@ function Map.createSupplyUI()
         button.TextXAlignment = Enum.TextXAlignment.Left
         button.Text = "Car"
         button.AutoButtonColor = false
+        button.Visible = false
         button.Parent = Map.supplyFrame
+
 
         local buttonCorner = Instance.new("UICorner")
         buttonCorner.CornerRadius = UDim.new(0, 4)
@@ -646,6 +633,14 @@ function Map.startSupplyESP()
     Map.refreshConnection = Config.RunService.Heartbeat:Connect(function()
         if not Config.supplyESPEnabled then return end
         Map.updateSupplyDistances()
+
+        -- Task/Car chỉ hiện khi có prompt
+        if Map.taskButton then
+            Map.taskButton.Visible = (findTaskPrompt() ~= nil)
+        end
+        if Map.carButton then
+            Map.carButton.Visible = (findCarPrompt() ~= nil)
+        end
     end)
 end
 
