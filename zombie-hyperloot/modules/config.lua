@@ -103,6 +103,11 @@ Config.speedValue = 16
 Config.originalWalkSpeed = nil
 
 ----------------------------------------------------------
+-- 🔹 Hip Height
+Config.hipHeightEnabled = false
+Config.hipHeight = 10
+
+----------------------------------------------------------
 -- 🔹 Noclip Cam
 Config.noclipCamEnabled = true
 

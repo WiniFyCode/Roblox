@@ -958,6 +958,47 @@ function UI.createMovementTab()
         end
     })
 
+    MovementLeftGroup:AddToggle("HipHeight", {
+        Text = "Hip Height (Fly)",
+        Default = Config.hipHeightEnabled,
+        Callback = function(Value)
+            Config.hipHeightEnabled = Value
+            if Value then
+                Movement.enableHipHeight(Config.hipHeight)
+            else
+                Movement.disableHipHeight()
+            end
+            if UI.Library then
+                UI.Library:Notify({
+                    Title = "Movement",
+                    Description = Value and "Hip Height enabled" or "Hip Height disabled",
+                    Time = 2
+                })
+            end
+        end
+    })
+
+    MovementLeftGroup:AddSlider("HipHeightValue", {
+        Text = "Hip Height",
+        Default = Config.hipHeight or 10,
+        Min = 0, Max = 50, Rounding = 0.5,
+        Callback = function(Value)
+            Config.hipHeight = Value
+            if Config.hipHeightEnabled then
+                Movement.setHipHeight(Value)
+            end
+        end
+    })
+            if UI.Library then
+                UI.Library:Notify({
+                    Title = "Movement",
+                    Description = Value and "Anti AFK enabled" or "Anti AFK disabled",
+                    Time = 2
+                })
+            end
+        end
+    })
+
     -- Right Groupbox
     local MovementRightGroup = MovementTab:AddRightGroupbox("Camera Teleport")
 

@@ -337,15 +337,60 @@ end
 
 ----------------------------------------------------------
 -- 🔹 Cleanup
+----------------------------------------------------------
+-- 🔹 Hip Height (Fly on Air)
+Movement.hipHeightConnection = nil
+
+function Movement.enableHipHeight(height)
+    if Movement.hipHeightConnection then return end
+    
+    height = height or 10
+    
+    Movement.hipHeightConnection = Config.RunService.Heartbeat:Connect(function()
+        local char = Config.localPlayer.Character
+        if char and Config.hipHeightEnabled then
+            local humanoid = char:FindFirstChild("Humanoid")
+            if humanoid then
+                humanoid.HipHeight = height
+            end
+        end
+    end)
+end
+
+function Movement.disableHipHeight()
+    if Movement.hipHeightConnection then
+        Movement.hipHeightConnection:Disconnect()
+        Movement.hipHeightConnection = nil
+    end
+    
+    local char = Config.localPlayer.Character
+    if char then
+        local humanoid = char:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.HipHeight = 0
+        end
+    end
+end
+
+function Movement.setHipHeight(height)
+    Config.hipHeight = height
+    if Config.hipHeightEnabled then
+        Movement.disableHipHeight()
+        Movement.enableHipHeight(height)
+    end
+end
+
+----------------------------------------------------------
+-- 🔹 Cleanup
 function Movement.cleanup()
     Movement.disableNoClip()
     Movement.stopSpeedBoost()
     Movement.stopAntiAFK()
-
+    Movement.disableHipHeight()
 
     if Config.noclipCamEnabled then
         Config.noclipCamEnabled = false
-        Movement.setNoclipCam(false) -- Tắt noclip cam khi cleanup
+        Movement.setNoclipCam(false)
     end
 end
 
