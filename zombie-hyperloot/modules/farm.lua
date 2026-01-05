@@ -82,7 +82,7 @@ function Farm.teleportToAllChests()
     if not hrp then return end
 
     local oldPos = hrp.Position
-    local virtualUser = game:GetService("VirtualUser")
+    local proximityPromptService = game:GetService("ProximityPromptService")
     
     local chests = {}
     ESP.forEachChestPart(function(chestPart)
@@ -93,14 +93,19 @@ function Farm.teleportToAllChests()
         hrp.CFrame = CFrame.new(chestPart.Position + Vector3.new(0, 2, 0))
         task.wait(0.3)
         
-        virtualUser:CaptureController()
-        virtualUser:ClickButton1(Vector2.new(0, 0))
-        task.wait(0.1)
+        -- Find and fire ProximityPrompt
+        local proximityPrompt = chestPart:FindFirstChild("ProximityPrompt")
+        if not proximityPrompt then
+            proximityPrompt = chestPart.Parent:FindFirstChild("ProximityPrompt")
+        end
         
-        game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.E, false, game)
-        task.wait(0.1)
-        game:GetService("VirtualInputManager"):SendKeyEvent(false, Enum.KeyCode.E, false, game)
-        task.wait(0.2)
+        if proximityPrompt and proximityPrompt:IsA("ProximityPrompt") then
+            pcall(function()
+                proximityPromptService:FirePromptButtonPressed(proximityPrompt)
+            end)
+        end
+        
+        task.wait(0.5)
     end
     
     hrp.CFrame = CFrame.new(oldPos)
