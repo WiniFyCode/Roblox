@@ -73,7 +73,7 @@ Config.unloadKey = Enum.KeyCode.End -- Unload script
 ----------------------------------------------------------
 -- 🔹 Teleport Settings
 -- Mặc định tắt, chỉ hoạt động khi bạn bật trong menu
-Config.teleportEnabled = false
+Config.teleportEnabled = true
 Config.cameraTeleportEnabled = false
 Config.cameraTeleportActive = false
 Config.teleportToLastZombie = false

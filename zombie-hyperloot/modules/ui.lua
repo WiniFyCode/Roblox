@@ -1369,6 +1369,23 @@ function UI.createFarmTab()
         end
     })
 
+    FarmGroup:AddButton({
+        Text = "Teleport to All Chests",
+        Func = function()
+            if Farm and Farm.teleportToAllChests then
+                print("[Farm] Teleporting to all chests...")
+                Farm.teleportToAllChests()
+                if UI.Library then
+                    UI.Library:Notify({
+                        Title = "Farm",
+                        Description = "Teleporting to all chests...",
+                        Time = 2
+                    })
+                end
+            end
+        end
+    })
+
     FarmGroup:AddDivider()
     FarmGroup:AddLabel("Potions - Common")
 
@@ -2005,7 +2022,10 @@ function UI.createSettingsTab(cleanupCallback)
         NoUI = false,
         Callback = function()
             if Farm and Farm.teleportToAllChests then
+                print("[UI] Teleport to All Chests button clicked")
                 Farm.teleportToAllChests()
+            else
+                print("[UI] Farm module not found or teleportToAllChests function missing")
             end
         end
     })
