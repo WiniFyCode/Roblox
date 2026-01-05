@@ -963,10 +963,12 @@ function UI.createMovementTab()
         Default = Config.hipHeightEnabled,
         Callback = function(Value)
             Config.hipHeightEnabled = Value
-            if Value then
-                Movement.enableHipHeight(Config.hipHeight)
-            else
-                Movement.disableHipHeight()
+            if Movement then
+                if Value then
+                    Movement.enableHipHeight(Config.hipHeight)
+                else
+                    Movement.disableHipHeight()
+                end
             end
             if UI.Library then
                 UI.Library:Notify({
@@ -984,7 +986,7 @@ function UI.createMovementTab()
         Min = 0, Max = 50, Rounding = 0.5,
         Callback = function(Value)
             Config.hipHeight = Value
-            if Config.hipHeightEnabled then
+            if Movement and Config.hipHeightEnabled then
                 Movement.setHipHeight(Value)
             end
         end

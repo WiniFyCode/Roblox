@@ -334,9 +334,6 @@ function Movement.onCharacterAdded(character)
     end
 end
 
-
-----------------------------------------------------------
--- 🔹 Cleanup
 ----------------------------------------------------------
 -- 🔹 Hip Height (Fly on Air)
 Movement.hipHeightConnection = nil
