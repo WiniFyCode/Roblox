@@ -90,22 +90,21 @@ function Farm.teleportToAllChests()
     end)
     
     for _, chestPart in ipairs(chests) do
+        if not chestPart or not chestPart.Parent then continue end
+        
         hrp.CFrame = CFrame.new(chestPart.Position + Vector3.new(0, 2, 0))
-        task.wait(0.3)
+        task.wait(0.35)
         
-        -- Find and fire ProximityPrompt
-        local proximityPrompt = chestPart:FindFirstChild("ProximityPrompt")
-        if not proximityPrompt then
-            proximityPrompt = chestPart.Parent:FindFirstChild("ProximityPrompt")
+        local chestFolder = chestPart:FindFirstChild("Chest")
+        if chestFolder then
+            local proximityPrompt = chestFolder:FindFirstChild("ProximityPrompt")
+            if proximityPrompt and proximityPrompt.Enabled then
+                pcall(function()
+                    proximityPromptService:FirePromptButtonPressed(proximityPrompt)
+                end)
+                task.wait(0.5)
+            end
         end
-        
-        if proximityPrompt and proximityPrompt:IsA("ProximityPrompt") then
-            pcall(function()
-                proximityPromptService:FirePromptButtonPressed(proximityPrompt)
-            end)
-        end
-        
-        task.wait(0.5)
     end
     
     hrp.CFrame = CFrame.new(oldPos)
