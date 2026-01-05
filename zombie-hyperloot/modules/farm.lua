@@ -92,8 +92,12 @@ function Farm.teleportToAllChests()
     for _, chestPart in ipairs(chests) do
         if not chestPart or not chestPart.Parent then continue end
         
-        hrp.CFrame = CFrame.new(chestPart.Position + Vector3.new(0, 2, 0))
-        task.wait(0.35)
+        -- Find a BasePart to teleport to
+        local targetPart = chestPart:FindFirstChildWhichIsA("BasePart", true)
+        if not targetPart then continue end
+        
+        hrp.CFrame = CFrame.new(targetPart.Position + Vector3.new(0, 3, 0))
+        task.wait(0.25)
         
         local chestFolder = chestPart:FindFirstChild("Chest")
         if chestFolder then
