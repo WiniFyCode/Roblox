@@ -98,9 +98,11 @@ function Farm.teleportToAllChests()
         local chestFolder = chestPart:FindFirstChild("Chest")
         if chestFolder then
             local proximityPrompt = chestFolder:FindFirstChild("ProximityPrompt")
-            if proximityPrompt and proximityPrompt.Enabled then
+            if proximityPrompt then
                 pcall(function()
-                    proximityPromptService:FirePromptButtonPressed(proximityPrompt)
+                    if typeof(fireproximityprompt) == "function" then
+                        fireproximityprompt(proximityPrompt)
+                    end
                 end)
                 task.wait(0.5)
             end
