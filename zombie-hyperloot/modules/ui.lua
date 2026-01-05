@@ -989,15 +989,6 @@ function UI.createMovementTab()
             end
         end
     })
-            if UI.Library then
-                UI.Library:Notify({
-                    Title = "Movement",
-                    Description = Value and "Anti AFK enabled" or "Anti AFK disabled",
-                    Time = 2
-                })
-            end
-        end
-    })
 
     -- Right Groupbox
     local MovementRightGroup = MovementTab:AddRightGroupbox("Camera Teleport")
