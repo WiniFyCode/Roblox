@@ -82,24 +82,29 @@ function Farm.teleportToAllChests()
     if not hrp then return end
 
     local oldPos = hrp.Position
-    local proximityPromptService = game:GetService("ProximityPromptService")
+    local map = Config.Workspace:FindFirstChild("Map")
+    if not map then return end
     
     local chests = {}
-    ESP.forEachChestPart(function(chestPart)
-        table.insert(chests, chestPart)
-    end)
+    for _, mapChild in ipairs(map:GetChildren()) do
+        local chestFolder = mapChild:FindFirstChild("Chest")
+        if chestFolder then
+            for _, chestItem in ipairs(chestFolder:GetChildren()) do
+                table.insert(chests, chestItem)
+            end
+        end
+    end
     
-    for _, chestPart in ipairs(chests) do
-        if not chestPart or not chestPart.Parent then continue end
+    for _, chestItem in ipairs(chests) do
+        if not chestItem or not chestItem.Parent then continue end
         
-        -- Find a BasePart to teleport to
-        local targetPart = chestPart:FindFirstChildWhichIsA("BasePart", true)
+        local targetPart = chestItem:FindFirstChildWhichIsA("BasePart", true)
         if not targetPart then continue end
         
         hrp.CFrame = CFrame.new(targetPart.Position + Vector3.new(0, 3, 0))
         task.wait(0.25)
         
-        local chestFolder = chestPart:FindFirstChild("Chest")
+        local chestFolder = chestItem:FindFirstChild("Chest")
         if chestFolder then
             local proximityPrompt = chestFolder:FindFirstChild("ProximityPrompt")
             if proximityPrompt then
@@ -108,7 +113,7 @@ function Farm.teleportToAllChests()
                         fireproximityprompt(proximityPrompt)
                     end
                 end)
-                task.wait(0.5)
+                task.wait(0.35)
             end
         end
     end
