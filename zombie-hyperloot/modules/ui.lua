@@ -963,13 +963,7 @@ function UI.createMovementTab()
         Default = Config.hipHeightEnabled,
         Callback = function(Value)
             Config.hipHeightEnabled = Value
-            if Movement then
-                if Value then
-                    Movement.enableHipHeight(Config.hipHeight)
-                else
-                    Movement.disableHipHeight()
-                end
-            end
+            Movement.applyHipHeight()
             if UI.Library then
                 UI.Library:Notify({
                     Title = "Movement",
@@ -982,8 +976,8 @@ function UI.createMovementTab()
 
     MovementLeftGroup:AddSlider("HipHeightValue", {
         Text = "Hip Height",
-        Default = Config.hipHeight or 10,
-        Min = 0, Max = 50, Rounding = 0.5,
+        Default = Config.hipHeight,
+        Min = 0, Max = 50, Rounding = 1,
         Callback = function(Value)
             Config.hipHeight = Value
             if Movement and Config.hipHeightEnabled then

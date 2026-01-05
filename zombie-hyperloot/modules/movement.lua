@@ -377,6 +377,14 @@ function Movement.setHipHeight(height)
     end
 end
 
+function Movement.applyHipHeight()
+    if Config.hipHeightEnabled then
+        Movement.enableHipHeight(Config.hipHeight)
+    else
+        Movement.disableHipHeight()
+    end
+end
+
 ----------------------------------------------------------
 -- 🔹 Cleanup
 function Movement.cleanup()
