@@ -2,6 +2,10 @@
     Movement Module - Zombie Hyperloot
     Speed, NoClip, Camera Teleport, Noclip Cam
 ]]
+-- Luau typechecker in some IDEs doesn't know executor globals
+local getgc = rawget(getfenv(), "getgc")
+local setconstant = rawget(getfenv(), "setconstant")
+local getconstants = rawget(getfenv(), "getconstants")
 
 
 local Movement = {}
@@ -17,6 +21,218 @@ Movement.originalWalkSpeed = nil
 function Movement.init(config)
     Config = config
 end
+-- Runtime lifecycle (moved out of main.lua)
+Movement._running = false
+Movement._characterAddedConn = nil
+
+function Movement.start()
+    if Movement._running then return end
+    Movement._running = true
+
+    -- Apply current toggles
+    Movement.applyAntiAFK()
+    Movement.applySpeed()
+    Movement.applyNoClip()
+    Movement.applyHipHeight()
+
+    if Config.noclipCamEnabled then
+        task.defer(Movement.applyNoclipCam)
+    end
+
+    -- Input hotkeys (camera teleport + auto rotate toggle)
+    Movement.startCameraTeleportInput()
+
+    -- Respawn hook (was in main.lua)
+    if not Movement._characterAddedConn then
+        Movement._characterAddedConn = Config.localPlayer.CharacterAdded:Connect(function(character)
+            Movement.onCharacterAdded(character)
+        end)
+    end
+end
+
+function Movement.stop()
+    Movement._running = false
+
+    if Movement._characterAddedConn then
+        Movement._characterAddedConn:Disconnect()
+        Movement._characterAddedConn = nil
+    end
+
+    Movement.stopCameraTeleportInput()
+
+    Movement.disableNoClip()
+    Movement.stopSpeedBoost()
+    Movement.stopAntiAFK()
+    Movement.disableHipHeight()
+
+    if Config.noclipCamEnabled then
+        Config.noclipCamEnabled = false
+        Movement.setNoclipCam(false)
+    end
+end
+-- Camera Teleport lifecycle (moved out of main.lua)
+Movement._inputConn = nil
+Movement._cameraTeleportThread = nil
+
+function Movement.startCameraTeleportInput()
+    if Movement._inputConn then return end
+
+    Movement._inputConn = Config.UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed or Config.scriptUnloaded then return end
+
+        -- Auto Rotate Toggle (L key)
+        if input.KeyCode == Config.autoRotateToggleKey then
+            if not Config.autoRotateEnabled then return end
+            Config.autoRotateActive = not (Config.autoRotateActive or false)
+            -- Combat module quản lý auto rotate
+            local combat = Config.Combat
+            if combat and combat.toggleAutoRotate then
+                combat.toggleAutoRotate(Config.autoRotateActive)
+            end
+            return
+        end
+
+        -- Camera Teleport (X key)
+        if input.KeyCode ~= Config.cameraTeleportKey or not Config.cameraTeleportEnabled then
+            return
+        end
+
+        if Config.cameraTeleportActive then
+            -- Stop
+            Config.cameraTeleportActive = false
+
+            if Config.savedAimbotState ~= nil then
+                Config.aimbotEnabled = Config.savedAimbotState
+            end
+
+            local char = Config.localPlayer.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if hrp and Config.cameraTeleportStartPosition then
+                hrp.Anchored = false
+                hrp.CFrame = CFrame.new(Config.cameraTeleportStartPosition)
+            elseif hrp then
+                hrp.Anchored = false
+            end
+
+            local camera = Config.Workspace.CurrentCamera
+            camera.CameraSubject = Config.localPlayer.Character and Config.localPlayer.Character:FindFirstChild("Humanoid")
+            return
+        end
+
+        -- Start
+        Config.savedAimbotState = Config.aimbotEnabled
+        Config.aimbotEnabled = false
+
+        local char = Config.localPlayer.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            Config.cameraTeleportStartPosition = hrp.Position
+        end
+
+        Config.cameraTeleportActive = true
+
+        if Movement._cameraTeleportThread then return end
+        Movement._cameraTeleportThread = task.spawn(function()
+            local function waitForNewWaveAndSelect()
+                if Config.cameraTeleportWaveDelay <= 0 then
+                    return Movement.selectInitialTarget()
+                end
+
+                local waited = 0
+                while Config.cameraTeleportActive and waited < Config.cameraTeleportWaveDelay do
+                    local candidate = Movement.selectInitialTarget()
+                    if candidate then return candidate end
+                    local step = math.min(0.25, Config.cameraTeleportWaveDelay - waited)
+                    task.wait(step)
+                    waited = waited + step
+                end
+
+                if not Config.cameraTeleportActive then return nil end
+                return Movement.selectInitialTarget()
+            end
+
+            local camera = Config.Workspace.CurrentCamera
+
+            local currentTarget = Movement.selectInitialTarget() or waitForNewWaveAndSelect()
+            if not currentTarget then
+                Config.cameraTeleportActive = false
+                Movement._cameraTeleportThread = nil
+                return
+            end
+
+            local lastZombiePosition = nil
+
+            while Config.cameraTeleportActive and currentTarget do
+                currentTarget = Movement.selectNextTarget(currentTarget)
+                if Config.cameraTeleportActive and not currentTarget then
+                    currentTarget = waitForNewWaveAndSelect()
+                    if not currentTarget then break end
+                end
+
+                if currentTarget and currentTarget.zombie then
+                    local humanoid = currentTarget.zombie:FindFirstChild("Humanoid")
+                    if humanoid and humanoid.Health > 0 and humanoid.Parent then
+                        local targetPosition = currentTarget.part.Position
+                        lastZombiePosition = targetPosition
+
+                        camera.CameraSubject = humanoid
+                        camera.CameraType = Enum.CameraType.Custom
+                        local cameraOffset = Vector3.new(Config.cameraOffsetX, Config.cameraOffsetY, Config.cameraOffsetZ)
+                        camera.CFrame = CFrame.lookAt(targetPosition + cameraOffset, targetPosition)
+
+                        local checkCount = 0
+                        repeat
+                            task.wait(0.1)
+                            checkCount += 1
+                            if not Config.cameraTeleportActive then break end
+                            if not humanoid or humanoid.Parent == nil or humanoid.Health <= 0 then break end
+                            local lowerMaxZombie = Movement.findLowestMaxHealthZombie(currentTarget.zombie)
+                            if lowerMaxZombie then break end
+                            if checkCount > 300 then break end
+                        until false
+                    else
+                        task.wait(0.2)
+                    end
+                else
+                    task.wait(0.5)
+                end
+            end
+
+            -- Restore HRP
+            local endChar = Config.localPlayer.Character
+            local endHrp = endChar and endChar:FindFirstChild("HumanoidRootPart")
+            if endHrp then
+                endHrp.Anchored = false
+                if Config.teleportToLastZombie and lastZombiePosition then
+                    endHrp.CFrame = CFrame.new(lastZombiePosition + Vector3.new(0, 5, 0))
+                end
+            end
+
+            if Config.savedAimbotState ~= nil then
+                Config.aimbotEnabled = Config.savedAimbotState
+            end
+
+            local finalChar = Config.localPlayer.Character
+            if finalChar then
+                local finalHumanoid = finalChar:FindFirstChild("Humanoid")
+                if finalHumanoid then
+                    camera.CameraSubject = finalHumanoid
+                end
+            end
+
+            Config.cameraTeleportActive = false
+            Movement._cameraTeleportThread = nil
+        end)
+    end)
+end
+
+function Movement.stopCameraTeleportInput()
+    if Movement._inputConn then
+        Movement._inputConn:Disconnect()
+        Movement._inputConn = nil
+    end
+    Config.cameraTeleportActive = false
+end
 
 
 
@@ -25,7 +241,7 @@ end
 -- 🔹 NoClip
 function Movement.enableNoClip()
     if Movement.noClipConnection then return end
-    
+
     Movement.noClipConnection = Config.RunService.Stepped:Connect(function()
         local char = Config.localPlayer.Character
         if char and Config.noClipEnabled then
@@ -86,18 +302,18 @@ function Movement.startSpeedBoost()
     if Movement.speedConnection then return end
     Movement.speedConnection = Config.RunService.Heartbeat:Connect(function()
         if not Config.speedEnabled then return end
-        
+
         local char = Config.localPlayer.Character
         local humanoid = char and char:FindFirstChild("Humanoid")
         if not humanoid then return end
-        
+
         if not Movement.originalWalkSpeed then
             Movement.originalWalkSpeed = humanoid.WalkSpeed
         end
-        
+
         local baseSpeed = Movement.originalWalkSpeed or 16
         local targetSpeed = baseSpeed + Config.speedValue
-        
+
         if math.abs(humanoid.WalkSpeed - targetSpeed) > 0.01 then
             humanoid.WalkSpeed = targetSpeed
         end
@@ -109,7 +325,7 @@ function Movement.stopSpeedBoost()
         Movement.speedConnection:Disconnect()
         Movement.speedConnection = nil
     end
-    
+
     local char = Config.localPlayer.Character
     local humanoid = char and char:FindFirstChild("Humanoid")
     if humanoid and Movement.originalWalkSpeed then
@@ -135,14 +351,14 @@ function Movement.setNoclipCam(enabled)
         warn("Exploit không hỗ trợ Noclip Cam (thiếu setconstant hoặc getconstants)")
         return false
     end
-    
+
     local success = false
     local pop = Config.localPlayer:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule"):WaitForChild("CameraModule"):WaitForChild("ZoomController"):WaitForChild("Popper")
-    
+
     -- enabled = true → set 0 (noclip cam bật)
     -- enabled = false → set 0.25 (noclip cam tắt, camera bình thường)
     local targetValue = enabled and 0 or 0.25
-    
+
     for _, v in pairs(getgc()) do
         if type(v) == 'function' and getfenv(v).script == pop then
             for i, v1 in pairs(gc(v)) do
@@ -154,7 +370,7 @@ function Movement.setNoclipCam(enabled)
             end
         end
     end
-    
+
     return success
 end
 
@@ -237,7 +453,7 @@ function Movement.findLowestMaxHealthZombie(currentZombie)
     local lowestMaxHealth = math.huge
     local nearestDistance = math.huge
     local result = nil
-    
+
     for _, zombie in ipairs(Config.entityFolder:GetChildren()) do
         if zombie:IsA("Model") then
             local humanoid = zombie:FindFirstChild("Humanoid")
@@ -289,10 +505,10 @@ end
 -- 🔹 Anti AFK
 function Movement.startAntiAFK()
     if Config.antiAFKConnection then return end
-    
+
     local VirtualUser = Config.VirtualUser
     if not VirtualUser then return end
-    
+
     -- Prevent AFK kick by simulating user activity
     Config.antiAFKConnection = Config.localPlayer.Idled:Connect(function()
         VirtualUser:CaptureController()
@@ -340,9 +556,9 @@ Movement.hipHeightConnection = nil
 
 function Movement.enableHipHeight(height)
     if Movement.hipHeightConnection then return end
-    
+
     height = height or 10
-    
+
     Movement.hipHeightConnection = Config.RunService.Heartbeat:Connect(function()
         local char = Config.localPlayer.Character
         if char and Config.hipHeightEnabled then
@@ -359,7 +575,7 @@ function Movement.disableHipHeight()
         Movement.hipHeightConnection:Disconnect()
         Movement.hipHeightConnection = nil
     end
-    
+
     local char = Config.localPlayer.Character
     if char then
         local humanoid = char:FindFirstChild("Humanoid")

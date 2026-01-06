@@ -2,6 +2,11 @@
     Combat Module - Zombie Hyperloot
     Aimbot, Hitbox, TrigerSkill Dupe, Auto Skill
 ]]
+-- Luau typechecker in some IDEs doesn't know executor globals
+local getnamecallmethod = rawget(getfenv(), "getnamecallmethod")
+local checkcaller = rawget(getfenv(), "checkcaller")
+local hookmetamethod = rawget(getfenv(), "hookmetamethod")
+local Drawing = rawget(getfenv(), "Drawing")
 
 local Combat = {}
 local Config = nil
@@ -10,11 +15,152 @@ local Visuals = nil
 function Combat.init(config, visuals)
     Config = config
     Visuals = visuals
+
+    -- Expose for other modules (Movement hotkey can toggle auto-rotate)
+    -- NOTE: This is a small coupling via Config to keep main.lua clean.
+    Config.Combat = Combat
 end
 
 -- Lưu zombie đã xử lý hitbox
 Combat.processedZombies = {}
 
+-- Runtime connections/state (moved out of main.lua)
+Combat._aimbotConnection = nil
+Combat._hitboxAddedConn = nil
+Combat._hitboxRemovedConn = nil
+Combat._running = false
+
+-- MouseLock (moved out of main.lua)
+Combat._mouseLockApplied = false
+
+function Combat.applyMouseLock()
+    if Combat._mouseLockApplied then return end
+    Combat._mouseLockApplied = true
+
+    pcall(function()
+        local args = { 1469938953, "MouseLock", true }
+        game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
+    end)
+end
+function Combat.start()
+    if Combat._running then return end
+    Combat._running = true
+
+-- One-time init actions previously in main.lua
+    Combat.applyMouseLock()
+    Combat.setupTrigerSkillDupe()
+    -- Input hooks (mouse2 hold)
+    Combat.setupMouseInput()
+
+    -- Hitbox spawn/despawn watchers
+    Combat.startHitboxWatchers()
+
+    -- Aimbot + FOV circle render loop
+    Combat._aimbotConnection = Config.RunService.RenderStepped:Connect(function()
+        if Config.scriptUnloaded or not Combat._running then return end
+
+        local mousePos = Config.UserInputService:GetMouseLocation()
+
+        -- Update FOV Circle
+        if Combat.FOVCircle then
+            Combat.FOVCircle.Position = mousePos
+            Combat.FOVCircle.Radius = Config.aimbotFOVRadius
+            Combat.FOVCircle.Visible = Config.aimbotEnabled and Config.aimbotFOVEnabled
+            Combat.FOVCircle.Color = Config.aimbotEnabled and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 255, 255)
+            Combat.FOVCircle.Thickness = Config.aimbotEnabled and 2 or 1.5
+        end
+
+        local shouldAutoFire = false
+
+        if Config.aimbotEnabled then
+            local active = true
+            if Config.aimbotHoldMouse2 and not Combat.holdingMouse2 then
+                active = false
+            end
+
+            if active then
+                local char, part = Combat.getClosestAimbotTarget()
+                if char and part then
+                    shouldAutoFire = true
+                    local targetPos = part.Position
+                    if Config.aimbotPrediction > 0 then
+                        local vel = part.AssemblyLinearVelocity or part.Velocity or Vector3.new(0, 0, 0)
+                        targetPos = targetPos + (vel * Config.aimbotPrediction)
+                    end
+
+                    local camera = Config.Workspace.CurrentCamera
+                    local cf = camera.CFrame
+                    local desired = CFrame.new(cf.Position, targetPos)
+
+                    if Config.aimbotSmoothness > 0 then
+                        local alpha = 1 - Config.aimbotSmoothness
+                        alpha = math.clamp(alpha, 0.01, 1)
+                        camera.CFrame = cf:Lerp(desired, alpha)
+                    else
+                        camera.CFrame = desired
+                    end
+
+                    if Combat.FOVCircle then
+                        Combat.FOVCircle.Color = Color3.fromRGB(255, 0, 0)
+                        Combat.FOVCircle.Thickness = 2.5
+                    end
+                else
+                    if Combat.FOVCircle then
+                        Combat.FOVCircle.Color = Color3.fromRGB(0, 255, 0)
+                        Combat.FOVCircle.Thickness = 2
+                    end
+                end
+            end
+        end
+
+        Combat.setAutoFireActive(shouldAutoFire)
+    end)
+end
+
+function Combat.stop()
+    Combat._running = false
+
+    if Combat._aimbotConnection then
+        Combat._aimbotConnection:Disconnect()
+        Combat._aimbotConnection = nil
+    end
+
+    Combat.stopHitboxWatchers()
+    Combat.setAutoFireActive(false)
+end
+
+function Combat.startHitboxWatchers()
+    if Combat._hitboxAddedConn or Combat._hitboxRemovedConn then return end
+
+    Combat._hitboxAddedConn = Config.entityFolder.ChildAdded:Connect(function(zombie)
+        if zombie:IsA("Model") then
+            local head = zombie:WaitForChild("Head", 3)
+            if head then
+                task.wait(0.5)
+                if Config.hitboxEnabled then
+                    Combat.expandHitbox(zombie)
+                end
+            end
+        end
+    end)
+
+    Combat._hitboxRemovedConn = Config.entityFolder.ChildRemoved:Connect(function(zombie)
+        Combat.processedZombies[zombie] = nil
+        local highlight = zombie:FindFirstChild("ESP_Highlight")
+        if highlight then highlight:Destroy() end
+    end)
+end
+
+function Combat.stopHitboxWatchers()
+    if Combat._hitboxAddedConn then
+        Combat._hitboxAddedConn:Disconnect()
+        Combat._hitboxAddedConn = nil
+    end
+    if Combat._hitboxRemovedConn then
+        Combat._hitboxRemovedConn:Disconnect()
+        Combat._hitboxRemovedConn = nil
+    end
+end
 -- Biến để track lần đầu tiên dupe
 Combat.firstDupeTriggered = false
 
@@ -67,7 +213,7 @@ function Combat.setupTrigerSkillDupe()
                 local secondArgument = remoteArguments[2]
 
                 if firstArgument == "GunFire" and secondArgument == "Atk" then
-                    for i = 1, Config.trigerSkillDupeCount do
+                    for _ = 1, Config.trigerSkillDupeCount do
                         oldTrigerSkillNamecall(remoteInstance, table.unpack(remoteArguments))
                     end
                     return
@@ -85,24 +231,24 @@ end
 -- 🔹 Hitbox Expander
 function Combat.expandHitbox(zombie)
     if Combat.processedZombies[zombie] then return end
-    
+
     local head = zombie:WaitForChild("Head", 4)
     if not head then return end
-    
+
     if head:IsA("BasePart") then
         if not head:GetAttribute("OriginalSize") then
             head:SetAttribute("OriginalSizeX", head.Size.X)
             head:SetAttribute("OriginalSizeY", head.Size.Y)
             head:SetAttribute("OriginalSizeZ", head.Size.Z)
         end
-        
+
         if Config.hitboxEnabled then
             head.Size = Config.hitboxSize
             head.Transparency = 0.5
             head.Color = Color3.fromRGB(255, 0, 0)
             head.CanCollide = false
         end
-        
+
         Combat.processedZombies[zombie] = true
     end
 end
@@ -113,7 +259,7 @@ function Combat.restoreHitbox(zombie)
         local origX = head:GetAttribute("OriginalSizeX")
         local origY = head:GetAttribute("OriginalSizeY")
         local origZ = head:GetAttribute("OriginalSizeZ")
-        
+
         if origX and origY and origZ then
             head.Size = Vector3.new(origX, origY, origZ)
             head.Transparency = 1
@@ -187,7 +333,7 @@ function Combat.initFOVCircle()
     if ok and obj then
         Combat.hasFOVDrawing = true
         obj:Remove()
-        
+
         Combat.FOVCircle = Drawing.new("Circle")
         Combat.FOVCircle.NumSides = 64
         Combat.FOVCircle.Thickness = 1.5
@@ -257,7 +403,7 @@ end
 
 function Combat.getAimbotTargets()
     local targets = {}
-    
+
     if Config.aimbotTargetMode == "Players" or Config.aimbotTargetMode == "All" then
         for _, plr in ipairs(Config.Players:GetPlayers()) do
             if plr ~= Config.localPlayer and plr.Character then
@@ -270,7 +416,7 @@ function Combat.getAimbotTargets()
             end
         end
     end
-    
+
     if Config.aimbotTargetMode == "Zombies" or Config.aimbotTargetMode == "All" then
         for _, m in ipairs(Config.entityFolder:GetChildren()) do
             if m:IsA("Model") then
@@ -281,7 +427,7 @@ function Combat.getAimbotTargets()
             end
         end
     end
-    
+
     return targets
 end
 
@@ -308,12 +454,12 @@ function Combat.getClosestAimbotTarget()
         end
         return score < currentBest
     end
-    
+
     for _, char in ipairs(Combat.getAimbotTargets()) do
         local hum = char:FindFirstChildWhichIsA("Humanoid")
         if hum and hum.Health > 0 then
             local part = nil
-            
+
             -- Random mode: chọn ngẫu nhiên từ danh sách parts
             if Config.aimbotAimPart == "Random" then
                 local randomParts = Config.aimbotRandomParts or {"Head", "UpperTorso", "HumanoidRootPart", "Torso"}
@@ -330,7 +476,7 @@ function Combat.getClosestAimbotTarget()
             else
                 part = char:FindFirstChild(Config.aimbotAimPart)
             end
-            
+
             if not part then
                 part = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso") or char:FindFirstChild("Head")
             end
@@ -339,7 +485,7 @@ function Combat.getClosestAimbotTarget()
                 if not Combat.isTargetVisible(part) then
                     continue
                 end
-                
+
                 local screenPos, onScreen = camera:WorldToViewportPoint(part.Position)
                 if onScreen and screenPos.Z > 0 then
                     local cursorDist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
@@ -365,7 +511,7 @@ function Combat.getClosestAimbotTarget()
             end
         end
     end
-    
+
     return bestChar, bestPart
 end
 
@@ -412,7 +558,7 @@ function Combat.findClosestZombieForRotation()
                     if not Combat.isTargetVisible(targetPart) then
                         continue
                     end
-                    
+
                     local distance = (playerPosition - targetPart.Position).Magnitude
                     if distance < closestDistance then
                         closestDistance = distance
@@ -427,21 +573,21 @@ end
 
 function Combat.startAutoRotate()
     if Combat.autoRotateConnection then return end
-    
+
     Combat.autoRotateConnection = Config.RunService.RenderStepped:Connect(function()
         if not Combat.autoRotateEnabled or Config.scriptUnloaded then return end
-        
+
         -- Tìm zombie gần nhất (có wall check)
         local target = Combat.findClosestZombieForRotation()
         if not target then return end
-        
+
         local camera = Config.Workspace.CurrentCamera
         if not camera then return end
-        
+
         local targetPos = target.part.Position
         local currentCF = camera.CFrame
         local desiredCF = CFrame.new(currentCF.Position, targetPos)
-        
+
         -- Áp dụng smoothness
         if Combat.rotationSmoothness > 0 then
             local alpha = 1 - Combat.rotationSmoothness
@@ -462,7 +608,7 @@ end
 
 function Combat.toggleAutoRotate(enabled)
     Combat.autoRotateEnabled = enabled
-    
+
     if enabled then
         Combat.startAutoRotate()
     else

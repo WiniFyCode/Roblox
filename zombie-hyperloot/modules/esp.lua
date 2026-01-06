@@ -22,6 +22,132 @@ ESP.knownBobs = {} -- Lưu các Bob đã biết để track Bob mới
 function ESP.init(config)
     Config = config
 end
+-- Render/update loop state
+ESP._runConnection = nil
+ESP._running = false
+
+-- One-step update for ESP drawings (player/zombie/bob)
+function ESP.step()
+    if Config.scriptUnloaded then return end
+    if not ESP.hasPlayerDrawing then return end
+
+    -- Player ESP
+    if Config.espPlayerEnabled then
+        for _, plr in ipairs(Config.Players:GetPlayers()) do
+            if plr ~= Config.localPlayer then
+                local char = plr.Character
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
+                if char and hum and hum.Health > 0 then
+                    if Config.espPlayerTeamCheck and plr.Team == Config.localPlayer.Team then
+                        ESP.hidePlayerESP(ESP.playerESPObjects[plr])
+                    else
+                        local ok, cf, size = pcall(char.GetBoundingBox, char)
+                        if ok and cf and size then
+                            ESP.drawPlayerESP(plr, cf, size, hum)
+                        else
+                            ESP.hidePlayerESP(ESP.playerESPObjects[plr])
+                        end
+                    end
+                else
+                    ESP.hidePlayerESP(ESP.playerESPObjects[plr])
+                end
+            end
+        end
+    else
+        for _, data in pairs(ESP.playerESPObjects) do
+            ESP.hidePlayerESP(data)
+        end
+    end
+
+    -- Zombie ESP
+    if Config.espZombieEnabled then
+        local seenZombies = {}
+        for _, zombie in ipairs(Config.entityFolder:GetChildren()) do
+            if zombie:IsA("Model") then
+                local hum = zombie:FindFirstChildOfClass("Humanoid")
+                if hum and hum.Health > 0 then
+                    local ok, cf, size = pcall(zombie.GetBoundingBox, zombie)
+                    if ok and cf and size then
+                        ESP.drawZombieESP(zombie, cf, size, hum)
+                        seenZombies[zombie] = true
+                    else
+                        ESP.hideZombieESP(ESP.zombieESPObjects[zombie])
+                    end
+                else
+                    ESP.hideZombieESP(ESP.zombieESPObjects[zombie])
+                end
+            end
+        end
+        for model, data in pairs(ESP.zombieESPObjects) do
+            if not seenZombies[model] then
+                ESP.hideZombieESP(data)
+            end
+        end
+    else
+        for _, data in pairs(ESP.zombieESPObjects) do
+            ESP.hideZombieESP(data)
+        end
+    end
+
+    -- Bob ESP
+    if Config.espBobEnabled then
+        local seenBobs = {}
+        local bobs = ESP.findAllBobs()
+        for _, bobData in ipairs(bobs) do
+            local bobModel = bobData.model
+            local hum = bobData.humanoid
+            if hum and hum.Health > 0 then
+                local ok, cf, size = pcall(bobModel.GetBoundingBox, bobModel)
+                if ok and cf and size then
+                    ESP.drawBobESP(bobModel, cf, size, hum)
+                    seenBobs[bobModel] = true
+                else
+                    ESP.hideBobESP(ESP.bobESPObjects[bobModel])
+                end
+            else
+                ESP.hideBobESP(ESP.bobESPObjects[bobModel])
+            end
+        end
+        for model, data in pairs(ESP.bobESPObjects) do
+            if not seenBobs[model] then
+                ESP.hideBobESP(data)
+            end
+        end
+    else
+        for _, data in pairs(ESP.bobESPObjects) do
+            ESP.hideBobESP(data)
+        end
+    end
+end
+
+function ESP.start()
+    if ESP._running then return end
+    ESP._running = true
+
+    ESP._runConnection = Config.RunService.RenderStepped:Connect(function()
+        if not ESP._running then return end
+
+        -- No tick-based throttling: update highlights every frame
+        ESP.updateZombieHighlights()
+        ESP.updatePlayerHighlights()
+        ESP.updateBobHighlights()
+
+        ESP.step()
+    end)
+end
+
+function ESP.stop()
+    ESP._running = false
+    if ESP._runConnection then
+        ESP._runConnection:Disconnect()
+        ESP._runConnection = nil
+    end
+
+    -- Hide drawings (don't destroy objects; cleanup() handles full destroy)
+    for _, data in pairs(ESP.playerESPObjects) do ESP.hidePlayerESP(data) end
+    for _, data in pairs(ESP.zombieESPObjects) do ESP.hideZombieESP(data) end
+    for _, data in pairs(ESP.bobESPObjects) do ESP.hideBobESP(data) end
+end
 
 ----------------------------------------------------------
 -- 🔹 Drawing Helper
@@ -81,10 +207,10 @@ function ESP.addPlayerHighlight(player)
     if not Config.espPlayerHighlight then return end
     local char = player.Character
     if not char or ESP.playerHighlights[player] then return end
-    
+
     local isEnemy = Config.espPlayerTeamCheck and player.Team ~= Config.localPlayer.Team
     local color = isEnemy and Config.espColorEnemy or Config.espColorPlayer
-    
+
     local highlight = Instance.new("Highlight")
     highlight.Name = "PlayerESP_Highlight"
     highlight.Adornee = char
@@ -93,7 +219,7 @@ function ESP.addPlayerHighlight(player)
     highlight.FillTransparency = 0.5
     highlight.OutlineTransparency = 0
     highlight.Parent = char
-    
+
     ESP.playerHighlights[player] = highlight
 end
 
@@ -110,7 +236,7 @@ function ESP.updatePlayerHighlights()
         if player ~= Config.localPlayer then
             local char = player.Character
             local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-            
+
             if char and humanoid and humanoid.Health > 0 then
                 if Config.espPlayerEnabled and Config.espPlayerHighlight then
                     if Config.espPlayerTeamCheck and player.Team == Config.localPlayer.Team then
@@ -217,19 +343,19 @@ function ESP.initializePlayerESP()
     if ok and obj then
         ESP.hasPlayerDrawing = true
         obj:Remove()
-        
+
         for _, plr in ipairs(Config.Players:GetPlayers()) do
             if plr ~= Config.localPlayer then
                 ESP.playerESPObjects[plr] = ESP.createPlayerESPElements()
             end
         end
-        
+
         Config.Players.PlayerAdded:Connect(function(plr)
             if plr ~= Config.localPlayer then
                 ESP.playerESPObjects[plr] = ESP.createPlayerESPElements()
             end
         end)
-        
+
         Config.Players.PlayerRemoving:Connect(function(plr)
             if ESP.playerESPObjects[plr] then
                 for _, drawing in pairs(ESP.playerESPObjects[plr]) do
@@ -238,7 +364,7 @@ function ESP.initializePlayerESP()
                 ESP.playerESPObjects[plr] = nil
             end
         end)
-        
+
         return true
     end
     return false
@@ -268,7 +394,7 @@ end
 function ESP.addZombieHighlight(zombie)
     if not Config.espZombieHighlight then return end
     if ESP.zombieHighlights[zombie] then return end
-    
+
     local highlight = Instance.new("Highlight")
     highlight.Name = "ZombieESP_Highlight"
     highlight.Adornee = zombie
@@ -277,7 +403,7 @@ function ESP.addZombieHighlight(zombie)
     highlight.FillTransparency = 0.5
     highlight.OutlineTransparency = 0
     highlight.Parent = zombie
-    
+
     ESP.zombieHighlights[zombie] = highlight
 end
 
@@ -424,7 +550,7 @@ end
 function ESP.forEachChestPart(callback)
     local map = Config.Workspace:FindFirstChild("Map")
     if not map then return end
-    
+
     for _, mapChild in ipairs(map:GetChildren()) do
         local chestFolder = mapChild:FindFirstChild("Chest")
         if chestFolder then
@@ -495,7 +621,7 @@ function ESP.watchChestDescendants()
     end
     local map = Config.Workspace:FindFirstChild("Map")
     if not map then return end
-    
+
     local connections = {}
     for _, mapChild in ipairs(map:GetChildren()) do
         local chestFolder = mapChild:FindFirstChild("Chest")
@@ -508,7 +634,7 @@ function ESP.watchChestDescendants()
             table.insert(connections, connection)
         end
     end
-    
+
     ESP.chestDescendantConnection = {
         Disconnect = function()
             for _, conn in ipairs(connections) do conn:Disconnect() end
@@ -524,7 +650,7 @@ function ESP.findAllBobs()
     local bobs = {}
     local map = Config.Workspace:FindFirstChild("Map")
     if not map then return bobs end
-    
+
     -- Duyệt qua tất cả children của Map
     for _, mapChild in ipairs(map:GetChildren()) do
         if mapChild:IsA("Model") then
@@ -546,7 +672,7 @@ function ESP.findAllBobs()
             end
         end
     end
-    
+
     return bobs
 end
 
@@ -564,7 +690,7 @@ end
 function ESP.addBobHighlight(bobModel)
     if not Config.espBobEnabled then return end
     if ESP.bobHighlights[bobModel] then return end
-    
+
     local highlight = Instance.new("Highlight")
     highlight.Name = "BobESP_Highlight"
     highlight.Adornee = bobModel
@@ -573,7 +699,7 @@ function ESP.addBobHighlight(bobModel)
     highlight.FillTransparency = 0.5
     highlight.OutlineTransparency = 0
     highlight.Parent = bobModel
-    
+
     ESP.bobHighlights[bobModel] = highlight
 end
 
@@ -587,44 +713,44 @@ end
 
 function ESP.updateBobHighlights()
     if not Config.espBobEnabled then
-        for model, highlight in pairs(ESP.bobHighlights) do
+        for model in pairs(ESP.bobHighlights) do
             ESP.removeBobHighlight(model)
         end
         return
     end
-    
+
     local bobs = ESP.findAllBobs()
     local foundModels = {}
     local newBobsFound = 0
-    
+
     for _, bobData in ipairs(bobs) do
         foundModels[bobData.model] = true
         ESP.addBobHighlight(bobData.model)
-        
+
         -- Check nếu là Bob mới
         if not ESP.knownBobs[bobData.model] then
             ESP.knownBobs[bobData.model] = true
             newBobsFound = newBobsFound + 1
         end
     end
-    
+
     -- Notify nếu tìm thấy Bob mới
     if newBobsFound > 0 and Config.UI and Config.UI.Library then
         Config.UI.Library:Notify({
             Title = "🎯 BOB Found!",
             Description = string.format("Found %d Bob(s)! Total: %d", newBobsFound, #bobs),
-            Time = 50
+            Time = 60
         })
     end
-    
+
     -- Xóa highlight và tracking cho Bobs không còn tồn tại
-    for model, highlight in pairs(ESP.bobHighlights) do
+    for model in pairs(ESP.bobHighlights) do
         if not foundModels[model] then
             ESP.removeBobHighlight(model)
             ESP.knownBobs[model] = nil
         end
     end
-    
+
     -- Cleanup knownBobs cho models không còn tồn tại
     for model, _ in pairs(ESP.knownBobs) do
         if not foundModels[model] then
@@ -668,7 +794,7 @@ function ESP.drawBobESP(bobModel, cf, size, humanoid)
     local slimWidth = boxWidth * 0.7
     local slimX = minX + (boxWidth - slimWidth) / 2
     local baseColor = Config.espColorBob
-    
+
     -- Tính distance
     local char = Config.localPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -694,20 +820,20 @@ function ESP.clearBobESP()
         end
     end
     ESP.bobESPObjects = {}
-    
-    for model, highlight in pairs(ESP.bobHighlights) do
+
+    for model in pairs(ESP.bobHighlights) do
         ESP.removeBobHighlight(model)
     end
-    
+
     -- Clear known bobs tracking
     ESP.knownBobs = {}
 end
 
 function ESP.startBobESP()
     if ESP.bobESPConnection then return end
-    
+
     ESP.bobESPRunning = true
-    
+
     -- Initialize Bob ESP objects nếu chưa có
     if ESP.hasPlayerDrawing then
         local bobs = ESP.findAllBobs()
@@ -717,10 +843,10 @@ function ESP.startBobESP()
             end
         end
     end
-    
+
     -- Update highlights lần đầu
     ESP.updateBobHighlights()
-    
+
     -- Refresh highlights mỗi 5 giây
     ESP.bobESPConnection = task.spawn(function()
         while ESP.bobESPRunning do
@@ -729,7 +855,7 @@ function ESP.startBobESP()
                 break
             end
             ESP.updateBobHighlights()
-            
+
             -- Tạo ESP objects cho Bobs mới
             if ESP.hasPlayerDrawing then
                 local bobs = ESP.findAllBobs()
@@ -759,19 +885,19 @@ function ESP.teleportToBob()
         warn("[BobESP] Không tìm thấy HumanoidRootPart")
         return false
     end
-    
+
     -- Tìm tất cả Bobs
     local bobs = ESP.findAllBobs()
     if #bobs == 0 then
         warn("[BobESP] Không tìm thấy Bob nào")
         return false
     end
-    
+
     -- Tìm Bob gần nhất
     local playerPosition = hrp.Position
     local nearestBob = nil
     local nearestDistance = math.huge
-    
+
     for _, bobData in ipairs(bobs) do
         if bobData.model then
             local bobHRP = bobData.model:FindFirstChild("HumanoidRootPart")
@@ -786,13 +912,13 @@ function ESP.teleportToBob()
             end
         end
     end
-    
+
     if nearestBob and nearestBob.part then
         -- Teleport tới Bob (cao hơn 3 studs để tránh bị stuck)
         hrp.CFrame = CFrame.new(nearestBob.part.Position + Vector3.new(0, 3, 0))
         return true
     end
-    
+
     return false
 end
 
@@ -822,7 +948,7 @@ function ESP.cleanup()
         pcall(function() highlight:Destroy() end)
     end
     ESP.zombieHighlights = {}
-    
+
     for _, highlight in pairs(ESP.playerHighlights) do
         pcall(function() highlight:Destroy() end)
     end
@@ -831,7 +957,7 @@ function ESP.cleanup()
     -- Clear chest ESP
     ESP.clearChestESP()
     ESP.clearZombieESP()
-    
+
     -- Clear Bob ESP
     ESP.clearBobESP()
     ESP.stopBobESP()

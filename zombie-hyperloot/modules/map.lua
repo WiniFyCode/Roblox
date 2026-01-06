@@ -3,6 +3,11 @@
     Map Teleport, Start, Replay, Supply ESP
 ]]
 
+-- Luau typechecker in some IDEs doesn't know executor globals
+local _fireproximityprompt = rawget(getfenv(), "fireproximityprompt")
+local _firetouchinterest = rawget(getfenv(), "firetouchinterest")
+local _firetouchtransmitter = rawget(getfenv(), "firetouchtransmitter")
+
 local Map = {}
 local Config = nil
 
@@ -34,6 +39,27 @@ Map.lastDoorCheck = 0
 
 function Map.init(config)
     Config = config
+end
+-- Runtime lifecycle (moved out of main.lua)
+Map._running = false
+
+function Map.start()
+    if Map._running then return end
+    Map._running = true
+
+    if Config.supplyESPEnabled then
+        Map.startSupplyESP()
+    end
+
+    if Config.autoDoorEnabled then
+        Map.startAutoDoor()
+    end
+end
+
+function Map.stop()
+    Map._running = false
+    Map.stopSupplyESP()
+    Map.stopAutoDoor()
 end
 
 ----------------------------------------------------------
@@ -130,10 +156,10 @@ end
 -- 🔹 Supply ESP Functions
 function Map.findAllSupplies()
     local supplies = {}
-    
+
     local map = Config.Workspace:FindFirstChild("Map")
     if not map then return supplies end
-    
+
     -- Duyệt qua tất cả children của Map
     for _, mapChild in ipairs(map:GetChildren()) do
         local eItem = mapChild:FindFirstChild("EItem")
@@ -154,7 +180,7 @@ function Map.findAllSupplies()
             end
         end
     end
-    
+
     return supplies
 end
 
@@ -165,14 +191,14 @@ function Map.teleportToSupply(supplyData)
         warn("[Supply] Could not find HumanoidRootPart")
         return
     end
-    
+
     if not supplyData or not supplyData.position then
         warn("[Supply] supplyData không hợp lệ")
         return
     end
 
     local targetPos = supplyData.position
-    
+
     -- Chỉ teleport tới supply (cao hơn 5 studs để tránh bị stuck)
     hrp.CFrame = CFrame.new(targetPos + Vector3.new(0, 5, 0))
 end
@@ -302,13 +328,13 @@ function Map.createSupplyUI()
         Map.supplyScreenGui:Destroy()
         Map.supplyScreenGui = nil
     end
-    
+
     -- Tạo ScreenGui
     Map.supplyScreenGui = Instance.new("ScreenGui")
     Map.supplyScreenGui.Name = "SupplyESP"
     Map.supplyScreenGui.ResetOnSpawn = false
     Map.supplyScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    
+
     -- Tạo Frame chứa (không có title, không scroll)
     Map.supplyFrame = Instance.new("Frame")
     Map.supplyFrame.Name = "SupplyFrame"
@@ -316,7 +342,7 @@ function Map.createSupplyUI()
     Map.supplyFrame.BackgroundTransparency = 1 -- Trong suốt hoàn toàn
     Map.supplyFrame.BorderSizePixel = 0
     Map.supplyFrame.Parent = Map.supplyScreenGui
-    
+
     -- UIListLayout để tự động sắp xếp buttons
     local listLayout = Instance.new("UIListLayout")
     listLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -498,21 +524,21 @@ function Map.createSupplyUI()
 
         Map.carButton = button
     end
-    
+
     Map.supplyScreenGui.Parent = game:GetService("CoreGui")
-    
+
     -- Set vị trí ban đầu
     Map.updateSupplyPosition()
-    
+
     return true
 end
 
 
 function Map.updateSupplyPosition()
     if not Map.supplyFrame then return end
-    
+
     local totalHeight = Map.supplyFrame.Size.Y.Offset
-    
+
     if Config.supplyESPPosition == "Right" then
         -- Bên phải màn hình
         Map.supplyFrame.Position = UDim2.new(1, -120, 0.5, -totalHeight / 2)
@@ -526,7 +552,7 @@ function Map.updateSupplyDisplay()
     if not Map.supplyScreenGui or not Map.supplyFrame then
         Map.createSupplyUI()
     end
-    
+
     -- Xóa buttons cũ
     for _, data in ipairs(Map.supplyButtons) do
         if data.button and data.button.Parent then
@@ -534,18 +560,18 @@ function Map.updateSupplyDisplay()
         end
     end
     Map.supplyButtons = {}
-    
+
     -- Tìm supplies mới
     Map.supplyItems = Map.findAllSupplies()
-    
+
     if #Map.supplyItems == 0 then
         -- Ẩn frame nếu không có supply
         Map.supplyFrame.Visible = false
         return
     end
-    
+
     Map.supplyFrame.Visible = true
-    
+
     -- Tạo button cho mỗi supply
     for i, supply in ipairs(Map.supplyItems) do
         local button = Instance.new("TextButton")
@@ -560,19 +586,19 @@ function Map.updateSupplyDisplay()
         button.TextXAlignment = Enum.TextXAlignment.Left
         button.AutoButtonColor = false
         button.Parent = Map.supplyFrame
-        
+
         -- Bo góc đúng chuẩn Obsidian
         local buttonCorner = Instance.new("UICorner")
         buttonCorner.CornerRadius = UDim.new(0, 4)
         buttonCorner.Parent = button
-        
+
         -- Viền tinh tế (UIStroke)
         local buttonStroke = Instance.new("UIStroke")
         buttonStroke.Color = Color3.fromRGB(40, 40, 40) -- Obsidian Border Color
         buttonStroke.Thickness = 1
         buttonStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
         buttonStroke.Parent = button
-        
+
         -- Accent Bar (Thanh chỉ thị phía bên dưới - Progress style)
         local accentBar = Instance.new("Frame")
         accentBar.Name = "Accent"
@@ -581,7 +607,7 @@ function Map.updateSupplyDisplay()
         accentBar.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
         accentBar.BorderSizePixel = 0
         accentBar.Parent = button
-        
+
         -- Bo góc cho thanh accent để khớp với nút
         local accentCorner = Instance.new("UICorner")
         accentCorner.CornerRadius = UDim.new(0, 4)
@@ -592,75 +618,75 @@ function Map.updateSupplyDisplay()
         padding.PaddingRight = UDim.new(0, 10)
         padding.PaddingBottom = UDim.new(0, 2)
         padding.Parent = button
-        
+
         -- Click event
         button.MouseButton1Click:Connect(function()
             Map.teleportToSupply(supply)
         end)
 
-        
+
         -- Hover effect
         button.MouseEnter:Connect(function()
             button.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
             buttonStroke.Color = Color3.fromRGB(60, 60, 60)
         end)
-        
+
         button.MouseLeave:Connect(function()
             button.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
             buttonStroke.Color = Color3.fromRGB(40, 40, 40)
         end)
-        
+
         table.insert(Map.supplyButtons, {
             button = button,
             accent = accentBar,
             stroke = buttonStroke
         })
     end
-    
+
     -- Tự động resize frame theo số lượng buttons (bao gồm 2 nút Task/Car)
     local totalButtons = #Map.supplyItems + 2
     local totalHeight = totalButtons * 32 + (totalButtons - 1) * 5 -- 32px mỗi button + 5px padding
     Map.supplyFrame.Size = UDim2.new(0, 140, 0, totalHeight)
 
-    
+
     -- Update vị trí theo config
     Map.updateSupplyPosition()
 end
 
 function Map.updateSupplyDistances()
     if not Map.supplyScreenGui or #Map.supplyItems == 0 then return end
-    
+
     local char = Config.localPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
-    
+
     -- Tính khoảng cách thật rồi chia theo tỉ lệ (gần nhất -> xa nhất)
     local distances = {}
     local minDist = math.huge
     local maxDist = 0
-    
+
     for i, supply in ipairs(Map.supplyItems) do
         local d = (hrp.Position - supply.position).Magnitude
         distances[i] = d
         if d < minDist then minDist = d end
         if d > maxDist then maxDist = d end
     end
-    
+
     local range = maxDist - minDist
     if range < 1 then range = 1 end -- tránh chia 0
-    
+
     for i, data in ipairs(Map.supplyButtons) do
         local supply = Map.supplyItems[i]
         local button = data.button
         local accent = data.accent
         local distance = distances[i]
-        
+
         if button and supply and distance then
             button.Text = string.format("Supply %d: %.0fm", i, distance)
-            
+
             -- Chuẩn hóa 0..1 theo min/max khoảng cách
             local t = (distance - minDist) / range -- 0 = gần nhất, 1 = xa nhất
-            
+
             -- Đổi màu theo tỉ lệ thực tế: gần nhất xanh, xa nhất đỏ, giữa là vàng
             if t < 1/3 then
                 accent.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Gần nhất
@@ -675,11 +701,11 @@ end
 
 function Map.startSupplyESP()
     if Map.refreshConnection then return end
-    
+
     -- Tạo UI lần đầu
     Map.createSupplyUI()
     Map.updateSupplyDisplay()
-    
+
     -- Quét full Supply/Task/Car mỗi 5 giây để giảm lag
     task.spawn(function()
         while task.wait(5) do
@@ -698,7 +724,7 @@ function Map.startSupplyESP()
             end
         end
     end)
-    
+
     -- Heartbeat chỉ update khoảng cách (nhẹ)
     Map.refreshConnection = Config.RunService.Heartbeat:Connect(function()
         if not Config.supplyESPEnabled then return end
@@ -711,13 +737,13 @@ function Map.stopSupplyESP()
         Map.refreshConnection:Disconnect()
         Map.refreshConnection = nil
     end
-    
+
     -- Xóa UI
     if Map.supplyScreenGui then
         Map.supplyScreenGui:Destroy()
         Map.supplyScreenGui = nil
     end
-    
+
     Map.supplyButtons = {}
     Map.supplyItems = {}
 end
