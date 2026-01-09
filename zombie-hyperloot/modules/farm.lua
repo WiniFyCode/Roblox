@@ -2,10 +2,6 @@
     Farm Module - Zombie Hyperloot
     Auto BulletBox, Item Magnet, Auto Chest Teleport
 ]]
-
--- Luau typechecker in some IDEs doesn't know executor globals
-local _fireproximityprompt = rawget(getfenv(), "fireproximityprompt")
-
 local Farm = {}
 local Config = nil
 function Farm.init(config)
@@ -201,18 +197,6 @@ function Farm.teleportToAllChests()
     local map = Config.Workspace:FindFirstChild("Map")
     if not map then return end
 
-    -- Fallback: nhấn phím E nếu không kích hoạt được ProximityPrompt
-    local function fallbackPressE()
-        local vim = game:GetService("VirtualInputManager")
-        if not vim then return end
-
-        pcall(function()
-            vim:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-            task.wait(0.1)
-            vim:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-        end)
-    end
-
     local chests = {}
     for _, mapChild in ipairs(map:GetChildren()) do
         local chestFolder = mapChild:FindFirstChild("Chest")
@@ -236,25 +220,12 @@ function Farm.teleportToAllChests()
         if chestFolder then
             local proximityPrompt = chestFolder:FindFirstChild("ProximityPrompt")
             if proximityPrompt then
-                local success = false
-                local fp = _fireproximityprompt
-
-                if typeof(fp) == "function" then
-                    success = pcall(function()
-                        fp(proximityPrompt)
-                    end)
-                end
-
-                -- Fallback nhấn E nếu không dùng được _fireproximityprompt
-                if not success then
-                    fallbackPressE()
-                end
-
-                task.wait(0.35)
-            else
-                -- Không tìm thấy ProximityPrompt, fallback nhấn E
-                fallbackPressE()
-                task.wait(0.35)
+                pcall(function()
+                    if typeof(fireproximityprompt) == "function" then
+                        fireproximityprompt(proximityPrompt)
+                    end
+                end)
+                task.wait(0.25)
             end
         end
     end
