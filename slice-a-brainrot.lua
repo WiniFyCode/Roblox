@@ -1,7 +1,7 @@
 --[[
     Slice-a-Brainrot - dùng chung UI & modules của Universal Script
     Tabs sử dụng: Main, Farm, Visuals, Teleport, Server, Misc (KHÔNG có Combat)
-    Thêm chức năng riêng cho game Slice: Attack Aura + Auto Collect (tab Farm)
+    Thêm chức năng riêng cho game Slice: Attack Aura + Auto Collect + Auto Equip + Auto Buy (tab Farm)
 
     Lưu ý: Các module được load từ GitHub repo:
     https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/universal/modules/<moduleName>.lua
@@ -68,13 +68,13 @@ Misc.init(Config, UI)
 Misc.createTab()
 
 ----------------------------------------------------------
--- 🔹 Slice Features (Attack Aura + Auto Collect)
+-- 🔹 Slice Features (Attack Aura + Auto Collect + Auto Equip + Auto Buy)
 -- Đặt trong tab Farm
 ----------------------------------------------------------
 
 local sliceGroup = UI.Tabs.Farm:AddLeftGroupbox("Slice Farm", "sparkles")
 
--- Toggle + slider cấu hình
+-- Attack Aura
 sliceGroup:AddToggle("SliceAttackAura", {
     Text = "Attack Aura Crates",
     Default = false,
@@ -99,6 +99,7 @@ sliceGroup:AddSlider("SliceAuraInterval", {
 
 sliceGroup:AddDivider()
 
+-- Auto Collect
 sliceGroup:AddToggle("SliceAutoCollect", {
     Text = "Auto Collect Slots",
     Default = false,
@@ -112,6 +113,96 @@ sliceGroup:AddSlider("SliceCollectInterval", {
     Max = 2,
     Rounding = 2,
 })
+
+sliceGroup:AddDivider()
+
+-- Auto Equip Best
+sliceGroup:AddToggle("SliceAutoEquip", {
+    Text = "Auto Equip Best",
+    Default = false,
+    Tooltip = "Tự gọi remote EquipBest liên tục",
+})
+
+sliceGroup:AddSlider("SliceEquipInterval", {
+    Text = "Equip Interval (s)",
+    Default = 10,
+    Min = 1,
+    Max = 120,
+    Rounding = 0,
+})
+
+sliceGroup:AddDivider()
+
+-- Auto Buy Item (ItemShop)
+sliceGroup:AddToggle("SliceAutoBuy", {
+    Text = "Auto Buy Item",
+    Default = false,
+    Tooltip = "Spam remote ItemShop để mua item liên tục",
+})
+
+-- Lấy danh sách item từ itemShopData trong ReplicatedStorage.Shared
+local sliceItemList = {"TNT"}
+ do
+    local success, shopData = pcall(function()
+        local rs = Config.ReplicatedStorage
+        local shared = rs:FindFirstChild("Shared")
+        if shared then
+            local module = shared:FindFirstChild("itemShopData")
+            if module and module:IsA("ModuleScript") then
+                return require(module)
+            end
+        end
+    end)
+
+    if success and type(shopData) == "table" then
+        local seen = {}
+        local function addName(name)
+            if type(name) == "string" and name ~= "" and not seen[name] then
+                seen[name] = true
+                table.insert(sliceItemList, name)
+            end
+        end
+
+        if type(shopData.ByName) == "table" then
+            for name, _ in pairs(shopData.ByName) do
+                addName(name)
+            end
+        end
+
+        local function scan(tbl)
+            for _, v in pairs(tbl) do
+                if type(v) == "table" then
+                    if type(v.Name) == "string" then
+                        addName(v.Name)
+                    end
+                    scan(v)
+                end
+            end
+        end
+
+        scan(shopData)
+    end
+end
+
+sliceGroup:AddDropdown("SliceItemDropdown", {
+    Values = sliceItemList,
+    Text = "Item List",
+})
+
+sliceGroup:AddInput("SliceItemName", {
+    Text = "Item Name (custom)",
+    Default = "TNT",
+    Placeholder = "VD: TNT, Bomb...",
+})
+
+sliceGroup:AddSlider("SliceBuyInterval", {
+    Text = "Buy Interval (s)",
+    Default = 1,
+    Min = 0.1,
+    Max = 10,
+    Rounding = 1,
+})
+
 
 ----------------------------------------------------------
 -- 🔹 Logic Attack Aura
@@ -257,14 +348,97 @@ task.spawn(function()
 end)
 
 ----------------------------------------------------------
+-- 🔹 Logic Auto Equip Best (EquipBest remote)
+----------------------------------------------------------
+
+local equipBestRemote
+
+local function initEquipBestRemote()
+    if not equipBestRemote then
+        local remotes = Config.ReplicatedStorage:FindFirstChild("Remotes")
+        if remotes then
+            equipBestRemote = remotes:FindFirstChild("EquipBest")
+        end
+    end
+end
+
+local autoEquipRunning = true
+
+task.spawn(function()
+    while autoEquipRunning do
+        local interval = (UI.Options.SliceEquipInterval and UI.Options.SliceEquipInterval.Value) or 10
+        if interval <= 0 then interval = 10 end
+        task.wait(interval)
+
+        if not UI.Toggles.SliceAutoEquip or not UI.Toggles.SliceAutoEquip.Value then
+            continue
+        end
+
+        initEquipBestRemote()
+        if equipBestRemote then
+            pcall(function()
+                equipBestRemote:FireServer()
+            end)
+        end
+    end
+end)
+
+----------------------------------------------------------
+-- 🔹 Logic Auto Buy Item (ItemShop remote)
+----------------------------------------------------------
+
+local itemShopRemote
+
+local function initItemShopRemote()
+    if not itemShopRemote then
+        local remotes = Config.ReplicatedStorage:FindFirstChild("Remotes")
+        if remotes then
+            itemShopRemote = remotes:FindFirstChild("ItemShop")
+        end
+    end
+end
+
+local autoBuyRunning = true
+
+task.spawn(function()
+    while autoBuyRunning do
+        local interval = (UI.Options.SliceBuyInterval and UI.Options.SliceBuyInterval.Value) or 1
+        if interval <= 0 then interval = 1 end
+        task.wait(interval)
+
+        if not UI.Toggles.SliceAutoBuy or not UI.Toggles.SliceAutoBuy.Value then
+            continue
+        end
+
+        initItemShopRemote()
+        if itemShopRemote then
+            local itemName = "TNT"
+            if UI.Options.SliceItemDropdown and UI.Options.SliceItemDropdown.Value and UI.Options.SliceItemDropdown.Value ~= "" then
+                itemName = UI.Options.SliceItemDropdown.Value
+            elseif UI.Options.SliceItemName and UI.Options.SliceItemName.Value and UI.Options.SliceItemName.Value ~= "" then
+                itemName = UI.Options.SliceItemName.Value
+            end
+
+            local args = { itemName, 1 }
+            pcall(function()
+                itemShopRemote:FireServer(unpack(args))
+            end)
+        end
+    end
+end)
+
+
+----------------------------------------------------------
 -- 🔹 Cleanup khi UI unload
 ----------------------------------------------------------
 
 if UI and UI.Library then
     UI.Library:OnUnload(function()
-        -- Dừng vòng lặp slice
+        -- Dừng các vòng lặp slice
         attackAuraRunning = false
         autoCollectRunning = false
+        autoEquipRunning = false
+        autoBuyRunning = false
 
         -- Gọi cleanup cho các module universal
         if Movement and Movement.cleanup then
