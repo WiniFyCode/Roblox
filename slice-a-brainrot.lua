@@ -155,45 +155,105 @@ local sliceItemList = {"TNT"}
     end)
 
     if success and type(shopData) == "table" then
+        local items = {}
         local seen = {}
-        local function addName(name)
-            if type(name) == "string" and name ~= "" and not seen[name] then
-                seen[name] = true
-                table.insert(sliceItemList, name)
+
+        local function addEntry(name, data)
+            if type(name) ~= "string" or name == "" then
+                return
+            end
+
+            local price = 0
+            local rebirth = 0
+
+            if type(data) == "table" then
+                if type(data.Price) == "number" then
+                    price = data.Price
+                elseif type(data.Cost) == "number" then
+                    price = data.Cost
+                end
+
+                if type(data.Rebirth) == "number" then
+                    rebirth = data.Rebirth
+                elseif type(data.RebirthRequired) == "number" then
+                    rebirth = data.RebirthRequired
+                end
+            end
+
+            local entry = seen[name]
+            if entry then
+                if price > 0 and (entry.price == 0 or price < entry.price) then
+                    entry.price = price
+                end
+                if rebirth > 0 and (entry.rebirth == 0 or rebirth < entry.rebirth) then
+                    entry.rebirth = rebirth
+                end
+            else
+                seen[name] = { price = price, rebirth = rebirth }
             end
         end
 
         if type(shopData.ByName) == "table" then
-            for name, _ in pairs(shopData.ByName) do
-                addName(name)
+            for name, data in pairs(shopData.ByName) do
+                addEntry(name, data)
             end
         end
 
         local function scan(tbl)
-            for _, v in pairs(tbl) do
+            for key, v in pairs(tbl) do
                 if type(v) == "table" then
+                    local name = nil
                     if type(v.Name) == "string" then
-                        addName(v.Name)
+                        name = v.Name
+                    elseif type(key) == "string" then
+                        name = key
                     end
+
+                    if name then
+                        addEntry(name, v)
+                    end
+
                     scan(v)
                 end
             end
         end
 
         scan(shopData)
+
+        for name, meta in pairs(seen) do
+            table.insert(items, {
+                name = name,
+                price = meta.price or 0,
+                rebirth = meta.rebirth or 0,
+            })
+        end
+
+        table.sort(items, function(a, b)
+            if a.rebirth == b.rebirth then
+                return a.price < b.price
+            else
+                return a.rebirth < b.rebirth
+            end
+        end)
+
+        sliceItemList = {}
+        for _, info in ipairs(items) do
+            table.insert(sliceItemList, info.name)
+        end
     end
 end
+
+if #sliceItemList == 0 then
+    sliceItemList = {"TNT"}
+end
+
 
 sliceGroup:AddDropdown("SliceItemDropdown", {
     Values = sliceItemList,
     Text = "Item List",
 })
 
-sliceGroup:AddInput("SliceItemName", {
-    Text = "Item Name (custom)",
-    Default = "TNT",
-    Placeholder = "VD: TNT, Bomb...",
-})
+
 
 sliceGroup:AddSlider("SliceBuyInterval", {
     Text = "Buy Interval (s)",
@@ -415,8 +475,6 @@ task.spawn(function()
             local itemName = "TNT"
             if UI.Options.SliceItemDropdown and UI.Options.SliceItemDropdown.Value and UI.Options.SliceItemDropdown.Value ~= "" then
                 itemName = UI.Options.SliceItemDropdown.Value
-            elseif UI.Options.SliceItemName and UI.Options.SliceItemName.Value and UI.Options.SliceItemName.Value ~= "" then
-                itemName = UI.Options.SliceItemName.Value
             end
 
             local args = { itemName, 1 }
@@ -424,6 +482,7 @@ task.spawn(function()
                 itemShopRemote:FireServer(unpack(args))
             end)
         end
+
     end
 end)
 
