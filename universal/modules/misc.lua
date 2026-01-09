@@ -24,7 +24,7 @@ function Misc.createTab()
 	
 	MiscGroup:AddToggle("AntiAFK", {
 		Text = "Anti AFK",
-		Default = false,
+		Default = true,
 		Tooltip = "Prevent AFK kick",
 	})
 	
