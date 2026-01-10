@@ -73,12 +73,6 @@ function Combat.start()
         local shouldAutoFire = false
 
         if Config.aimbotEnabled then
-            local camera = Config.Workspace.CurrentCamera
-            local isFirstPerson = false
-            if camera and camera.CameraSubject then
-                isFirstPerson = camera.CameraSubject:IsA("Humanoid")
-            end
-
             local active = true
             if Config.aimbotHoldMouse2 and not Combat.holdingMouse2 then
                 active = false
@@ -94,31 +88,16 @@ function Combat.start()
                         targetPos = targetPos + (vel * Config.aimbotPrediction)
                     end
 
+                    local camera = Config.Workspace.CurrentCamera
                     local cf = camera.CFrame
                     local desired = CFrame.new(cf.Position, targetPos)
 
-                    if isFirstPerson then
-                        -- First-person: only rotate, don't move camera position
-                        local currentLook = cf.LookVector
-                        local desiredLook = (targetPos - cf.Position).Unit
-                        
-                        if Config.aimbotSmoothness > 0 then
-                            local alpha = 1 - Config.aimbotSmoothness
-                            alpha = math.clamp(alpha, 0.01, 1)
-                            local smoothedLook = currentLook:Lerp(desiredLook, alpha)
-                            camera.CFrame = CFrame.new(cf.Position, cf.Position + smoothedLook)
-                        else
-                            camera.CFrame = CFrame.new(cf.Position, cf.Position + desiredLook)
-                        end
+                    if Config.aimbotSmoothness > 0 then
+                        local alpha = 1 - Config.aimbotSmoothness
+                        alpha = math.clamp(alpha, 0.01, 1)
+                        camera.CFrame = cf:Lerp(desired, alpha)
                     else
-                        -- Third-person: normal aimbot behavior
-                        if Config.aimbotSmoothness > 0 then
-                            local alpha = 1 - Config.aimbotSmoothness
-                            alpha = math.clamp(alpha, 0.01, 1)
-                            camera.CFrame = cf:Lerp(desired, alpha)
-                        else
-                            camera.CFrame = desired
-                        end
+                        camera.CFrame = desired
                     end
 
                     if Combat.FOVCircle then
@@ -598,44 +577,24 @@ function Combat.startAutoRotate()
     Combat.autoRotateConnection = Config.RunService.RenderStepped:Connect(function()
         if not Combat.autoRotateEnabled or Config.scriptUnloaded then return end
 
-        local camera = Config.Workspace.CurrentCamera
-        if not camera then return end
-
-        local isFirstPerson = false
-        if camera.CameraSubject then
-            isFirstPerson = camera.CameraSubject:IsA("Humanoid")
-        end
-
         -- Tìm zombie gần nhất (có wall check)
         local target = Combat.findClosestZombieForRotation()
         if not target then return end
+
+        local camera = Config.Workspace.CurrentCamera
+        if not camera then return end
 
         local targetPos = target.part.Position
         local currentCF = camera.CFrame
         local desiredCF = CFrame.new(currentCF.Position, targetPos)
 
-        if isFirstPerson then
-            -- First-person: only rotate, don't move camera position
-            local currentLook = currentCF.LookVector
-            local desiredLook = (targetPos - currentCF.Position).Unit
-            
-            if Combat.rotationSmoothness > 0 then
-                local alpha = 1 - Combat.rotationSmoothness
-                alpha = math.clamp(alpha, 0.01, 1)
-                local smoothedLook = currentLook:Lerp(desiredLook, alpha)
-                camera.CFrame = CFrame.new(currentCF.Position, currentCF.Position + smoothedLook)
-            else
-                camera.CFrame = CFrame.new(currentCF.Position, currentCF.Position + desiredLook)
-            end
+        -- Áp dụng smoothness
+        if Combat.rotationSmoothness > 0 then
+            local alpha = 1 - Combat.rotationSmoothness
+            alpha = math.clamp(alpha, 0.01, 1)
+            camera.CFrame = currentCF:Lerp(desiredCF, alpha)
         else
-            -- Third-person: normal rotation behavior
-            if Combat.rotationSmoothness > 0 then
-                local alpha = 1 - Combat.rotationSmoothness
-                alpha = math.clamp(alpha, 0.01, 1)
-                camera.CFrame = currentCF:Lerp(desiredCF, alpha)
-            else
-                camera.CFrame = desiredCF
-            end
+            camera.CFrame = desiredCF
         end
     end)
 end
