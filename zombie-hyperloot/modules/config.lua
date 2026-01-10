@@ -109,7 +109,7 @@ Config.hipHeight = 10
 
 ----------------------------------------------------------
 -- 🔹 Noclip Cam
-Config.noclipCamEnabled = false
+Config.noclipCamEnabled = true
 
 ----------------------------------------------------------
 -- 🔹 Auto Camera Rotation 360°
@@ -182,7 +182,7 @@ Config.trigerSkillDupeCount = 5
 
 ----------------------------------------------------------
 -- 🔹 Aimbot Configuration
-Config.aimbotEnabled = true
+Config.aimbotEnabled = false
 Config.aimbotHoldMouse2 = false -- Giữ chuột phải để aim
 Config.aimbotSmoothness = 0.7 -- 0 = instant, 1 = very slow
 Config.aimbotPrediction = 0 -- Dự đoán chuyển động
