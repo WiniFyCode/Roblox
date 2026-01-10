@@ -1,7 +1,7 @@
 --[[
     Slice-a-Brainrot - dùng chung UI & modules của Universal Script
     Tabs sử dụng: Main, Farm, Visuals, Teleport, Server, Misc (KHÔNG có Combat)
-    Thêm chức năng riêng cho game Slice: Attack Aura + Auto Collect + Auto Equip + Auto Buy (tab Farm)
+    Thêm chức năng riêng cho game Slice: Attack Aura + Auto Collect + Auto Equip (tab Farm)
 
     Lưu ý: Các module được load từ GitHub repo:
     https://raw.githubusercontent.com/WiniFyCode/Roblox/refs/heads/main/universal/modules/<moduleName>.lua
@@ -68,7 +68,7 @@ Misc.init(Config, UI)
 Misc.createTab()
 
 ----------------------------------------------------------
--- 🔹 Slice Features (Attack Aura + Auto Collect + Auto Equip + Auto Buy)
+-- 🔹 Slice Features (Attack Aura + Auto Collect + Auto Equip)
 -- Đặt trong tab Farm
 ----------------------------------------------------------
 
@@ -85,7 +85,7 @@ sliceGroup:AddSlider("SliceAuraRadius", {
     Text = "Aura Radius",
     Default = 20,
     Min = 5,
-    Max = 80,
+    Max = 300,
     Rounding = 0,
 })
 
@@ -95,6 +95,26 @@ sliceGroup:AddSlider("SliceAuraInterval", {
     Min = 0.05,
     Max = 1,
     Rounding = 2,
+})
+
+-- Chọn loại Crate để đánh (Multi Dropdown)
+local sliceCrateTypes = {
+    "CommonCrate",
+    "UncommonCrate",
+    "RareCrate",
+    "EpicCrate",
+    "LegendaryCrate",
+    "MythicalCrate",
+    "GodlyCrate",
+    "SecretCrate",
+}
+
+sliceGroup:AddDropdown("SliceCrateFilter", {
+    Values = sliceCrateTypes,
+    Default = "LegendaryCrate", -- mặc định, user có thể đổi
+    Multi = true,
+    Text = "Crate Types",
+    Tooltip = "Chỉ attack các loại crate được chọn (bỏ trống = tất cả)",
 })
 
 sliceGroup:AddDivider()
@@ -133,137 +153,6 @@ sliceGroup:AddSlider("SliceEquipInterval", {
 
 sliceGroup:AddDivider()
 
--- Auto Buy Item (ItemShop)
-sliceGroup:AddToggle("SliceAutoBuy", {
-    Text = "Auto Buy Item",
-    Default = false,
-    Tooltip = "Spam remote ItemShop để mua item liên tục",
-})
-
--- Lấy danh sách item từ itemShopData trong ReplicatedStorage.Shared
-local sliceItemList = {"TNT"}
- do
-    local success, shopData = pcall(function()
-        local rs = Config.ReplicatedStorage
-        local shared = rs:FindFirstChild("Shared")
-        if shared then
-            local module = shared:FindFirstChild("itemShopData")
-            if module and module:IsA("ModuleScript") then
-                return require(module)
-            end
-        end
-    end)
-
-    if success and type(shopData) == "table" then
-        local items = {}
-        local seen = {}
-
-        local function addEntry(name, data)
-            if type(name) ~= "string" or name == "" then
-                return
-            end
-
-            local price = 0
-            local rebirth = 0
-
-            if type(data) == "table" then
-                if type(data.Price) == "number" then
-                    price = data.Price
-                elseif type(data.Cost) == "number" then
-                    price = data.Cost
-                end
-
-                if type(data.Rebirth) == "number" then
-                    rebirth = data.Rebirth
-                elseif type(data.RebirthRequired) == "number" then
-                    rebirth = data.RebirthRequired
-                end
-            end
-
-            local entry = seen[name]
-            if entry then
-                if price > 0 and (entry.price == 0 or price < entry.price) then
-                    entry.price = price
-                end
-                if rebirth > 0 and (entry.rebirth == 0 or rebirth < entry.rebirth) then
-                    entry.rebirth = rebirth
-                end
-            else
-                seen[name] = { price = price, rebirth = rebirth }
-            end
-        end
-
-        if type(shopData.ByName) == "table" then
-            for name, data in pairs(shopData.ByName) do
-                addEntry(name, data)
-            end
-        end
-
-        local function scan(tbl)
-            for key, v in pairs(tbl) do
-                if type(v) == "table" then
-                    local name = nil
-                    if type(v.Name) == "string" then
-                        name = v.Name
-                    elseif type(key) == "string" then
-                        name = key
-                    end
-
-                    if name then
-                        addEntry(name, v)
-                    end
-
-                    scan(v)
-                end
-            end
-        end
-
-        scan(shopData)
-
-        for name, meta in pairs(seen) do
-            table.insert(items, {
-                name = name,
-                price = meta.price or 0,
-                rebirth = meta.rebirth or 0,
-            })
-        end
-
-        table.sort(items, function(a, b)
-            if a.rebirth == b.rebirth then
-                return a.price < b.price
-            else
-                return a.rebirth < b.rebirth
-            end
-        end)
-
-        sliceItemList = {}
-        for _, info in ipairs(items) do
-            table.insert(sliceItemList, info.name)
-        end
-    end
-end
-
-if #sliceItemList == 0 then
-    sliceItemList = {"TNT"}
-end
-
-
-sliceGroup:AddDropdown("SliceItemDropdown", {
-    Values = sliceItemList,
-    Text = "Item List",
-})
-
-
-
-sliceGroup:AddSlider("SliceBuyInterval", {
-    Text = "Buy Interval (s)",
-    Default = 1,
-    Min = 0.1,
-    Max = 10,
-    Rounding = 1,
-})
-
-
 ----------------------------------------------------------
 -- 🔹 Logic Attack Aura
 ----------------------------------------------------------
@@ -284,7 +173,39 @@ local function initAttackAuraDependencies()
 end
 
 local function isCrate(model)
-    return model and model:IsA("Model") and string.find(model.Name, "Crate") ~= nil
+    if not (model and model:IsA("Model") and string.find(model.Name, "Crate") ~= nil) then
+        return false
+    end
+
+    -- Nếu user không chọn gì trong dropdown thì đánh tất cả crate
+    local dropdown = UI.Options and UI.Options.SliceCrateFilter
+    if not dropdown or not dropdown.Value then
+        return true
+    end
+
+    local selected = dropdown.Value
+    local hasSelection = false
+    for _ in pairs(selected) do
+        hasSelection = true
+        break
+    end
+
+    if not hasSelection then
+        return true
+    end
+
+    -- Kiểm tra tên crate có chứa text của loại đã chọn (case-insensitive)
+    local nameLower = string.lower(model.Name)
+    for key, enabled in pairs(selected) do
+        if enabled then
+            local keyLower = string.lower(tostring(key))
+            if string.find(nameLower, keyLower, 1, true) then
+                return true
+            end
+        end
+    end
+
+    return false
 end
 
 local attackAuraRunning = true
@@ -371,6 +292,11 @@ local function touchCollectPart(part)
     local rootPart = Config.rootPart
     if not rootPart then return end
 
+    -- Chỉ xử lý nếu part có TouchInterest / TouchTransmitter như trong Explorer
+    local touch = part:FindFirstChildOfClass("TouchTransmitter") or part:FindFirstChild("TouchInterest")
+    if not touch then return end
+
+    -- Chỉ kích hoạt TouchInterest, KHÔNG teleport nhân vật nữa
     if typeof(firetouchinterest) == "function" then
         pcall(function()
             firetouchinterest(rootPart, part, 0)
@@ -380,11 +306,6 @@ local function touchCollectPart(part)
         pcall(function()
             firetouchtransmitter(rootPart, part)
         end)
-    else
-        local oldCFrame = rootPart.CFrame
-        rootPart.CFrame = part.CFrame + Vector3.new(0, 3, 0)
-        task.wait(0.1)
-        rootPart.CFrame = oldCFrame
     end
 end
 
@@ -444,50 +365,6 @@ task.spawn(function()
 end)
 
 ----------------------------------------------------------
--- 🔹 Logic Auto Buy Item (ItemShop remote)
-----------------------------------------------------------
-
-local itemShopRemote
-
-local function initItemShopRemote()
-    if not itemShopRemote then
-        local remotes = Config.ReplicatedStorage:FindFirstChild("Remotes")
-        if remotes then
-            itemShopRemote = remotes:FindFirstChild("ItemShop")
-        end
-    end
-end
-
-local autoBuyRunning = true
-
-task.spawn(function()
-    while autoBuyRunning do
-        local interval = (UI.Options.SliceBuyInterval and UI.Options.SliceBuyInterval.Value) or 1
-        if interval <= 0 then interval = 1 end
-        task.wait(interval)
-
-        if not UI.Toggles.SliceAutoBuy or not UI.Toggles.SliceAutoBuy.Value then
-            continue
-        end
-
-        initItemShopRemote()
-        if itemShopRemote then
-            local itemName = "TNT"
-            if UI.Options.SliceItemDropdown and UI.Options.SliceItemDropdown.Value and UI.Options.SliceItemDropdown.Value ~= "" then
-                itemName = UI.Options.SliceItemDropdown.Value
-            end
-
-            local args = { itemName, 1 }
-            pcall(function()
-                itemShopRemote:FireServer(unpack(args))
-            end)
-        end
-
-    end
-end)
-
-
-----------------------------------------------------------
 -- 🔹 Cleanup khi UI unload
 ----------------------------------------------------------
 
@@ -497,7 +374,6 @@ if UI and UI.Library then
         attackAuraRunning = false
         autoCollectRunning = false
         autoEquipRunning = false
-        autoBuyRunning = false
 
         -- Gọi cleanup cho các module universal
         if Movement and Movement.cleanup then
