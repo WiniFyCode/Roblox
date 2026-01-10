@@ -182,7 +182,7 @@ Config.trigerSkillDupeCount = 5
 
 ----------------------------------------------------------
 -- 🔹 Aimbot Configuration
-Config.aimbotEnabled = false
+Config.aimbotEnabled = true
 Config.aimbotHoldMouse2 = false -- Giữ chuột phải để aim
 Config.aimbotSmoothness = 0.7 -- 0 = instant, 1 = very slow
 Config.aimbotPrediction = 0 -- Dự đoán chuyển động

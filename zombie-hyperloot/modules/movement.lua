@@ -116,6 +116,7 @@ function Movement.startCameraTeleportInput()
 
             local camera = Config.Workspace.CurrentCamera
             camera.CameraSubject = Config.localPlayer.Character and Config.localPlayer.Character:FindFirstChild("Humanoid")
+            camera.CameraType = Enum.CameraType.Default
             return
         end
 
@@ -217,6 +218,7 @@ function Movement.startCameraTeleportInput()
                 local finalHumanoid = finalChar:FindFirstChild("Humanoid")
                 if finalHumanoid then
                     camera.CameraSubject = finalHumanoid
+                    camera.CameraType = Enum.CameraType.Default
                 end
             end
 
