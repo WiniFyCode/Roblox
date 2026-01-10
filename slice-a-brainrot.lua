@@ -92,7 +92,7 @@ sliceGroup:AddSlider("SliceAuraRadius", {
 sliceGroup:AddSlider("SliceAuraInterval", {
     Text = "Aura Interval (s)",
     Default = 0.10,
-    Min = 0.05,
+    Min = 0.01,
     Max = 1,
     Rounding = 2,
 })
