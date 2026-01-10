@@ -109,7 +109,7 @@ Config.hipHeight = 10
 
 ----------------------------------------------------------
 -- 🔹 Noclip Cam
-Config.noclipCamEnabled = true
+Config.noclipCamEnabled = false
 
 ----------------------------------------------------------
 -- 🔹 Auto Camera Rotation 360°
