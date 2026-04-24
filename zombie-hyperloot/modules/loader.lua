@@ -85,7 +85,7 @@ function Loader.start()
     Subtitle.Position = UDim2.new(0, 20, 0, 55) -- Adjusted position
     Subtitle.Size = UDim2.new(1, -40, 0, 20)
     Subtitle.Font = Enum.Font.Gotham
-    Subtitle.Text = "Premium Script Hub | Developed by WiniFy | I have stopped updating this script."
+    Subtitle.Text = "Premium Script Hub | Developed by WiniFy."
     Subtitle.TextColor3 = Colors.SubText
     Subtitle.TextSize = 13.000 -- Slightly larger
     Subtitle.TextXAlignment = Enum.TextXAlignment.Left
