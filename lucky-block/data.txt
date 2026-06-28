@@ -1,0 +1,39 @@
+workspace.GameArea.Bases.Base4.BrainrotStands.Floor1:GetChildren()[3]
+workspace.GameArea.Bases.Base4.BrainrotStands.Floor1:GetChildren()[5]
+workspace.GameArea.Bases.Base4.BrainrotStands.Floor2:GetChildren()[10].CollectButton.Button.TouchInterest
+workspace.GameArea.Bases.Base4.BrainrotStands.Floor3:GetChildren()[5].CollectButton.Button.TouchInterest
+
+
+--- info
+workspace.Camera.BrainrotContainer["988"].BrainrotInfo.Frame.Tier
+workspace.Camera.BrainrotContainer["988"].BrainrotInfo.Frame.DisplayName
+workspace.Camera.BrainrotContainer["988"].BrainrotInfo.Frame.Income
+workspace.Camera.BrainrotContainer["192"].BrainrotInfo.Frame.BrainrotInfoTimer.Time
+
+---
+workspace.EaterMax_23.ToolModel1.LavacaSaturna.Root.BillboardAttachment.BrainrotInfo.Frame.Income
+workspace.EaterMax_23.ToolModel1.LavacaBlackhole.Root.BillboardAttachment.BrainrotInfo.Frame.Income
+workspace.EaterMax_23.ToolModel1.BisonteGiuppitere.Root.BillboardAttachment.BrainrotInfo.Frame.Income
+workspace.GameArea.Bases.Base5.BrainrotStands.Floor1:GetChildren()[9].DisplayStand.OptionsAttachment.ReplacePrompt
+workspace.EaterMax_23.ToolModel1.LavacaBlackhole.Root.BillboardAttachment.BrainrotInfo.Frame.Income
+workspace.GameArea.Bases.Base5.BrainrotStands.Floor1:GetChildren()[6].DisplayStand.BrainrotAttachment.LavacaBlackhole.PivotPart.BillboardAttachment.BrainrotInfo.Frame.Income
+workspace.GameArea.Bases.Base5.BrainrotStands.Floor1:GetChildren()[6].DisplayStand.BrainrotAttachment.LavacaBlackhole.PivotPart.BillboardAttachment.BrainrotInfo.Frame.DisplayName
+workspace.GameArea.Bases.Base5.BrainrotStands.Floor1:GetChildren()[6].DisplayStand.BrainrotAttachment.LavacaBlackhole.PivotPart.BillboardAttachment.BrainrotInfo.Frame.Tier
+
+-- base info
+workspace.GameArea.Bases.Base5.PlayerInfo.BillboardGui.TextLabel
+
+-- spawn
+workspace.GameArea.Interactables.BrainrotSpawns["1"]["1"]
+workspace.GameArea.Interactables.BrainrotSpawns["2"]["3"]
+workspace.GameArea.Interactables.BrainrotSpawns["10"]["9"]
+workspace.GameArea.Interactables.BrainrotSpawns["11"]["9"]
+workspace.GameArea.Interactables.BrainrotSpawns["12"]["9"]
+workspace.GameArea.Interactables.BrainrotSpawns["4"]["7"]
+
+workspace.GameArea.GameplayZones["1"].FinishLine
+
+-- 
+workspace.Camera:GetChildren()[13].Cube.ProximityPrompt
+workspace.Camera.Pineapple.Cube.ProximityPrompt
+workspace.Camera:GetChildren()[8].Cube.ProximityPrompt
