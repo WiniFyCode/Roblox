@@ -13,6 +13,7 @@ local ESPEnabled = false
 
 -- ESP objects
 local ESPFolder = nil
+local ESPRefreshDelay = 1
 
 -- Delays
 local BuyDelay = 0.1
@@ -286,8 +287,15 @@ Misc:CreateToggle({
         ESPEnabled = Value
 
         if Value then
-            EnableESP()
             print("ESP đã bật! (MergeSlot: 1, 2, 3...)")
+
+            task.spawn(function()
+                -- Làm mới ESP liên tục để cây mới/thay đổi vẫn hiện label.
+                while ESPEnabled do
+                    EnableESP()
+                    task.wait(ESPRefreshDelay)
+                end
+            end)
         else
             ClearESP()
         end
