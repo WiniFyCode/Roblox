@@ -115,23 +115,6 @@ local function AddBounce(button, scaleFactor)
     end)
 end
 
--- // Theme Colors 
-local AccentColor = Color3.fromRGB(190, 140, 255)
-local BackgroundColor = Color3.fromRGB(18, 18, 20)
-local CardColor = Color3.fromRGB(24, 24, 27)
-local HoverColor = Color3.fromRGB(35, 35, 40)
-local TextColor = Color3.fromRGB(240, 240, 240)
-local SubTextColor = Color3.fromRGB(150, 150, 150)
-local BorderColor = Color3.fromRGB(40, 40, 45)
-
-local function StyleScrollFrame(sf)
-    sf.ScrollBarThickness = 3
-    sf.ScrollBarImageColor3 = AccentColor
-    sf.ScrollBarImageTransparency = 0.3
-    sf.VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar
-    sf.VerticalScrollBarPosition = Enum.VerticalScrollBarPosition.Right
-end
-
 -- // Utility: Draggable
 local function MakeDraggable(topbar, object)
     topbar.Active = true
@@ -168,6 +151,13 @@ local function MakeDraggable(topbar, object)
         end
     end)
 end
+
+local AccentColor = Color3.fromRGB(190, 140, 255)
+local BackgroundColor = Color3.fromRGB(18, 18, 20)
+local CardColor = Color3.fromRGB(24, 24, 27)
+local HoverColor = Color3.fromRGB(35, 35, 40)
+local TextColor = Color3.fromRGB(240, 240, 240)
+local SubTextColor = Color3.fromRGB(150, 150, 150)
 
 -- // Global Notification API
 local GlobalNotifContainer
@@ -516,7 +506,6 @@ function Library:CreateWindow(options)
         BorderSizePixel = 0,
         ZIndex = 152
     })
-    StyleScrollFrame(InfoScroll)
     local InfoLayout = Create("UIListLayout", {
         Parent = InfoScroll,
         SortOrder = Enum.SortOrder.LayoutOrder,
@@ -824,7 +813,7 @@ function Library:CreateWindow(options)
         Parent = TopBar,
         BackgroundColor3 = CardColor,
         Size = UDim2.new(0, 250, 0, 26),
-        Position = UDim2.new(0, titleOffsetX + 10, 0.5, -13)
+        Position = UDim2.new(0, 180, 0.5, -13)
     })
     Create("UICorner", {
         Parent = SearchBar,
@@ -871,31 +860,6 @@ function Library:CreateWindow(options)
         Size = UDim2.new(0, 30, 1, 0),
         Position = UDim2.new(1, -65, 0, 0)
     })
-    local SidebarToggleBtn = Create("TextButton", {
-        Parent = TopBar,
-        BackgroundColor3 = CardColor,
-        Size = UDim2.new(0, 32, 0, 28),
-        Position = UDim2.new(1, -100, 0, 6),
-        Text = "☰",
-        Font = Enum.Font.GothamBold,
-        TextSize = 14,
-        TextColor3 = TextColor,
-        AutoButtonColor = false,
-        ZIndex = 3
-    })
-    Create("UICorner", {
-        Parent = SidebarToggleBtn,
-        CornerRadius = UDim.new(0, 6)
-    })
-    Create("UIStroke", {
-        Parent = SidebarToggleBtn,
-        Color = BorderColor,
-        Transparency = 0.5
-    })
-    AddBounce(SidebarToggleBtn)
-    SidebarToggleBtn.MouseButton1Click:Connect(function()
-        Window:ToggleSidebar()
-    end)
 
     local Sidebar = Create("Frame", {
         Parent = MainFrame,
@@ -938,7 +902,6 @@ function Library:CreateWindow(options)
         Position = UDim2.new(0, 10, 0, 40),
         ScrollBarThickness = 0
     })
-    StyleScrollFrame(TabContainer)
     Create("UIListLayout", {
         Parent = TabContainer,
         SortOrder = Enum.SortOrder.LayoutOrder,
@@ -955,8 +918,8 @@ function Library:CreateWindow(options)
     local ContentArea = Create("Frame", {
         Parent = MainFrame,
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, -185, 1, -40),
-        Position = UDim2.new(0, 175, 0, 40),
+        Size = UDim2.new(1, -165, 1, -40),
+        Position = UDim2.new(0, 165, 0, 40),
         Active = true
     })
 
@@ -1006,21 +969,15 @@ function Library:CreateWindow(options)
     })
     MakeDraggable(Sphere, Sphere)
 
-    -- // ESC để toggle minimize/restore, Ctrl+B toggle sidebar
-    UserInputService.InputBegan:Connect(function(input, gp)
-        if gp then
-            return
-        end
-        if input.KeyCode == Enum.KeyCode.RightShift then
-            if MainFrame.Visible then
-                MinBtn.MouseButton1Click:Fire()
-            elseif Sphere.Visible then
-                Sphere.MouseButton1Click:Fire()
-            end
-        elseif input.KeyCode == Enum.KeyCode.B and UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
-            Window:ToggleSidebar()
-        end
-    end)
+    local Window = {
+        CurrentTab = nil,
+        Tabs = {},
+        Title = Title,
+        AllCards = {},
+        MainFrame = MainFrame,
+        CurrentTransparency = 0,
+        ConfigElements = {}
+    }
 
     function Window:SetTransparency(val)
         Window.CurrentTransparency = val
@@ -1033,32 +990,6 @@ function Library:CreateWindow(options)
                 BackgroundTransparency = val > 0 and 0.2 or 0
             }, 0.3)
         end
-    end
-
-    -- // Toggle Sidebar
-    local sidebarOpen = true
-    function Window:ToggleSidebar()
-        sidebarOpen = not sidebarOpen
-        local targetWidth = sidebarOpen and 160 or 0
-        local targetContentPos = sidebarOpen and 175 or 15
-        local targetContentSize = sidebarOpen and UDim2.new(1, -185, 1, -40) or UDim2.new(1, -25, 1, -40)
-
-        Tween(Sidebar, {
-            Size = UDim2.new(0, targetWidth, 1, -40)
-        }, 0.3)
-        Tween(Divider, {
-            Size = UDim2.new(0, sidebarOpen and 1 or 0, 1, -40)
-        }, 0.3)
-        Tween(ContentArea, {
-            Position = UDim2.new(0, targetContentPos, 0, 40),
-            Size = targetContentSize
-        }, 0.3)
-        Tween(TabSearchBox, {
-            Size = UDim2.new(1, sidebarOpen and -20 or 0, 0, 26)
-        }, 0.3)
-        TabSearchBox.Visible = sidebarOpen
-
-        SidebarToggleBtn.Text = sidebarOpen and "☰" or "☰"
     end
 
     MinBtn.MouseButton1Click:Connect(function()
@@ -1473,7 +1404,8 @@ function Library:CreateWindow(options)
         local PageNav = Create("Frame", {
             Parent = TabContent,
             BackgroundTransparency = 1,
-            Size = UDim2.new(1, 0, 0, 35)
+            Size = UDim2.new(1, -10, 0, 35),
+            Position = UDim2.new(0, 10, 0, 0)
         })
         local PageNavList = Create("UIListLayout", {
             Parent = PageNav,
@@ -1596,11 +1528,10 @@ function Library:CreateWindow(options)
                 Size = UDim2.new(1, -10, 1, -10),
                 Position = UDim2.new(0, 5, 0, 5),
                 ScrollBarThickness = 2,
-                ScrollBarImageColor3 = AccentColor,
+                ScrollBarImageColor3 = Color3.fromRGB(60, 60, 65),
                 Visible = false,
                 BorderSizePixel = 0
             })
-            StyleScrollFrame(PageScroll)
 
             local LeftColumn = Create("Frame", {
                 Parent = PageScroll,
@@ -1643,18 +1574,6 @@ function Library:CreateWindow(options)
                 RightCol = RightColumn
             }
             table.insert(TabConfig.Pages, PageObj)
-
-            -- // Thêm padding 2 bên cho Left/Right Column (margin nội bộ)
-            Create("UIPadding", {
-                Parent = LeftColumn,
-                PaddingLeft = UDim.new(0, 10),
-                PaddingRight = UDim.new(0, 5)
-            })
-            Create("UIPadding", {
-                Parent = RightColumn,
-                PaddingLeft = UDim.new(0, 5),
-                PaddingRight = UDim.new(0, 10)
-            })
 
             PageBtn.MouseButton1Click:Connect(function()
                 if TabConfig.CurrentPage == PageObj then
@@ -1709,14 +1628,6 @@ function Library:CreateWindow(options)
                 Create("UICorner", {
                     Parent = SectionContainer,
                     CornerRadius = UDim.new(0, 6)
-                })
-                -- // Padding nội bộ Section (tránh text dính viền) + gap dưới (10px)
-                Create("UIPadding", {
-                    Parent = SectionContainer,
-                    PaddingLeft = UDim.new(0, 10),
-                    PaddingRight = UDim.new(0, 10),
-                    PaddingTop = UDim.new(0, 8),
-                    PaddingBottom = UDim.new(0, 18)
                 })
 
                 table.insert(Window.AllCards, {
@@ -2146,14 +2057,13 @@ function Library:CreateWindow(options)
                         Position = UDim2.new(0, 10, 0, 78),
                         CanvasSize = UDim2.new(0, 0, 0, #options * 25),
                         ScrollBarThickness = 2,
-                        ScrollBarImageColor3 = AccentColor,
+                        ScrollBarImageColor3 = Color3.fromRGB(80, 80, 85),
                         BorderSizePixel = 0
                     })
                     Create("UICorner", {
                         Parent = ListFrame,
                         CornerRadius = UDim.new(0, 4)
                     })
-                    StyleScrollFrame(ListFrame)
                     local DList = Create("UIListLayout", {
                         Parent = ListFrame,
                         SortOrder = Enum.SortOrder.LayoutOrder
@@ -2694,7 +2604,6 @@ function Library:CreateWindow(options)
                         BorderSizePixel = 0,
                         CanvasSize = UDim2.new(0, 0, 0, 0)
                     })
-                    StyleScrollFrame(Monitor)
                     Create("UICorner", {
                         Parent = Monitor,
                         CornerRadius = UDim.new(0, 4)
@@ -2704,7 +2613,6 @@ function Library:CreateWindow(options)
                         Color = Color3.fromRGB(45, 45, 50),
                         Thickness = 1
                     })
-                    StyleScrollFrame(Monitor)
                     local MonitorLayout = Create("UIListLayout", {
                         Parent = Monitor,
                         SortOrder = Enum.SortOrder.LayoutOrder,
