@@ -675,6 +675,123 @@ function Library:CreateWindow(options)
         end)
     end
 
+    -- // Creates a bind icon button next to an element
+    -- // Click to enter bind mode, press any key to assign, click "X" to unbind
+    local function CreateBindIcon(parent, elementName, pos, elementObj)
+        local BindBtn = Create("TextButton", {
+            Parent = parent,
+            Text = "", -- // Show nothing by default (no bind yet)
+            Font = Enum.Font.GothamBold,
+            TextSize = 9,
+            TextColor3 = SubTextColor,
+            BackgroundColor3 = Color3.fromRGB(35, 35, 40),
+            Size = UDim2.new(0, 24, 0, 16),
+            Position = pos,
+            AutoButtonColor = false,
+            ZIndex = 5,
+            Visible = false -- // Hidden until a bind is set or user clicks to bind
+        })
+        Create("UICorner", {
+            Parent = BindBtn,
+            CornerRadius = UDim.new(0, 3)
+        })
+        Create("UIStroke", {
+            Parent = BindBtn,
+            Color = Color3.fromRGB(55, 55, 60),
+            Thickness = 1
+        })
+        AddBounce(BindBtn)
+
+        local isWaiting = false -- // Track if this bind button is in bind mode
+
+        -- // Enter bind mode on click: wait for user to press a key
+        BindBtn.MouseButton1Click:Connect(function()
+            if isWaiting then
+                return
+            end
+            isWaiting = true
+            Window.BindMode = true
+            BindBtn.Text = "..."
+            Tween(BindBtn, {
+                BackgroundColor3 = AccentColor,
+                TextColor3 = Color3.fromRGB(255, 255, 255)
+            }, 0.2)
+
+            -- // Cancel bind mode if user presses Escape
+            local escapeConn
+            escapeConn = UserInputService.InputBegan:Connect(function(input)
+                if input.KeyCode == Enum.KeyCode.Escape then
+                    Window.BindMode = false
+                    isWaiting = false
+                    escapeConn:Disconnect()
+                    -- // If no bind was set, hide the button
+                    if not Window.Binds[elementName] then
+                        BindBtn.Visible = false
+                    else
+                        BindBtn.Text = string.sub(Window.Binds[elementName].Key.Name, 1, 4)
+                    end
+                    Tween(BindBtn, {
+                        BackgroundColor3 = Color3.fromRGB(35, 35, 40),
+                        TextColor3 = SubTextColor
+                    }, 0.2)
+                end
+            end)
+
+            -- // Set the bind callback to receive the pressed key
+            Window.BindCallback = function(keyCode)
+                isWaiting = false
+                if escapeConn then
+                    escapeConn:Disconnect()
+                end
+
+                -- // Check if this key is already bound to another element
+                for otherName, otherBind in pairs(Window.Binds) do
+                    if otherName ~= elementName and otherBind.Key == keyCode then
+                        -- // Unbind the old element
+                        Window.Binds[otherName] = nil
+                        -- // Update the old element's bind icon (hide it)
+                        if Window.ConfigElements[otherName] and Window.ConfigElements[otherName].BindIcon then
+                            Window.ConfigElements[otherName].BindIcon.Visible = false
+                            Window.ConfigElements[otherName].BindIcon.Text = ""
+                        end
+                    end
+                end
+
+                -- // Store the bind with the element's action callback
+                Window.Binds[elementName] = {
+                    Key = keyCode,
+                    Callback = elementObj._bindCallback
+                }
+
+                -- // Update the bind icon text to show key name (truncated to 4 chars)
+                BindBtn.Text = string.sub(keyCode.Name, 1, 4)
+                BindBtn.Visible = true
+                Tween(BindBtn, {
+                    BackgroundColor3 = Color3.fromRGB(35, 35, 40),
+                    TextColor3 = SubTextColor
+                }, 0.2)
+            end
+        end)
+
+        -- // Hover effect
+        BindBtn.MouseEnter:Connect(function()
+            if not isWaiting then
+                Tween(BindBtn, {
+                    BackgroundColor3 = HoverColor
+                }, 0.2)
+            end
+        end)
+        BindBtn.MouseLeave:Connect(function()
+            if not isWaiting then
+                Tween(BindBtn, {
+                    BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+                }, 0.2)
+            end
+        end)
+
+        return BindBtn
+    end
+
     local MainFrame = Create("Frame", {
         Parent = ScreenGui,
         BackgroundColor3 = BackgroundColor,
@@ -969,6 +1086,7 @@ function Library:CreateWindow(options)
     })
     MakeDraggable(Sphere, Sphere)
 
+    -- // Bind System: stores all key binds and bind mode state
     local Window = {
         CurrentTab = nil,
         Tabs = {},
@@ -976,8 +1094,35 @@ function Library:CreateWindow(options)
         AllCards = {},
         MainFrame = MainFrame,
         CurrentTransparency = 0,
-        ConfigElements = {}
+        ConfigElements = {},
+        Binds = {}, -- { [elementName] = { Key = Enum.KeyCode, Callback = fn } }
+        BindMode = false, -- true = waiting for user to press a key
+        BindCallback = nil -- callback to receive the pressed key during bind mode
     }
+
+    -- // Global key listener: triggers bound actions when user presses assigned keys
+    UserInputService.InputBegan:Connect(function(input, processed)
+        if processed then
+            return
+        end
+        -- // If in bind mode, capture the key and exit bind mode
+        if Window.BindMode and input.UserInputType == Enum.UserInputType.Keyboard then
+            Window.BindMode = false
+            if Window.BindCallback then
+                Window.BindCallback(input.KeyCode)
+                Window.BindCallback = nil
+            end
+            return
+        end
+        -- // Check all binds and trigger matching callback
+        for name, bind in pairs(Window.Binds) do
+            if input.KeyCode == bind.Key then
+                if bind.Callback then
+                    bind.Callback()
+                end
+            end
+        end
+    end)
 
     function Window:SetTransparency(val)
         Window.CurrentTransparency = val
@@ -1773,6 +1918,34 @@ function Library:CreateWindow(options)
                     end)
 
                     AddInfoIcon(BtnFrame, UDim2.new(1, -40, 0.5, -8), infoData)
+
+                    -- // Button bind support: store action callback for bind system
+                    local BtnObj = {}
+                    BtnObj._bindCallback = callback
+
+                    -- // Create bind icon next to info icon
+                    local BindIcon = CreateBindIcon(BtnFrame, name, UDim2.new(1, -62, 0.5, -8), BtnObj)
+                    Window.ConfigElements[name] = Window.ConfigElements[name] or {}
+                    Window.ConfigElements[name].BindIcon = BindIcon
+
+                    -- // :Bind(keyCode) — assign a key bind directly via API
+                    function BtnObj:Bind(keyCode)
+                        Window.Binds[name] = {
+                            Key = keyCode,
+                            Callback = callback
+                        }
+                        BindIcon.Text = string.sub(keyCode.Name, 1, 4)
+                        BindIcon.Visible = true
+                    end
+
+                    -- // :Unbind() — remove the key bind
+                    function BtnObj:Unbind()
+                        Window.Binds[name] = nil
+                        BindIcon.Text = ""
+                        BindIcon.Visible = false
+                    end
+
+                    return BtnObj
                 end
 
                 function Elements:AddToggle(name, default, callback, infoData)
@@ -1844,6 +2017,41 @@ function Library:CreateWindow(options)
                             return state
                         end
                     }
+
+                    -- // Toggle bind support: pressing the bound key toggles the state
+                    local TogObj = {}
+                    TogObj._bindCallback = function()
+                        internalSet(not state)
+                    end
+
+                    -- // Create bind icon next to info icon
+                    local BindIcon = CreateBindIcon(TogFrame, name, UDim2.new(1, -90, 0.5, -8), TogObj)
+                    Window.ConfigElements[name].BindIcon = BindIcon
+
+                    -- // :Bind(keyCode) — assign a key bind directly via API
+                    function TogObj:Bind(keyCode)
+                        Window.Binds[name] = {
+                            Key = keyCode,
+                            Callback = TogObj._bindCallback
+                        }
+                        BindIcon.Text = string.sub(keyCode.Name, 1, 4)
+                        BindIcon.Visible = true
+                    end
+
+                    -- // :Unbind() — remove the key bind
+                    function TogObj:Unbind()
+                        Window.Binds[name] = nil
+                        BindIcon.Text = ""
+                        BindIcon.Visible = false
+                    end
+
+                    -- // Expose Set/Get for config system
+                    TogObj.Set = internalSet
+                    TogObj.Get = function()
+                        return state
+                    end
+
+                    return TogObj
                 end
 
                 function Elements:AddSlider(name, min, max, default, callback, infoData)
@@ -2969,8 +3177,35 @@ function Library:CreateWindow(options)
                                     end)
                                     if s and type(data) == "table" then
                                         for k, v in pairs(data) do
-                                            if Window.ConfigElements[k] and Window.ConfigElements[k].Set then
+                                            if k ~= "_binds" and Window.ConfigElements[k] and
+                                                Window.ConfigElements[k].Set then
                                                 Window.ConfigElements[k].Set(v)
+                                            end
+                                        end
+                                        -- // Restore binds from saved config
+                                        if data._binds and type(data._binds) == "table" then
+                                            for name, keyName in pairs(data._binds) do
+                                                local ok, keyCode = pcall(function()
+                                                    return Enum.KeyCode[keyName]
+                                                end)
+                                                if ok and keyCode and Window.ConfigElements[name] and
+                                                    Window.ConfigElements[name].BindIcon then
+                                                    -- // Restore the bind in the system
+                                                    local elObj = Window.ConfigElements[name]
+                                                    if elObj.Get and elObj.Set then
+                                                        -- // Toggle element: bind callback toggles state
+                                                        Window.Binds[name] = {
+                                                            Key = keyCode,
+                                                            Callback = function()
+                                                                elObj.Set(not elObj.Get())
+                                                            end
+                                                        }
+                                                    end
+                                                    -- // Update the bind icon display
+                                                    Window.ConfigElements[name].BindIcon.Text =
+                                                        string.sub(keyName, 1, 4)
+                                                    Window.ConfigElements[name].BindIcon.Visible = true
+                                                end
                                             end
                                         end
                                         Library:Notify({
@@ -3004,6 +3239,12 @@ function Library:CreateWindow(options)
                                 payload[k] = el.Get()
                             end
                         end
+                        -- // Save bind key codes (store Enum.KeyCode name as string)
+                        local bindsData = {}
+                        for name, bind in pairs(Window.Binds) do
+                            bindsData[name] = bind.Key.Name
+                        end
+                        payload._binds = bindsData
                         local encoded = HttpService:JSONEncode(payload)
                         local uniqueKey = tostring(math.floor(tick()))
                         local finalPath = folderName .. "/" .. saveName .. "_" .. uniqueKey .. ".json"
