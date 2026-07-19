@@ -115,6 +115,15 @@ local function AddBounce(button, scaleFactor)
     end)
 end
 
+-- // Theme Colors 
+local AccentColor = Color3.fromRGB(190, 140, 255)
+local BackgroundColor = Color3.fromRGB(18, 18, 20)
+local CardColor = Color3.fromRGB(24, 24, 27)
+local HoverColor = Color3.fromRGB(35, 35, 40)
+local TextColor = Color3.fromRGB(240, 240, 240)
+local SubTextColor = Color3.fromRGB(150, 150, 150)
+local BorderColor = Color3.fromRGB(40, 40, 45)
+
 local function StyleScrollFrame(sf)
     sf.ScrollBarThickness = 3
     sf.ScrollBarImageColor3 = AccentColor
@@ -159,13 +168,6 @@ local function MakeDraggable(topbar, object)
         end
     end)
 end
-
-local AccentColor = Color3.fromRGB(190, 140, 255)
-local BackgroundColor = Color3.fromRGB(18, 18, 20)
-local CardColor = Color3.fromRGB(24, 24, 27)
-local HoverColor = Color3.fromRGB(35, 35, 40)
-local TextColor = Color3.fromRGB(240, 240, 240)
-local SubTextColor = Color3.fromRGB(150, 150, 150)
 
 -- // Global Notification API
 local GlobalNotifContainer
