@@ -680,16 +680,18 @@ function Library:CreateWindow(options)
     local function CreateBindIcon(parent, elementName, pos, elementObj)
         local BindBtn = Create("TextButton", {
             Parent = parent,
-            Text = "+", -- // Show "+" to indicate bind button is clickable
+            Text = "+",
             Font = Enum.Font.GothamBold,
-            TextSize = 10,
+            TextSize = 11,
             TextColor3 = SubTextColor,
             BackgroundColor3 = Color3.fromRGB(35, 35, 40),
-            Size = UDim2.new(0, 24, 0, 16),
+            Size = UDim2.new(0, 22, 0, 16),
             Position = pos,
             AutoButtonColor = false,
-            ZIndex = 5,
-            Visible = true -- // Always visible so user can click to bind
+            ZIndex = 10,
+            Visible = true,
+            Active = true,
+            Selectable = true
         })
         Create("UICorner", {
             Parent = BindBtn,
@@ -700,76 +702,77 @@ function Library:CreateWindow(options)
             Color = Color3.fromRGB(55, 55, 60),
             Thickness = 1
         })
-        AddBounce(BindBtn)
 
-        local isWaiting = false -- // Track if this bind button is in bind mode
+        local isWaiting = false
 
-        -- // Enter bind mode on click: wait for user to press a key
-        BindBtn.MouseButton1Click:Connect(function()
-            if isWaiting then
-                return
-            end
-            isWaiting = true
-            Window.BindMode = true
-            BindBtn.Text = "..."
-            Tween(BindBtn, {
-                BackgroundColor3 = AccentColor,
-                TextColor3 = Color3.fromRGB(255, 255, 255)
-            }, 0.2)
+        -- // Use InputBegan for more reliable click detection
+        BindBtn.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                if isWaiting then
+                    return
+                end
+                isWaiting = true
+                Window.BindMode = true
+                BindBtn.Text = "..."
+                Tween(BindBtn, {
+                    BackgroundColor3 = AccentColor,
+                    TextColor3 = Color3.fromRGB(255, 255, 255)
+                }, 0.2)
 
-            -- // Cancel bind mode if user presses Escape
-            local escapeConn
-            escapeConn = UserInputService.InputBegan:Connect(function(input)
-                if input.KeyCode == Enum.KeyCode.Escape then
-                    Window.BindMode = false
-                    isWaiting = false
-                    escapeConn:Disconnect()
-                    -- // If no bind was set, reset to "+" indicator
-                    if not Window.Binds[elementName] then
-                        BindBtn.Text = "+"
-                    else
-                        BindBtn.Text = string.sub(Window.Binds[elementName].Key.Name, 1, 4)
+                -- // Cancel bind mode if user presses Escape
+                local escapeConn
+                escapeConn = UserInputService.InputBegan:Connect(function(input)
+                    if input.KeyCode == Enum.KeyCode.Escape then
+                        Window.BindMode = false
+                        isWaiting = false
+                        escapeConn:Disconnect()
+                        -- // If no bind was set, reset to "+" indicator
+                        if not Window.Binds[elementName] then
+                            BindBtn.Text = "+"
+                        else
+                            BindBtn.Text = string.sub(Window.Binds[elementName].Key.Name, 1, 4)
+                        end
+                        Tween(BindBtn, {
+                            BackgroundColor3 = Color3.fromRGB(35, 35, 40),
+                            TextColor3 = SubTextColor
+                        }, 0.2)
                     end
+                end)
+
+                -- // Set the bind callback to receive the pressed key
+                Window.BindCallback = function(keyCode)
+                    isWaiting = false
+                    if escapeConn then
+                        escapeConn:Disconnect()
+                    end
+
+                    -- // Check if this key is already bound to another element
+                    for otherName, otherBind in pairs(Window.Binds) do
+                        if otherName ~= elementName and otherBind.Key == keyCode then
+                            -- // Unbind the old element
+                            Window.Binds[otherName] = nil
+                            -- // Reset the old element's bind icon to "+"
+                            if Window.ConfigElements[otherName] and Window.ConfigElements[otherName].BindIcon then
+                                Window.ConfigElements[otherName].BindIcon.Text = "+"
+                            end
+                        end
+                    end
+
+                    -- // Store the bind with the element's action callback
+                    Window.Binds[elementName] = {
+                        Key = keyCode,
+                        Callback = elementObj._bindCallback
+                    }
+
+                    -- // Update the bind icon text to show key name (truncated to 4 chars)
+                    BindBtn.Text = string.sub(keyCode.Name, 1, 4)
+                    BindBtn.Visible = true
                     Tween(BindBtn, {
                         BackgroundColor3 = Color3.fromRGB(35, 35, 40),
                         TextColor3 = SubTextColor
                     }, 0.2)
                 end
-            end)
-
-            -- // Set the bind callback to receive the pressed key
-            Window.BindCallback = function(keyCode)
-                isWaiting = false
-                if escapeConn then
-                    escapeConn:Disconnect()
-                end
-
-                -- // Check if this key is already bound to another element
-                for otherName, otherBind in pairs(Window.Binds) do
-                    if otherName ~= elementName and otherBind.Key == keyCode then
-                        -- // Unbind the old element
-                        Window.Binds[otherName] = nil
-                        -- // Reset the old element's bind icon to "+"
-                        if Window.ConfigElements[otherName] and Window.ConfigElements[otherName].BindIcon then
-                            Window.ConfigElements[otherName].BindIcon.Text = "+"
-                        end
-                    end
-                end
-
-                -- // Store the bind with the element's action callback
-                Window.Binds[elementName] = {
-                    Key = keyCode,
-                    Callback = elementObj._bindCallback
-                }
-
-                -- // Update the bind icon text to show key name (truncated to 4 chars)
-                BindBtn.Text = string.sub(keyCode.Name, 1, 4)
-                BindBtn.Visible = true
-                Tween(BindBtn, {
-                    BackgroundColor3 = Color3.fromRGB(35, 35, 40),
-                    TextColor3 = SubTextColor
-                }, 0.2)
-            end
+            end -- // Close if input.UserInputType
         end)
 
         -- // Hover effect
@@ -1923,7 +1926,7 @@ function Library:CreateWindow(options)
                     BtnObj._bindCallback = callback
 
                     -- // Create bind icon next to info icon
-                    local BindIcon = CreateBindIcon(BtnFrame, name, UDim2.new(1, -62, 0.5, -8), BtnObj)
+                    local BindIcon = CreateBindIcon(BtnFrame, name, UDim2.new(1, -72, 0.5, -8), BtnObj)
                     Window.ConfigElements[name] = Window.ConfigElements[name] or {}
                     Window.ConfigElements[name].BindIcon = BindIcon
 
@@ -2023,7 +2026,7 @@ function Library:CreateWindow(options)
                     end
 
                     -- // Create bind icon next to info icon
-                    local BindIcon = CreateBindIcon(TogFrame, name, UDim2.new(1, -90, 0.5, -8), TogObj)
+                    local BindIcon = CreateBindIcon(TogFrame, name, UDim2.new(1, -100, 0.5, -8), TogObj)
                     Window.ConfigElements[name].BindIcon = BindIcon
 
                     -- // :Bind(keyCode) — assign a key bind directly via API
