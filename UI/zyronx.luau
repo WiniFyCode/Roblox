@@ -680,16 +680,16 @@ function Library:CreateWindow(options)
     local function CreateBindIcon(parent, elementName, pos, elementObj)
         local BindBtn = Create("TextButton", {
             Parent = parent,
-            Text = "", -- // Show nothing by default (no bind yet)
+            Text = "+", -- // Show "+" to indicate bind button is clickable
             Font = Enum.Font.GothamBold,
-            TextSize = 9,
+            TextSize = 10,
             TextColor3 = SubTextColor,
             BackgroundColor3 = Color3.fromRGB(35, 35, 40),
             Size = UDim2.new(0, 24, 0, 16),
             Position = pos,
             AutoButtonColor = false,
             ZIndex = 5,
-            Visible = false -- // Hidden until a bind is set or user clicks to bind
+            Visible = true -- // Always visible so user can click to bind
         })
         Create("UICorner", {
             Parent = BindBtn,
@@ -724,9 +724,9 @@ function Library:CreateWindow(options)
                     Window.BindMode = false
                     isWaiting = false
                     escapeConn:Disconnect()
-                    -- // If no bind was set, hide the button
+                    -- // If no bind was set, reset to "+" indicator
                     if not Window.Binds[elementName] then
-                        BindBtn.Visible = false
+                        BindBtn.Text = "+"
                     else
                         BindBtn.Text = string.sub(Window.Binds[elementName].Key.Name, 1, 4)
                     end
@@ -749,10 +749,9 @@ function Library:CreateWindow(options)
                     if otherName ~= elementName and otherBind.Key == keyCode then
                         -- // Unbind the old element
                         Window.Binds[otherName] = nil
-                        -- // Update the old element's bind icon (hide it)
+                        -- // Reset the old element's bind icon to "+"
                         if Window.ConfigElements[otherName] and Window.ConfigElements[otherName].BindIcon then
-                            Window.ConfigElements[otherName].BindIcon.Visible = false
-                            Window.ConfigElements[otherName].BindIcon.Text = ""
+                            Window.ConfigElements[otherName].BindIcon.Text = "+"
                         end
                     end
                 end
@@ -1941,8 +1940,7 @@ function Library:CreateWindow(options)
                     -- // :Unbind() — remove the key bind
                     function BtnObj:Unbind()
                         Window.Binds[name] = nil
-                        BindIcon.Text = ""
-                        BindIcon.Visible = false
+                        BindIcon.Text = "+"
                     end
 
                     return BtnObj
@@ -2041,8 +2039,7 @@ function Library:CreateWindow(options)
                     -- // :Unbind() — remove the key bind
                     function TogObj:Unbind()
                         Window.Binds[name] = nil
-                        BindIcon.Text = ""
-                        BindIcon.Visible = false
+                        BindIcon.Text = "+"
                     end
 
                     -- // Expose Set/Get for config system
