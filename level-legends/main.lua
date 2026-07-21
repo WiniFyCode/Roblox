@@ -179,7 +179,7 @@ local function AutoFarmLoop()
 
     if target and target:FindFirstChild("HumanoidRootPart") then
         local targetHRP = target.HumanoidRootPart
-        local behindPos = targetHRP.CFrame * CFrame.new(0, 0, 6)
+        local behindPos = targetHRP.CFrame * CFrame.new(0, 0, 10)
         hrp.CFrame = behindPos
         local lookAt = Vector3.new(targetHRP.Position.X, hrp.Position.Y, targetHRP.Position.Z)
         hrp.CFrame = CFrame.new(hrp.Position, lookAt)
