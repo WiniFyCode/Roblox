@@ -301,11 +301,10 @@ local function UpdatePlayerESPInfo()
     end
     for plr, data in pairs(playerESPObjects) do
         if data.character and data.label then
-            local job = data.character:GetAttribute("job") or "N/A"
-            local level = data.character:GetAttribute("level") or "?"
-            local health = data.character:GetAttribute("health") or 0
-            local maxHealth = data.character:GetAttribute("max_health") or 0
-            local world = data.character:GetAttribute("world") or "N/A"
+            local level = plr:GetAttribute("level") or "?"
+            local health = plr:GetAttribute("health") or 0
+            local maxHealth = plr:GetAttribute("max_health") or 0
+            local world = plr:GetAttribute("world") or "N/A"
             data.label.Text = string.format(
                 "%s | %s | Lv.%s | %d/%d HP | %s",
                 plr.DisplayName,
