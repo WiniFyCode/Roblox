@@ -301,6 +301,7 @@ local function UpdatePlayerESPInfo()
     end
     for plr, data in pairs(playerESPObjects) do
         if data.character and data.label then
+            local job = plr:GetAttribute("job") or "N/A"
             local level = plr:GetAttribute("level") or "?"
             local health = plr:GetAttribute("health") or 0
             local maxHealth = plr:GetAttribute("max_health") or 0
@@ -413,7 +414,7 @@ end, {
 })
 
 -- ESP Mob Toggle
-CombatSection:AddToggle("ESP Highlight", false, function(state)
+CombatSection:AddToggle("Enemy ESP", false, function(state)
     _G.ESP = state
     if not state then
         for _, enemy in pairs(workspace.Enemies:GetChildren()) do
@@ -424,8 +425,8 @@ CombatSection:AddToggle("ESP Highlight", false, function(state)
         end
     end
 end, {
-    Title = "ESP Mob",
-    Description = "Red outline around mobs, visible through walls."
+    Title = "Enemy ESP",
+    Description = "Red outline around enemies, visible through walls."
 })
 
 -- ESP Player Toggle
