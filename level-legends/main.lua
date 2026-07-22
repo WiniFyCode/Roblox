@@ -146,7 +146,11 @@ local function AutoAttackLoop()
         end
     end
 
-    if target then
+    if target and target:FindFirstChild("HumanoidRootPart") then
+        -- Face towards enemy
+        local targetPos = target.HumanoidRootPart.Position
+        local lookAt = Vector3.new(targetPos.X, hrp.Position.Y, targetPos.Z)
+        hrp.CFrame = CFrame.new(hrp.Position, lookAt)
         ExecuteAttack()
     end
 end
