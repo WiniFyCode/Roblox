@@ -55,6 +55,7 @@ end
 
 _G.InstantKill = false
 _G.AutoFarm = false
+_G.AutoAttack = false
 _G.AutoCollect = false
 _G.SelectedEnemies = {}
 _G.FarmAll = false
@@ -79,16 +80,20 @@ end)
 
 -- ===== AUTO COLLECT DROPS =====
 local function AutoCollectDrops()
-    if not _G.AutoCollect then return end
+    if not _G.AutoCollect then
+        return
+    end
     local drops = workspace:FindFirstChild("Drops")
-    if not drops then return end
+    if not drops then
+        return
+    end
 
     for _, drop in pairs(drops:GetChildren()) do
         local prompt = drop:FindFirstChildWhichIsA("ProximityPrompt")
         if prompt then
             fireproximityprompt(prompt)
         end
-        
+
         if NetworkAPI then
             local network = require(NetworkAPI)
             network.SendServer("drop_pickup", drop.Name)
@@ -116,6 +121,33 @@ local function ExecuteAttack()
         end
         lastAttackTime = now
         AttackFunc()
+    end
+end
+
+-- ===== AUTO ATTACK LOOP (no teleport) =====
+local function AutoAttackLoop()
+    if not _G.AutoAttack then return end
+    local character = Player.Character
+    if not character then return end
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local nearestDist = math.huge
+    local target = nil
+    for _, enemy in pairs(workspace.Enemies:GetChildren()) do
+        local eHum = enemy:FindFirstChildOfClass("Humanoid")
+        local eHRP = enemy:FindFirstChild("HumanoidRootPart")
+        if eHum and eHum.Health > 0 and eHRP then
+            local dist = (hrp.Position - eHRP.Position).Magnitude
+            if dist < nearestDist then
+                nearestDist = dist
+                target = enemy
+            end
+        end
+    end
+
+    if target then
+        ExecuteAttack()
     end
 end
 
@@ -297,6 +329,9 @@ RunService.Heartbeat:Connect(function()
     if _G.InstantKill then
         DoInstantKill()
     end
+    if _G.AutoAttack then
+        AutoAttackLoop()
+    end
     if _G.AutoFarm then
         AutoFarmLoop()
     end
@@ -322,6 +357,14 @@ CombatSection:AddToggle("Auto Farm", false, function(state)
 end, {
     Title = "Auto Farm",
     Description = "Auto teleport behind enemy, click attack + skill."
+})
+
+-- Auto Attack Toggle (no teleport)
+CombatSection:AddToggle("Auto Attack", false, function(state)
+    _G.AutoAttack = state
+end, {
+    Title = "Auto Attack",
+    Description = "Attack nearest enemy without teleporting."
 })
 
 -- Farm All Toggle
@@ -412,7 +455,11 @@ _G.AutoRaid = false
 DungeonSection:AddToggle("Auto Tower", false, function(state)
     _G.AutoTower = state
     if state then
-        Library:Notify({Title = "Auto Tower", Description = "Auto farming tower floors.", Duration = 2})
+        Library:Notify({
+            Title = "Auto Tower",
+            Description = "Auto farming tower floors.",
+            Duration = 2
+        })
         task.spawn(function()
             while _G.AutoTower do
                 local network = require(NetworkAPI)
@@ -421,7 +468,10 @@ DungeonSection:AddToggle("Auto Tower", false, function(state)
             end
         end)
     end
-end, {Title = "Auto Tower", Description = "Auto farming tower floors."})
+end, {
+    Title = "Auto Tower",
+    Description = "Auto farming tower floors."
+})
 
 -- Auto Raid
 _G.SelectedRaid = "Throne Room"
@@ -437,16 +487,23 @@ end, {
 DungeonSection:AddToggle("Auto Raid", false, function(state)
     _G.AutoRaid = state
     if state then
-        Library:Notify({Title = "Auto Raid", Description = "Auto entering: " .. _G.SelectedRaid, Duration = 2})
+        Library:Notify({
+            Title = "Auto Raid",
+            Description = "Auto entering: " .. _G.SelectedRaid,
+            Duration = 2
+        })
         task.spawn(function()
             while _G.AutoRaid do
                 local network = require(NetworkAPI)
-                network.SendServer("raid_enter", _G.SelectedRaid) 
+                network.SendServer("raid_enter", _G.SelectedRaid)
                 task.wait(20)
             end
         end)
     end
-end, {Title = "Auto Raid", Description = "Auto entering selected raid."})
+end, {
+    Title = "Auto Raid",
+    Description = "Auto entering selected raid."
+})
 
 -- ===== SUMMON TAB =====
 local SummonTab = Window:CreateTab("Summon", false, false)
@@ -469,7 +526,11 @@ end, {
 SummonSection:AddToggle("Auto Summon", false, function(state)
     _G.AutoSummon = state
     if state then
-        Library:Notify({Title = "Auto Summon", Description = "Auto summoning from: " .. _G.SelectedSummonWorld, Duration = 2})
+        Library:Notify({
+            Title = "Auto Summon",
+            Description = "Auto summoning from: " .. _G.SelectedSummonWorld,
+            Duration = 2
+        })
         task.spawn(function()
             local network = require(NetworkAPI)
             network.SendServer("summon_auto", _G.SelectedSummonWorld)
@@ -483,10 +544,19 @@ SummonSection:AddToggle("Auto Summon", false, function(state)
         local network = require(NetworkAPI)
         network.SendServer("summon_auto", nil)
     end
-end, {Title = "Auto Summon", Description = "Auto open 10x summon continuously."})
+end, {
+    Title = "Auto Summon",
+    Description = "Auto open 10x summon continuously."
+})
 
 -- Auto Sell: toggle theo rarity
-local autoSellStates = {Basic = false, Rare = false, Epic = false, Legendary = false, Mythic = false}
+local autoSellStates = {
+    Basic = false,
+    Rare = false,
+    Epic = false,
+    Legendary = false,
+    Mythic = false
+}
 
 local function ToggleAutoSell(rarity)
     return function(state)
